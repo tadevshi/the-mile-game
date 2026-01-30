@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+@layer base {
+  body {
+    @apply font-sans antialiased;
+    min-height: max(884px, 100dvh);
+  }
+}
+
+@layer components {
+  /* Glassmorphism - usado en cards y ranking */
+  .glass-card {
+    @apply backdrop-blur-md;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .dark .glass-card {
+    background: rgba(30, 25, 26, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Fondo watercolor - usado en bienvenida */
+  .watercolor-bg {
+    background: 
+      radial-gradient(circle at 10% 20%, rgba(244, 143, 177, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(244, 143, 177, 0.15) 0%, transparent 40%);
+  }
+
+  /* Fondo butterfly - usado en quiz */
+  .butterfly-bg {
+    background-image: 
+      radial-gradient(circle at 10% 20%, rgba(249, 168, 212, 0.1) 0%, transparent 20%),
+      radial-gradient(circle at 90% 80%, rgba(249, 168, 212, 0.1) 0%, transparent 20%);
+  }
+
+  /* Inputs estilo Material Design */
+  .input-material {
+    @apply bg-transparent border-0 border-b border-primary/50 py-1 px-0 focus:ring-0 focus:outline-none focus:border-accent transition-colors;
+  }
+
+  .input-material::placeholder {
+    @apply text-pink-200 dark:text-pink-900;
+  }
+
+  /* Sparkle dots para decoración */
+  .sparkle-dot {
+    @apply absolute rounded-full bg-white opacity-60;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  }
+}
+
+@layer utilities {
+  /* Gradientes de texto */
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+}
