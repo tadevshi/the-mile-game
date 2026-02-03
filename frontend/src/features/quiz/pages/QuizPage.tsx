@@ -26,10 +26,9 @@ const preferenceQuestions = [
 
 export function QuizPage() {
   const navigate = useNavigate();
-  
+
   // Zustand store - seleccionamos solo lo que necesitamos
   const answers = useQuizStore((state) => state.answers);
-  const score = useQuizStore((state) => state.score);
   const playerName = useQuizStore((state) => state.playerName);
   const setFavoriteAnswer = useQuizStore((state) => state.setFavoriteAnswer);
   const setPreferenceAnswer = useQuizStore((state) => state.setPreferenceAnswer);
@@ -37,11 +36,6 @@ export function QuizPage() {
   const calculateScore = useQuizStore((state) => state.calculateScore);
   const setCompleted = useQuizStore((state) => state.setCompleted);
   const updateRankingScore = useRankingStore((state) => state.updateCurrentPlayerScore);
-
-  // Calcular puntaje en tiempo real cuando cambian las respuestas
-  useEffect(() => {
-    calculateScore();
-  }, [answers, calculateScore]);
 
   // Si no hay nombre de jugador, redirigir a registro
   useEffect(() => {
@@ -51,15 +45,18 @@ export function QuizPage() {
   }, [playerName, navigate]);
 
   const handleSubmit = () => {
-    // Calcular puntaje final
+    // Calcular puntaje final (solo al enviar)
     calculateScore();
-    
+
+    // Obtener el score actualizado del store
+    const currentScore = useQuizStore.getState().score;
+
     // Actualizar ranking con el puntaje
-    updateRankingScore(score);
-    
+    updateRankingScore(currentScore);
+
     // Marcar como completado
     setCompleted(true);
-    
+
     navigate('/thank-you');
   };
 
@@ -143,8 +140,8 @@ export function QuizPage() {
             />
           </section>
 
-          {/* Botón enviar + Puntaje */}
-          <div className="pt-4 space-y-4">
+          {/* Botón enviar - Sin mostrar puntaje */}
+          <div className="pt-4">
             <Button
               variant="primary"
               size="lg"
@@ -154,15 +151,6 @@ export function QuizPage() {
             >
               Enviar Respuestas
             </Button>
-
-            <div className="flex items-center justify-center space-x-4">
-              <span className="font-serif text-lg text-slate-600 dark:text-slate-300">
-                Puntaje actual:
-              </span>
-              <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center font-bold text-accent text-xl border-2 border-primary">
-                {score}
-              </div>
-            </div>
           </div>
         </div>
       </div>
