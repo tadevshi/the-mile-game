@@ -1,0 +1,30 @@
+{
+  "status": "bootstrapped",
+  "scope": "codebase",
+  "type": "frontend",
+  "localEndpoint": "http://localhost:5173/",
+  "serverPort": 40963,
+  "bootstrappedAt": "2026-02-03T16:31:00.000Z",
+  "testFramework": "playwright",
+  "testEnvironment": "vite-dev-server",
+  "projectType": "react-typescript-vite",
+  "features": [
+    "quiz",
+    "ranking"
+  ],
+  "pages": [
+    "/",
+    "/register",
+    "/quiz",
+    "/thank-you",
+    "/ranking"
+  ],
+  "testFiles": [
+    "testsprite_tests/navigation.spec.ts",
+    "testsprite_tests/welcome.spec.ts",
+    "testsprite_tests/register.spec.ts",
+    "testsprite_tests/quiz.spec.ts",
+    "testsprite_tests/zustand.spec.ts",
+    "testsprite_tests/routing.spec.ts"
+  ]
+}

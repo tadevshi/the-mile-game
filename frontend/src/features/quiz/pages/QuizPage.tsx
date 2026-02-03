@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, TextArea, Header, PageLayout } from '@/shared';
+import { useQuizStore } from '../store/quizStore';
+import { useRankingStore } from '@features/ranking/store/rankingStore';
 
 // Preguntas del quiz
 const favoriteQuestions = [
@@ -25,22 +27,39 @@ const preferenceQuestions = [
 export function QuizPage() {
   const navigate = useNavigate();
   
-  // Estado para todas las respuestas
-  const [favorites, setFavorites] = useState<Record<string, string>>({});
-  const [preferences, setPreferences] = useState<Record<string, string>>({});
-  const [description, setDescription] = useState('');
+  // Zustand store - seleccionamos solo lo que necesitamos
+  const answers = useQuizStore((state) => state.answers);
+  const score = useQuizStore((state) => state.score);
+  const playerName = useQuizStore((state) => state.playerName);
+  const setFavoriteAnswer = useQuizStore((state) => state.setFavoriteAnswer);
+  const setPreferenceAnswer = useQuizStore((state) => state.setPreferenceAnswer);
+  const setDescription = useQuizStore((state) => state.setDescription);
+  const calculateScore = useQuizStore((state) => state.calculateScore);
+  const setCompleted = useQuizStore((state) => state.setCompleted);
+  const updateRankingScore = useRankingStore((state) => state.updateCurrentPlayerScore);
 
-  const handleFavoriteChange = (id: string, value: string) => {
-    setFavorites((prev) => ({ ...prev, [id]: value }));
-  };
+  // Calcular puntaje en tiempo real cuando cambian las respuestas
+  useEffect(() => {
+    calculateScore();
+  }, [answers, calculateScore]);
 
-  const handlePreferenceChange = (id: string, value: string) => {
-    setPreferences((prev) => ({ ...prev, [id]: value }));
-  };
+  // Si no hay nombre de jugador, redirigir a registro
+  useEffect(() => {
+    if (!playerName) {
+      navigate('/register');
+    }
+  }, [playerName, navigate]);
 
   const handleSubmit = () => {
-    // Aquí enviaremos las respuestas al backend
-    console.log({ favorites, preferences, description });
+    // Calcular puntaje final
+    calculateScore();
+    
+    // Actualizar ranking con el puntaje
+    updateRankingScore(score);
+    
+    // Marcar como completado
+    setCompleted(true);
+    
     navigate('/thank-you');
   };
 
@@ -52,7 +71,7 @@ export function QuizPage() {
           <div className="text-center">
             <Header
               title="¡Juguemos!"
-              subtitle="¿Quién conoce más a la cumpleañera?"
+              subtitle={`¿Qué tanto conoces a Mile, ${playerName}?`}
               size="md"
               decoration="dots"
             />
@@ -65,8 +84,8 @@ export function QuizPage() {
                 key={q.id}
                 label={q.label}
                 placeholder="Escribe aquí..."
-                value={favorites[q.id] || ''}
-                onChange={(e) => handleFavoriteChange(q.id, e.target.value)}
+                value={answers.favorites[q.id] || ''}
+                onChange={(e) => setFavoriteAnswer(q.id, e.target.value)}
               />
             ))}
           </section>
@@ -91,9 +110,9 @@ export function QuizPage() {
                     {q.options.map((opt) => (
                       <button
                         key={opt}
-                        onClick={() => handlePreferenceChange(q.id, opt)}
+                        onClick={() => setPreferenceAnswer(q.id, opt)}
                         className={`w-8 h-8 rounded-full border-2 transition-all ${
-                          preferences[q.id] === opt
+                          answers.preferences[q.id] === opt
                             ? 'bg-accent border-accent scale-110'
                             : 'border-primary hover:bg-primary/20'
                         }`}
@@ -118,13 +137,13 @@ export function QuizPage() {
 
             <TextArea
               placeholder="Eres una persona..."
-              value={description}
+              value={answers.description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
           </section>
 
-          {/* Botón enviar */}
+          {/* Botón enviar + Puntaje */}
           <div className="pt-4 space-y-4">
             <Button
               variant="primary"
@@ -136,12 +155,12 @@ export function QuizPage() {
               Enviar Respuestas
             </Button>
 
-            <div className="flex items-center justify-center space-x-4 opacity-70">
+            <div className="flex items-center justify-center space-x-4">
               <span className="font-serif text-lg text-slate-600 dark:text-slate-300">
-                Total puntos:
+                Puntaje actual:
               </span>
-              <div className="w-12 h-12 border-2 border-dashed border-primary rounded-full flex items-center justify-center font-bold text-accent text-xl">
-                ?
+              <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center font-bold text-accent text-xl border-2 border-primary">
+                {score}
               </div>
             </div>
           </div>

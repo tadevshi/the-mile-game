@@ -1,19 +1,38 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Header, PageLayout, Card } from '@/shared';
+import { useQuizStore } from '../store/quizStore';
+import { useRankingStore } from '@features/ranking/store/rankingStore';
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
   const [error, setError] = useState('');
+  
+  // Zustand stores
+  const setStorePlayerName = useQuizStore((state) => state.setPlayerName);
+  const addRankingPlayer = useRankingStore((state) => state.addPlayer);
+  const resetQuiz = useQuizStore((state) => state.resetQuiz);
 
   const handleStart = () => {
     if (!playerName.trim()) {
       setError('Por favor ingresa tu nombre');
       return;
     }
-    // Guardar nombre (después lo conectamos con Zustand)
-    localStorage.setItem('playerName', playerName);
+    
+    // Resetear quiz por si acaso
+    resetQuiz();
+    
+    // Guardar en store de quiz
+    setStorePlayerName(playerName);
+    
+    // Agregar al ranking (inicialmente con score 0)
+    addRankingPlayer({
+      name: playerName,
+      score: 0,
+      avatar: '👤',
+    });
+    
     navigate('/quiz');
   };
 
