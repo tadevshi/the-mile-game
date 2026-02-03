@@ -1,5 +1,66 @@
-/node_modules
-/dist
-/anexus
+# Backend
+/backend/main
+/backend/*.exe
+/backend/*.dll
+/backend/*.so
+/backend/*.dylib
+/backend/*.test
+/backend/*.out
+/backend/.env
+/backend/vendor/
 
+# Frontend
+/frontend/node_modules/
+/frontend/dist/
+/frontend/dist-ssr/
+/frontend/*.local
+/frontend/.env
+/frontend/.env.local
+/frontend/.env.*.local
+/frontend/coverage/
+/frontend/test-results/
+/frontend/playwright-report/
+
+# Docker
 .env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+/temp/
+
+# Build artifacts
+/build/
+/dist/
+/out/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Testing
+*.cover
+*.coverage
+/coverage/
+
+# Misc
+.DS_Store
+Thumbs.db
+
+/anexus

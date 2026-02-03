@@ -98,14 +98,26 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 		return
 	}
 
-	// Guardar respuestas
-	if err := h.quizRepo.SaveAnswers(playerID, req.Favorites, req.Preferences, req.Description); err != nil {
+	// Obtener el normalizador desde el scorer
+	normalizer := h.scorer.GetNormalizer()
+
+	// Normalizar las respuestas de favoritos antes de guardar
+	normalizedFavorites := h.scorer.NormalizeFavorites(req.Favorites)
+
+	// Normalizar las respuestas de preferencias
+	normalizedPreferences := h.scorer.NormalizePreferences(req.Preferences)
+
+	// Sanitizar la descripción (no eliminar artículos, solo limpiar)
+	sanitizedDescription := normalizer.SanitizeDescription(req.Description)
+
+	// Guardar respuestas NORMALIZADAS
+	if err := h.quizRepo.SaveAnswers(playerID, normalizedFavorites, normalizedPreferences, sanitizedDescription); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save answers"})
 		return
 	}
 
-	// Calcular puntaje
-	score := h.scorer.Calculate(req.Favorites, req.Preferences)
+	// Calcular puntaje usando las respuestas YA NORMALIZADAS
+	score := h.scorer.Calculate(normalizedFavorites, normalizedPreferences)
 
 	// Actualizar puntaje del jugador
 	if err := h.playerRepo.UpdateScore(playerID, score); err != nil {
