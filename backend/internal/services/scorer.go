@@ -14,22 +14,22 @@ func NewScorer() *Scorer {
 	// Definir respuestas correctas y normalizarlas inmediatamente
 	// Estas son las respuestas que Mile ha definido como correctas
 	rawFavorites := map[string]string{
-		"singer":  "Taylor Swift",
-		"flower":  "Rosa",
-		"drink":   "Café",
-		"disney":  "La Sirenita",
-		"season":  "Primavera",
-		"color":   "Rosa",
-		"dislike": "El desorden",
+		"singer":  "ricardo arjona",
+		"flower":  "girasol",
+		"drink":   "te verde",
+		"disney":  "la bella y la bestia",
+		"season":  "primavera",
+		"color":   "rosado",
+		"dislike": "las arañas",
 	}
 
 	rawPreferences := map[string]string{
-		"coffee":  "Café",
-		"place":   "Playa",
-		"weather": "Calor",
-		"time":    "Noche",
-		"food":    "Sushi",
-		"drink":   "Vino",
+		"coffee":  "te",
+		"place":   "playa",
+		"weather": "frio",
+		"time":    "noche",
+		"food":    "sushi",
+		"drink":   "tequila",
 	}
 
 	// Normalizar las respuestas correctas para almacenarlas
