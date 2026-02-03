@@ -1,4 +1,6 @@
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card } from '@/shared';
 import { useRankingStore } from '../store/rankingStore';
 
@@ -20,12 +22,65 @@ const podiumHeights: Record<number, string> = {
   3: 'h-16',
 };
 
+// Variantes de animación
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut" as const,
+    },
+  },
+};
+
+const podiumVariants = {
+  hidden: { opacity: 0, scale: 0.8, y: 50 },
+  visible: (position: number) => ({
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 200,
+      damping: 20,
+      delay: position === 1 ? 0.3 : position === 2 ? 0.2 : 0.4,
+    },
+  }),
+};
+
 export function RankingPage() {
   const navigate = useNavigate();
-  
-  // Obtener ranking ordenado del store
-  const sortedRanking = useRankingStore((state) => state.getSortedRanking());
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Obtener datos del store (sin llamar a funciones que muten arrays)
+  const players = useRankingStore((state) => state.players);
   const currentPlayerId = useRankingStore((state) => state.currentPlayerId);
+
+  // Ordenar jugadores usando useMemo para evitar recrear el array en cada render
+  const sortedRanking = useMemo(() => {
+    return [...players].sort((a, b) => b.score - a.score);
+  }, [players]);
+
+  // Esperar a que el store se rehidrate desde localStorage
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Separar top 3 del resto
   const top3 = sortedRanking.slice(0, 3).map((player, index) => ({
@@ -33,40 +88,107 @@ export function RankingPage() {
     position: index + 1,
     medal: index === 0 ? 'gold' : index === 1 ? 'silver' : 'bronze',
   }));
-  
+
   // Reordenar para mostrar: 2do, 1ro, 3ro en el podio
   const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
-  
+
   const restOfPlayers = sortedRanking.slice(3);
+
+  // Si está cargando, mostrar spinner
+  if (isLoading) {
+    return (
+      <PageLayout background="watercolor" showSparkles={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <motion.div
+            className="text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <div className="text-4xl mb-4">🏆</div>
+            <p className="font-serif text-slate-500">Cargando ranking...</p>
+          </motion.div>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Si no hay jugadores, mostrar mensaje
+  if (players.length === 0) {
+    return (
+      <PageLayout background="watercolor" showSparkles={false}>
+        <div className="min-h-screen flex flex-col items-center justify-center px-6">
+          <div className="text-center max-w-md space-y-6">
+            <div className="text-6xl mb-4">🎮</div>
+            <h1 className="font-display text-3xl text-accent mb-4">
+              Aún no hay jugadores
+            </h1>
+            <p className="font-serif text-slate-600 mb-6">
+              ¡Sé el primero en jugar y aparecer en el ranking!
+            </p>
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              onClick={() => navigate('/')}
+            >
+              Empezar a Jugar
+            </Button>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout background="watercolor" showSparkles={false}>
-      <div className="min-h-screen px-6 py-8">
+      <motion.div
+        className="min-h-screen px-6 py-8"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
         <div className="max-w-md mx-auto space-y-6">
           {/* Header */}
-          <div className="text-center">
+          <motion.div variants={itemVariants} className="text-center">
             <Header
               title="Ranking"
               subtitle="¡Felicidades!"
               size="md"
               decoration="lines"
             />
-          </div>
+          </motion.div>
 
           {/* Podio Top 3 */}
           {top3.length > 0 && (
-            <div className="flex items-end justify-center gap-4 h-48">
+            <motion.div
+              className="flex items-end justify-center gap-4 h-48"
+              initial="hidden"
+              animate="visible"
+            >
               {podiumOrder.map((player) => (
-                <div key={player.id} className="flex flex-col items-center">
+                <motion.div
+                  key={player.id}
+                  className="flex flex-col items-center"
+                  variants={podiumVariants}
+                  custom={player.position}
+                >
                   {/* Avatar */}
-                  <div className="relative mb-2">
+                  <motion.div
+                    className="relative mb-2"
+                    whileHover={{ scale: 1.1, y: -5 }}
+                    transition={{ type: 'spring' as const, stiffness: 300 }}
+                  >
                     {player.position === 1 && (
-                      <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl">
+                      <motion.span
+                        className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl"
+                        animate={{ rotate: [0, 15, -15, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                      >
                         👑
-                      </span>
+                      </motion.span>
                     )}
                     <div
-                      className={`w-${player.position === 1 ? '20' : '16'} h-${player.position === 1 ? '20' : '16'} rounded-full border-4 ${medalColors[player.medal]} p-1 bg-white dark:bg-slate-800 shadow-lg ${player.position === 1 ? 'scale-110' : ''}`}
+                      className={`w-16 h-16 rounded-full border-4 ${medalColors[player.medal]} p-1 bg-white dark:bg-slate-800 shadow-lg ${player.position === 1 ? 'scale-110' : ''}`}
                     >
                       <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-2xl">
                         {player.avatar}
@@ -78,46 +200,57 @@ export function RankingPage() {
                     >
                       {player.position}º
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* Base del podio */}
-                  <div
+                  <motion.div
                     className={`${podiumHeights[player.position]} w-20 glass-card rounded-t-xl flex flex-col items-center justify-center shadow-inner`}
+                    initial={{ height: 0 }}
+                    animate={{ height: player.position === 1 ? 112 : player.position === 2 ? 80 : 64 }}
+                    transition={{ type: 'spring' as const, stiffness: 100, delay: 0.5 }}
                   >
                     <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase">
                       {player.name}
                     </p>
-                    <p className={`font-serif font-bold text-primary ${player.position === 1 ? 'text-2xl' : 'text-lg'}`}>
+                    <p
+                      className={`font-serif font-bold text-primary ${player.position === 1 ? 'text-2xl' : 'text-lg'}`}
+                    >
                       {player.score}
                     </p>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
 
           {/* Lista de participantes */}
-          <div className="flex-grow space-y-3">
-            <div className="flex items-center justify-between px-4 mb-2">
+          <motion.div className="flex-grow space-y-3" variants={containerVariants}>
+            <motion.div
+              className="flex items-center justify-between px-4 mb-2"
+              variants={itemVariants}
+            >
               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                 Participante
               </span>
               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                 Puntos
               </span>
-            </div>
+            </motion.div>
 
             {/* Resto de jugadores */}
             {restOfPlayers.map((player, index) => {
               const position = index + 4;
               const isCurrentPlayer = player.id === currentPlayerId;
-              
+
               if (isCurrentPlayer) {
                 // Jugador actual destacado
                 return (
-                  <div
+                  <motion.div
                     key={player.id}
                     className="bg-primary/10 border-2 border-primary/30 rounded-2xl p-4 flex items-center shadow-md relative overflow-hidden"
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.02, x: 5 }}
+                    layout
                   >
                     <div className="absolute top-0 right-0 p-1 bg-primary text-white text-[8px] font-bold rounded-bl-lg">
                       TÚ
@@ -136,53 +269,52 @@ export function RankingPage() {
                     <div className="text-primary font-bold font-serif text-xl">
                       {player.score}
                     </div>
-                  </div>
+                  </motion.div>
                 );
               }
-              
+
               return (
-                <Card
-                  key={player.id}
-                  variant="glass"
-                  padding="sm"
-                  className="flex items-center"
-                >
-                  <div className="w-8 font-serif font-bold text-slate-400 text-center">
-                    {position}
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-xl ml-2 mr-4">
-                    {player.avatar}
-                  </div>
-                  <div className="flex-grow">
-                    <p className="font-serif text-slate-700 dark:text-slate-200 font-semibold">
-                      {player.name}
-                    </p>
-                  </div>
-                  <div className="text-primary font-bold font-serif text-lg">
-                    {player.score}
-                  </div>
-                </Card>
+                <motion.div key={player.id} variants={itemVariants} whileHover={{ scale: 1.02, x: 5 }}>
+                  <Card variant="glass" padding="sm" className="flex items-center">
+                    <div className="w-8 font-serif font-bold text-slate-400 text-center">
+                      {position}
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-xl ml-2 mr-4">
+                      {player.avatar}
+                    </div>
+                    <div className="flex-grow">
+                      <p className="font-serif text-slate-700 dark:text-slate-200 font-semibold">
+                        {player.name}
+                      </p>
+                    </div>
+                    <div className="text-primary font-bold font-serif text-lg">
+                      {player.score}
+                    </div>
+                  </Card>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
 
           {/* Footer */}
-          <div className="mt-auto pt-6 text-center space-y-4">
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              icon={<span>🏠</span>}
-              onClick={() => navigate('/')}
-            >
-              Volver al inicio
-            </Button>
+          <motion.div className="mt-auto pt-6 text-center space-y-4" variants={itemVariants}>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                icon={<span>🏠</span>}
+                onClick={() => navigate('/')}
+              >
+                Volver al inicio
+              </Button>
+            </motion.div>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-semibold">
               Creciendo con magia • 2024
             </p>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </PageLayout>
   );
 }
