@@ -5,16 +5,16 @@ services:
     image: postgres:15-alpine
     container_name: milegame-db
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: milegame
+      POSTGRES_USER: ${DB_USER:-user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-milegame}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d
     networks:
       - milegame-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d milegame"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-user} -d ${DB_NAME:-milegame}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -25,13 +25,14 @@ services:
       dockerfile: Dockerfile
     container_name: milegame-api
     environment:
-      PORT: 8080
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: user
-      DB_PASSWORD: password
-      DB_NAME: milegame
-      GIN_MODE: release
+      PORT: ${BACKEND_PORT:-8080}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-user}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_NAME: ${DB_NAME:-milegame}
+      GIN_MODE: ${GIN_MODE:-release}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000,http://localhost:8081,http://localhost}
     networks:
       - milegame-network
     depends_on:
@@ -39,7 +40,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:${BACKEND_PORT:-8080}/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,7 +51,7 @@ services:
       dockerfile: Dockerfile
     container_name: milegame-web
     ports:
-      - "8081:80"
+      - "${FRONTEND_PORT:-8081}:80"
     networks:
       - milegame-network
     depends_on:
