@@ -46,9 +46,12 @@ func main() {
 	config.AllowOrigins = []string{
 		"http://localhost:5173",
 		"http://localhost:3000",
+		"http://localhost:8081",
+		"http://localhost",
 	}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "X-Player-ID"}
+	config.AllowCredentials = true
 	r.Use(cors.New(config))
 
 	// Rutas API

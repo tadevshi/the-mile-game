@@ -8,11 +8,11 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: milegame
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - milegame-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d milegame"]
       interval: 5s
@@ -32,12 +32,40 @@ services:
       DB_PASSWORD: password
       DB_NAME: milegame
       GIN_MODE: release
-    ports:
-      - "8080:8080"
+    networks:
+      - milegame-network
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: milegame-web
+    ports:
+      - "8081:80"
+    networks:
+      - milegame-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  milegame-network:
+    driver: bridge
 
 volumes:
   postgres_data:

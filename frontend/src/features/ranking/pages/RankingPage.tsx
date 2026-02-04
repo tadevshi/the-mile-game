@@ -1,8 +1,8 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card } from '@/shared';
-import { useRankingStore } from '../store/rankingStore';
+import { api, type RankingEntry } from '@/shared/lib/api';
 
 const medalColors: Record<string, string> = {
   gold: 'border-gold',
@@ -64,35 +64,49 @@ const podiumVariants = {
 export function RankingPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [ranking, setRanking] = useState<RankingEntry[]>([]);
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
 
-  // Obtener datos del store (sin llamar a funciones que muten arrays)
-  const players = useRankingStore((state) => state.players);
-  const currentPlayerId = useRankingStore((state) => state.currentPlayerId);
-
-  // Ordenar jugadores usando useMemo para evitar recrear el array en cada render
-  const sortedRanking = useMemo(() => {
-    return [...players].sort((a, b) => b.score - a.score);
-  }, [players]);
-
-  // Esperar a que el store se rehidrate desde localStorage
+  // Cargar ranking desde el API
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 100);
-    return () => clearTimeout(timer);
+    const loadRanking = async () => {
+      try {
+        setIsLoading(true);
+        const data = await api.getRanking();
+        setRanking(data);
+        
+        // Obtener el ID del jugador actual del API client
+        const playerId = api.getPlayerId();
+        setCurrentPlayerId(playerId);
+        
+        setError('');
+      } catch (err) {
+        console.error('Error loading ranking:', err);
+        setError('Error al cargar el ranking. Intenta de nuevo.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRanking();
+    
+    // Recargar cada 30 segundos para mantener actualizado
+    const interval = setInterval(loadRanking, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // Separar top 3 del resto
-  const top3 = sortedRanking.slice(0, 3).map((player, index) => ({
-    ...player,
-    position: index + 1,
-    medal: index === 0 ? 'gold' : index === 1 ? 'silver' : 'bronze',
+  const top3 = ranking.slice(0, 3).map((entry) => ({
+    ...entry.player,
+    position: entry.position,
+    medal: entry.position === 1 ? 'gold' : entry.position === 2 ? 'silver' : 'bronze',
   }));
 
   // Reordenar para mostrar: 2do, 1ro, 3ro en el podio
   const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
 
-  const restOfPlayers = sortedRanking.slice(3);
+  const restOfPlayers = ranking.slice(3);
 
   // Si está cargando, mostrar spinner
   if (isLoading) {
@@ -112,8 +126,35 @@ export function RankingPage() {
     );
   }
 
+  // Si hay error
+  if (error) {
+    return (
+      <PageLayout background="watercolor" showSparkles={false}>
+        <div className="min-h-screen flex flex-col items-center justify-center px-6">
+          <div className="text-center max-w-md space-y-6">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h1 className="font-display text-3xl text-accent mb-4">
+              Error
+            </h1>
+            <p className="font-serif text-slate-600 mb-6">
+              {error}
+            </p>
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              onClick={() => window.location.reload()}
+            >
+              Reintentar
+            </Button>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
   // Si no hay jugadores, mostrar mensaje
-  if (players.length === 0) {
+  if (ranking.length === 0) {
     return (
       <PageLayout background="watercolor" showSparkles={false}>
         <div className="min-h-screen flex flex-col items-center justify-center px-6">
@@ -238,8 +279,8 @@ export function RankingPage() {
             </motion.div>
 
             {/* Resto de jugadores */}
-            {restOfPlayers.map((player, index) => {
-              const position = index + 4;
+            {restOfPlayers.map((entry) => {
+              const player = entry.player;
               const isCurrentPlayer = player.id === currentPlayerId;
 
               if (isCurrentPlayer) {
@@ -256,7 +297,7 @@ export function RankingPage() {
                       TÚ
                     </div>
                     <div className="w-8 font-serif font-bold text-primary text-center">
-                      {position}
+                      {entry.position}
                     </div>
                     <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-xl ml-2 mr-4 border border-primary">
                       {player.avatar}
@@ -277,7 +318,7 @@ export function RankingPage() {
                 <motion.div key={player.id} variants={itemVariants} whileHover={{ scale: 1.02, x: 5 }}>
                   <Card variant="glass" padding="sm" className="flex items-center">
                     <div className="w-8 font-serif font-bold text-slate-400 text-center">
-                      {position}
+                      {entry.position}
                     </div>
                     <div className="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-xl ml-2 mr-4">
                       {player.avatar}
