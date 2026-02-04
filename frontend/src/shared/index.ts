@@ -7,3 +7,13 @@ export { Header } from './components/Header';
 export { PageLayout } from './components/PageLayout';
 export { PageTransition, fadeInUp, staggerContainer } from './components/PageTransition';
 export { ConfettiEffect, fireConfetti } from './components/Confetti';
+
+// API Client
+export { api } from './lib/api';
+export type { 
+  Player, 
+  RankingEntry, 
+  CreatePlayerRequest, 
+  SubmitQuizRequest, 
+  SubmitQuizResponse 
+} from './lib/api';

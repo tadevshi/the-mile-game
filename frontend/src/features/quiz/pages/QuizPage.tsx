@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, TextArea, Header, PageLayout } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
-import { useRankingStore } from '@features/ranking/store/rankingStore';
+import { api } from '@/shared/lib/api';
 
 // Preguntas del quiz
 const favoriteQuestions = [
@@ -26,6 +26,8 @@ const preferenceQuestions = [
 
 export function QuizPage() {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   // Zustand store - seleccionamos solo lo que necesitamos
   const answers = useQuizStore((state) => state.answers);
@@ -33,9 +35,8 @@ export function QuizPage() {
   const setFavoriteAnswer = useQuizStore((state) => state.setFavoriteAnswer);
   const setPreferenceAnswer = useQuizStore((state) => state.setPreferenceAnswer);
   const setDescription = useQuizStore((state) => state.setDescription);
-  const calculateScore = useQuizStore((state) => state.calculateScore);
+  const setScore = useQuizStore((state) => state.setScore);
   const setCompleted = useQuizStore((state) => state.setCompleted);
-  const updateRankingScore = useRankingStore((state) => state.updateCurrentPlayerScore);
 
   // Si no hay nombre de jugador, redirigir a registro
   useEffect(() => {
@@ -44,20 +45,33 @@ export function QuizPage() {
     }
   }, [playerName, navigate]);
 
-  const handleSubmit = () => {
-    // Calcular puntaje final (solo al enviar)
-    calculateScore();
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    setError('');
 
-    // Obtener el score actualizado del store
-    const currentScore = useQuizStore.getState().score;
+    try {
+      // Enviar respuestas al backend
+      const response = await api.submitQuiz({
+        favorites: answers.favorites,
+        preferences: answers.preferences,
+        description: answers.description,
+      });
 
-    // Actualizar ranking con el puntaje
-    updateRankingScore(currentScore);
+      // Guardar puntaje en el store
+      setScore(response.score);
 
-    // Marcar como completado
-    setCompleted(true);
+      // Marcar como completado
+      setCompleted(true);
 
-    navigate('/thank-you');
+      console.log('Quiz submitted! Score:', response.score);
+
+      navigate('/thank-you');
+    } catch (err) {
+      console.error('Error submitting quiz:', err);
+      setError('Error al enviar respuestas. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -74,6 +88,13 @@ export function QuizPage() {
             />
           </div>
 
+          {/* Error message */}
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
           {/* Sección 1: Favoritos */}
           <section className="space-y-5">
             {favoriteQuestions.map((q) => (
@@ -83,6 +104,7 @@ export function QuizPage() {
                 placeholder="Escribe aquí..."
                 value={answers.favorites[q.id] || ''}
                 onChange={(e) => setFavoriteAnswer(q.id, e.target.value)}
+                disabled={isLoading}
               />
             ))}
           </section>
@@ -107,13 +129,14 @@ export function QuizPage() {
                     {q.options.map((opt) => (
                       <button
                         key={opt}
-                        onClick={() => setPreferenceAnswer(q.id, opt)}
+                        onClick={() => !isLoading && setPreferenceAnswer(q.id, opt)}
                         className={`w-8 h-8 rounded-full border-2 transition-all ${
                           answers.preferences[q.id] === opt
                             ? 'bg-accent border-accent scale-110'
                             : 'border-primary hover:bg-primary/20'
-                        }`}
+                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title={opt}
+                        disabled={isLoading}
                       />
                     ))}
                   </div>
@@ -137,6 +160,7 @@ export function QuizPage() {
               value={answers.description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
+              disabled={isLoading}
             />
           </section>
 
@@ -148,8 +172,10 @@ export function QuizPage() {
               fullWidth
               icon={<span>✉</span>}
               onClick={handleSubmit}
+              isLoading={isLoading}
+              disabled={isLoading}
             >
-              Enviar Respuestas
+              {isLoading ? 'Enviando...' : 'Enviar Respuestas'}
             </Button>
           </div>
         </div>

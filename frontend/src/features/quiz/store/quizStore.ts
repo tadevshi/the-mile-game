@@ -23,6 +23,7 @@ export interface QuizState {
   hasCompleted: boolean;
   score: number;
   setCompleted: (completed: boolean) => void;
+  setScore: (score: number) => void;
   calculateScore: () => void;
   
   // Reset
@@ -89,6 +90,8 @@ export const useQuizStore = create<QuizState>()(
         })),
       
       setCompleted: (completed) => set({ hasCompleted: completed }),
+      
+      setScore: (score) => set({ score }),
       
       calculateScore: () => {
         const { answers } = get();

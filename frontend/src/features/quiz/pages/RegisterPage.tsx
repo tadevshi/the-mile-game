@@ -1,39 +1,51 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Button, Input, Header, PageLayout, Card } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
-import { useRankingStore } from '@features/ranking/store/rankingStore';
+import { api } from '@/shared/lib/api';
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
   // Zustand stores
   const setStorePlayerName = useQuizStore((state) => state.setPlayerName);
-  const addRankingPlayer = useRankingStore((state) => state.addPlayer);
   const resetQuiz = useQuizStore((state) => state.resetQuiz);
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!playerName.trim()) {
       setError('Por favor ingresa tu nombre');
       return;
     }
-    
-    // Resetear quiz por si acaso
-    resetQuiz();
-    
-    // Guardar en store de quiz
-    setStorePlayerName(playerName);
-    
-    // Agregar al ranking (inicialmente con score 0)
-    addRankingPlayer({
-      name: playerName,
-      score: 0,
-      avatar: '👤',
-    });
-    
-    navigate('/quiz');
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Resetear quiz por si acaso
+      resetQuiz();
+      
+      // Crear jugador en el backend
+      const player = await api.createPlayer({
+        name: playerName.trim(),
+        avatar: '👤',
+      });
+      
+      // Guardar en store local
+      setStorePlayerName(player.name);
+      
+      console.log('Player created:', player);
+      
+      navigate('/quiz');
+    } catch (err) {
+      console.error('Error creating player:', err);
+      setError('Error al crear jugador. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -54,9 +66,13 @@ export function RegisterPage() {
           <Card variant="glass" padding="lg" className="space-y-8">
             {/* Avatar decorativo */}
             <div className="flex justify-center">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+              <motion.div 
+                className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg"
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
                 <span className="text-4xl">👑</span>
-              </div>
+              </motion.div>
             </div>
 
             {/* Input de nombre */}
@@ -70,6 +86,7 @@ export function RegisterPage() {
                   setError('');
                 }}
                 error={error}
+                disabled={isLoading}
               />
             </div>
 
@@ -80,8 +97,10 @@ export function RegisterPage() {
               fullWidth
               icon={<span>✨</span>}
               onClick={handleStart}
+              isLoading={isLoading}
+              disabled={isLoading}
             >
-              ¡Listos para jugar!
+              {isLoading ? 'Creando...' : '¡Listos para jugar!'}
             </Button>
           </Card>
 
@@ -89,6 +108,7 @@ export function RegisterPage() {
           <button
             onClick={() => navigate('/')}
             className="w-full text-center text-sm text-gray-400 hover:text-primary transition-colors"
+            disabled={isLoading}
           >
             ← Volver al inicio
           </button>

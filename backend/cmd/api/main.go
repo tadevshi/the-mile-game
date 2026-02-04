@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -43,13 +44,21 @@ func main() {
 
 	// Configurar CORS
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{
-		"http://localhost:5173",
-		"http://localhost:3000",
+
+	// Leer allowed origins desde env (comma-separated)
+	allowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		// Default fallback
+		allowedOrigins = "http://localhost:5173,http://localhost:3000,http://localhost:8081,http://localhost"
 	}
+	config.AllowOrigins = strings.Split(allowedOrigins, ",")
+
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "X-Player-ID"}
+	config.AllowCredentials = true
 	r.Use(cors.New(config))
+
+	log.Printf("CORS enabled for origins: %v", config.AllowOrigins)
 
 	// Rutas API
 	api := r.Group("/api")
