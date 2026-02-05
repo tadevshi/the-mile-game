@@ -1,15 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card } from '@/shared';
+import { Button, Header, PageLayout, Card, MedalCanvas } from '@/shared';
 import { useWebSocket } from '@/shared/hooks';
 import { api, type RankingEntry } from '@/shared/lib/api';
-
-const medalColors: Record<string, string> = {
-  gold: 'border-gold',
-  silver: 'border-silver',
-  bronze: 'border-bronze',
-};
 
 const medalBgColors: Record<string, string> = {
   gold: 'bg-gold',
@@ -261,31 +255,20 @@ export function RankingPage() {
                   variants={podiumVariants}
                   custom={player.position}
                 >
-                  {/* Avatar */}
+                  {/* Medallón 3D que reemplaza al Avatar */}
                   <motion.div
-                    className="relative mb-2"
-                    whileHover={{ scale: 1.1, y: -5 }}
+                    className="relative mb-2 flex flex-col items-center justify-center w-24 h-24"
+                    whileHover={{ scale: 1.1 }}
                     transition={{ type: 'spring' as const, stiffness: 300 }}
                   >
-                    {player.position === 1 && (
-                      <motion.span
-                        className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl"
-                        animate={{ rotate: [0, 15, -15, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
-                      >
-                        👑
-                      </motion.span>
-                    )}
+                    <MedalCanvas 
+                      type={player.position === 1 ? 'gold' : player.position === 2 ? 'silver' : 'bronze'} 
+                      avatar={player.avatar}
+                    />
+                    
+                    {/* Badge de posición (se mantiene para claridad) */}
                     <div
-                      className={`w-16 h-16 rounded-full border-4 ${medalColors[player.medal]} p-1 bg-white dark:bg-slate-800 shadow-lg ${player.position === 1 ? 'scale-110' : ''}`}
-                    >
-                      <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-2xl">
-                        {player.avatar}
-                      </div>
-                    </div>
-                    {/* Badge de posición */}
-                    <div
-                      className={`absolute -bottom-2 -right-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white dark:border-slate-900 ${medalBgColors[player.medal]}`}
+                      className={`absolute -bottom-1 -right-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white dark:border-slate-900 ${medalBgColors[player.medal]} z-30`}
                     >
                       {player.position}º
                     </div>

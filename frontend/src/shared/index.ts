@@ -8,6 +8,9 @@ export { PageLayout } from './components/PageLayout';
 export { PageTransition, fadeInUp, staggerContainer } from './components/PageTransition';
 export { ConfettiEffect, fireConfetti } from './components/Confetti';
 
+// 3D Components
+export { MedalCanvas } from './3d';
+
 // API Client
 export { api } from './lib/api';
 export type { 
