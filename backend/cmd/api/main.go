@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/the-mile-game/backend/internal/handlers"
 	"github.com/the-mile-game/backend/internal/repository"
+	"github.com/the-mile-game/backend/internal/websocket"
 )
 
 func main() {
@@ -36,8 +37,12 @@ func main() {
 	playerRepo := repository.NewPlayerRepository(db)
 	quizRepo := repository.NewQuizRepository(db)
 
-	// Crear handlers
-	handler := handlers.NewHandler(playerRepo, quizRepo)
+	// Crear WebSocket Hub
+	hub := websocket.NewHub()
+	go hub.Run()
+
+	// Crear handlers con WebSocket hub
+	handler := handlers.NewHandler(playerRepo, quizRepo, hub)
 
 	// Configurar router
 	r := gin.Default()
@@ -76,9 +81,12 @@ func main() {
 		api.GET("/ranking", handler.GetRanking)
 	}
 
+	// WebSocket endpoint (sin /api prefix, igual que health)
+	r.GET("/ws", gin.WrapH(hub))
+
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		c.JSON(200, gin.H{"status": "ok", "websocket_clients": hub.GetClientCount()})
 	})
 
 	// Iniciar servidor
@@ -88,6 +96,7 @@ func main() {
 	}
 
 	log.Printf("Server starting on port %s", port)
+	log.Printf("WebSocket endpoint: ws://localhost:%s/ws", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card } from '@/shared';
+import { useWebSocket } from '@/shared/hooks';
 import { api, type RankingEntry } from '@/shared/lib/api';
 
 const medalColors: Record<string, string> = {
@@ -61,6 +62,12 @@ const podiumVariants = {
   }),
 };
 
+// WebSocket URL - usar la misma URL que el API pero con ws://
+const WS_URL = import.meta.env.VITE_WS_URL || 
+  (window.location.protocol === 'https:' 
+    ? `wss://${window.location.host}/ws` 
+    : `ws://${window.location.host}/ws`);
+
 export function RankingPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -68,7 +75,28 @@ export function RankingPage() {
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
 
-  // Cargar ranking desde el API
+  // WebSocket para ranking en tiempo real
+  useWebSocket(WS_URL, {
+    onMessage: (message) => {
+      // El backend envía 'ranking' no 'data'
+      const rankingData = (message as { ranking?: RankingEntry[] }).ranking;
+      if (message.type === 'ranking_update' && Array.isArray(rankingData)) {
+        console.log('[WebSocket] Ranking updated:', rankingData);
+        setRanking(rankingData);
+      }
+    },
+    onConnect: () => {
+      console.log('[RankingPage] WebSocket connected');
+    },
+    onDisconnect: () => {
+      console.log('[RankingPage] WebSocket disconnected');
+    },
+    onError: (error) => {
+      console.error('[RankingPage] WebSocket error:', error);
+    },
+  });
+
+  // Cargar ranking inicial desde el API
   useEffect(() => {
     const loadRanking = async () => {
       try {
@@ -90,10 +118,6 @@ export function RankingPage() {
     };
 
     loadRanking();
-    
-    // Recargar cada 30 segundos para mantener actualizado
-    const interval = setInterval(loadRanking, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   // Separar top 3 del resto

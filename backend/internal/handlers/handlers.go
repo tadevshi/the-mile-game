@@ -8,6 +8,7 @@ import (
 	"github.com/the-mile-game/backend/internal/models"
 	"github.com/the-mile-game/backend/internal/repository"
 	"github.com/the-mile-game/backend/internal/services"
+	"github.com/the-mile-game/backend/internal/websocket"
 )
 
 // Handler maneja las peticiones HTTP
@@ -15,14 +16,16 @@ type Handler struct {
 	playerRepo *repository.PlayerRepository
 	quizRepo   *repository.QuizRepository
 	scorer     *services.Scorer
+	hub        *websocket.Hub
 }
 
 // NewHandler crea un nuevo handler
-func NewHandler(playerRepo *repository.PlayerRepository, quizRepo *repository.QuizRepository) *Handler {
+func NewHandler(playerRepo *repository.PlayerRepository, quizRepo *repository.QuizRepository, hub *websocket.Hub) *Handler {
 	return &Handler{
 		playerRepo: playerRepo,
 		quizRepo:   quizRepo,
 		scorer:     services.NewScorer(),
+		hub:        hub,
 	}
 }
 
@@ -123,6 +126,19 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 	if err := h.playerRepo.UpdateScore(playerID, score); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update score"})
 		return
+	}
+
+	// Obtener ranking actualizado y broadcastear por WebSocket
+	players, err := h.playerRepo.List()
+	if err == nil && h.hub != nil {
+		ranking := make([]models.RankingEntry, len(players))
+		for i, player := range players {
+			ranking[i] = models.RankingEntry{
+				Position: i + 1,
+				Player:   player,
+			}
+		}
+		h.hub.BroadcastRanking(ranking)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
