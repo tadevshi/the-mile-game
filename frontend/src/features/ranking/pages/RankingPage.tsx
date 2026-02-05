@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card } from '@/shared';
+import { useWebSocket } from '@/shared/hooks';
 import { api, type RankingEntry } from '@/shared/lib/api';
 
 const medalColors: Record<string, string> = {
@@ -61,6 +62,12 @@ const podiumVariants = {
   }),
 };
 
+// WebSocket URL - usar la misma URL que el API pero con ws://
+const WS_URL = import.meta.env.VITE_WS_URL || 
+  (window.location.protocol === 'https:' 
+    ? `wss://${window.location.host}/ws` 
+    : `ws://${window.location.host}/ws`);
+
 export function RankingPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -68,7 +75,34 @@ export function RankingPage() {
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
 
-  // Cargar ranking desde el API
+  // Estado de conexión WebSocket
+  const [isWsConnected, setIsWsConnected] = useState(false);
+
+  // WebSocket para ranking en tiempo real
+  useWebSocket(WS_URL, {
+    onMessage: (message) => {
+      // El backend envía 'ranking' no 'data'
+      const rankingData = (message as { ranking?: RankingEntry[] }).ranking;
+      if (message.type === 'ranking_update' && Array.isArray(rankingData)) {
+        console.log('[WebSocket] Ranking updated:', rankingData);
+        setRanking(rankingData);
+      }
+    },
+    onConnect: () => {
+      console.log('[RankingPage] WebSocket connected');
+      setIsWsConnected(true);
+    },
+    onDisconnect: () => {
+      console.log('[RankingPage] WebSocket disconnected');
+      setIsWsConnected(false);
+    },
+    onError: (error) => {
+      console.error('[RankingPage] WebSocket error:', error);
+      setIsWsConnected(false);
+    },
+  });
+
+  // Cargar ranking inicial desde el API
   useEffect(() => {
     const loadRanking = async () => {
       try {
@@ -90,10 +124,6 @@ export function RankingPage() {
     };
 
     loadRanking();
-    
-    // Recargar cada 30 segundos para mantener actualizado
-    const interval = setInterval(loadRanking, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   // Separar top 3 del resto
@@ -189,14 +219,32 @@ export function RankingPage() {
         animate="visible"
       >
         <div className="max-w-md mx-auto space-y-6">
-          {/* Header */}
-          <motion.div variants={itemVariants} className="text-center">
+          {/* Header con indicador de conexión */}
+          <motion.div variants={itemVariants} className="text-center relative">
             <Header
               title="Ranking"
               subtitle="¡Felicidades!"
               size="md"
               decoration="lines"
             />
+            {/* Indicador de conexión WebSocket */}
+            <div className="absolute top-0 right-0 flex items-center gap-1.5 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full px-2 py-1 shadow-sm border border-slate-200 dark:border-slate-700">
+              <motion.span
+                className={`w-2 h-2 rounded-full ${isWsConnected ? 'bg-green-500' : 'bg-red-500'}`}
+                animate={isWsConnected ? {
+                  scale: [1, 1.2, 1],
+                  opacity: [1, 0.7, 1],
+                } : {}}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <span className={`text-[10px] font-semibold ${isWsConnected ? 'text-green-600' : 'text-red-500'}`}>
+                {isWsConnected ? 'En vivo' : 'Desconectado'}
+              </span>
+            </div>
           </motion.div>
 
           {/* Podio Top 3 */}
