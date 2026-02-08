@@ -5,9 +5,63 @@ import { Button, Input, Header, PageLayout, Card } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
 import { api } from '@/shared/lib/api';
 
+// Lista de emojis disponibles para avatar
+const AVATAR_EMOJIS = [
+  // Expresiones y caritas
+  '😀', '😎', '🤓', '😍', '🥰', '🤠', '🥳', '😇',
+  '🤩', '😋', '🤪', '😜', '🤗', '🤭', '🥸', '😴',
+  '🤯', '🤠', '😎', '🧐', '🤓', '😈', '👽', '🤖',
+  
+  // Profesiones
+  '👩‍⚕️', '👨‍⚕️', '👩‍🏫', '👨‍🏫', '👩‍🍳', '👨‍🍳',
+  '👩‍🎓', '👨‍🎓', '👩‍🎤', '👨‍🎤', '👩‍🏭', '👨‍🏭',
+  '👩‍💻', '👨‍💻', '👩‍💼', '👨‍💼', '👩‍🔧', '👨‍🔧',
+  '👩‍🔬', '👨‍🔬', '👩‍🚀', '👨‍🚀', '👩‍🚒', '👨‍🚒',
+  '👮‍♀️', '👮‍♂️', '💂‍♀️', '💂‍♂️', '👷‍♀️', '👷‍♂️',
+  '👩‍⚖️', '👨‍⚖️', '🕵️‍♀️', '🕵️‍♂️', '👩‍🌾', '👨‍🌾',
+  
+  // Fantasía y magia
+  '👸', '🤴', '🦄', '🧚', '🧚‍♂️', '🧚‍♀️', '🧞', '🧞‍♀️',
+  '🧜‍♀️', '🧜‍♂️', '🧛‍♀️', '🧛‍♂️', '🧟‍♀️', '🧟‍♂️', '🧌', '🧝‍♀️',
+  '🧝‍♂️', '🧙‍♀️', '🧙‍♂️', '🧝‍♀️', '🧝‍♂️', '👰‍♀️', '🤵‍♂️',
+  
+  // Animales tiernos
+  '🐱', '🐶', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯',
+  '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐤',
+  '🦋', '🐝', '🐞', '🦕', '🦖', '🐙', '🦄', '🦩',
+  
+  // Naturaleza y objetos
+  '🌸', '🌺', '🌻', '🌷', '🌹', '🌵', '🌲', '🌳',
+  '⭐', '🌟', '✨', '☀️', '🌙', '☁️', '🌈', '🔥',
+  
+  // Comida y dulces
+  '🧁', '🍰', '🎂', '🍭', '🍬', '🍫', '🍩', '🍪',
+  '🍦', '🍧', '🍨', '🍿', '🥤', '🧃', '🧋', '🍵',
+  
+  // Celebración y diversión
+  '🎈', '🎉', '🎊', '🎀', '🎁', '🎪', '🎭', '🎨',
+  '🎸', '🎺', '🎻', '🥁', '🎹', '🎤', '🎮', '🎯',
+  
+  // Corazones y amor
+  '💖', '💕', '💓', '💗', '💘', '💝', '💞', '💟',
+  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+  
+  // Deportes y actividades
+  '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱',
+  '🏓', '🏸', '🏒', '🏑', '🏏', '⛳', '🏹', '🎣',
+  '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️', '🏋️',
+  
+  // Transporte y viajes
+  '🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑',
+  '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🛵', '🏍️',
+  '✈️', '🚁', '🚀', '🛸', '🚤', '⛵', '🛳️', '🚢',
+];
+
 export function RegisterPage() {
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState('👸');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
@@ -31,7 +85,7 @@ export function RegisterPage() {
       // Crear jugador en el backend
       const player = await api.createPlayer({
         name: playerName.trim(),
-        avatar: '👤',
+        avatar: selectedAvatar,
       });
       
       // Guardar en store local
@@ -64,15 +118,54 @@ export function RegisterPage() {
 
           {/* Card de registro */}
           <Card variant="glass" padding="lg" className="space-y-8">
-            {/* Avatar decorativo */}
-            <div className="flex justify-center">
+            {/* Avatar seleccionable */}
+            <div className="flex flex-col items-center space-y-3">
               <motion.div 
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg"
+                className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg cursor-pointer hover:shadow-xl transition-shadow"
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <span className="text-4xl">👑</span>
+                <span className="text-5xl">{selectedAvatar}</span>
               </motion.div>
+              <p className="text-xs text-slate-400">
+                Tocá para cambiar tu avatar
+              </p>
+
+              {/* Selector de emojis */}
+              {showEmojiPicker && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-pink-100"
+                >
+                  <div className="grid grid-cols-6 gap-2">
+                    {AVATAR_EMOJIS.map((emoji) => (
+                      <motion.button
+                        key={emoji}
+                        onClick={() => {
+                          setSelectedAvatar(emoji);
+                          setShowEmojiPicker(false);
+                        }}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center text-2xl transition-all ${
+                          selectedAvatar === emoji 
+                            ? 'bg-primary text-white shadow-md' 
+                            : 'hover:bg-pink-50'
+                        }`}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        {emoji}
+                      </motion.button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-center text-slate-400 mt-2">
+                    Opcional - Si no elegís, usaremos uno por defecto
+                  </p>
+                </motion.div>
+              )}
             </div>
 
             {/* Input de nombre */}

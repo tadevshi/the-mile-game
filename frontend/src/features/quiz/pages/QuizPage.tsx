@@ -1,8 +1,51 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Button, Input, TextArea, Header, PageLayout } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
 import { api } from '@/shared/lib/api';
+
+// Componente ProgressBar completo
+function ProgressBar({ current, total }: { current: number; total: number }) {
+  const percentage = Math.round((current / total) * 100);
+  
+  return (
+    <div className="w-full space-y-2">
+      <div className="flex justify-between items-center text-sm">
+        <span className="font-serif text-slate-600 dark:text-slate-300">
+          Progreso
+        </span>
+        <span className="font-bold text-primary">
+          {current} de {total}
+        </span>
+      </div>
+      <div className="h-3 w-full bg-pink-100 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
+        <motion.div
+          className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Componente ProgressBar minimalista (sticky)
+function ProgressBarMinimal({ current, total }: { current: number; total: number }) {
+  const percentage = Math.round((current / total) * 100);
+  
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-pink-100/80 dark:bg-slate-800/80 backdrop-blur-sm">
+      <motion.div
+        className="h-full bg-gradient-to-r from-primary to-accent shadow-[0_0_10px_rgba(236,72,153,0.5)]"
+        initial={{ width: 0 }}
+        animate={{ width: `${percentage}%` }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      />
+    </div>
+  );
+}
 
 // Preguntas del quiz
 const favoriteQuestions = [
@@ -37,6 +80,13 @@ export function QuizPage() {
   const setDescription = useQuizStore((state) => state.setDescription);
   const setScore = useQuizStore((state) => state.setScore);
   const setCompleted = useQuizStore((state) => state.setCompleted);
+
+  // Calcular progreso
+  const totalQuestions = favoriteQuestions.length + preferenceQuestions.length + 1; // +1 por descripción
+  const answeredFavorites = Object.values(answers.favorites).filter(v => v.trim() !== '').length;
+  const answeredPreferences = Object.values(answers.preferences).filter(v => v !== '').length;
+  const answeredDescription = answers.description.trim() !== '' ? 1 : 0;
+  const currentProgress = answeredFavorites + answeredPreferences + answeredDescription;
 
   // Si no hay nombre de jugador, redirigir a registro
   useEffect(() => {
@@ -76,16 +126,22 @@ export function QuizPage() {
 
   return (
     <PageLayout background="butterfly" showSparkles={false}>
-      <div className="min-h-screen px-6 py-8 pb-24">
+      {/* Progress bar minimalista sticky */}
+      <ProgressBarMinimal current={currentProgress} total={totalQuestions} />
+      
+      <div className="min-h-screen px-6 py-8 pb-24 pt-10">
         <div className="max-w-md mx-auto space-y-8">
           {/* Header */}
-          <div className="text-center">
+          <div className="text-center space-y-4">
             <Header
               title="¡Juguemos!"
               subtitle={`¿Qué tanto conoces a Mile, ${playerName}?`}
               size="md"
               decoration="dots"
             />
+            
+            {/* Progress Bar */}
+            <ProgressBar current={currentProgress} total={totalQuestions} />
           </div>
 
           {/* Error message */}
