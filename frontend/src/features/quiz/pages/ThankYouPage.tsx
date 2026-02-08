@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card } from '@/shared';
+import { Button, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
 import { useRankingStore } from '@features/ranking/store/rankingStore';
 import { ConfettiEffect } from '@/shared/components/Confetti';
@@ -78,7 +78,7 @@ export function ThankYouPage() {
   };
 
   return (
-    <PageLayout background="watercolor" showSparkles={true}>
+    <PageLayout background="butterfly-animated" showSparkles={false}>
       {/* Efecto confetti basado en puntaje */}
       <ConfettiEffect score={score} isActive={hasCompleted} />
       
@@ -149,81 +149,63 @@ export function ThankYouPage() {
 
           {/* Carrusel de otros jugadores */}
           {otherPlayers.length > 0 && (
-            <motion.div 
-              className="space-y-4"
-              variants={itemVariants}
-            >
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-light">
-                Otros invitados jugando:
-              </p>
-              <motion.div 
-                className="flex justify-center gap-3 overflow-x-auto py-2"
-                initial="hidden"
-                animate="visible"
-                variants={{
-                  visible: {
-                    transition: { staggerChildren: 0.1, delayChildren: 1 }
-                  }
-                }}
-              >
-                {otherPlayers.map((player) => (
-                  <motion.div
-                    key={player.id}
-                    className="flex flex-col items-center space-y-1 min-w-[60px]"
-                    variants={{
-                      hidden: { opacity: 0, scale: 0 },
-                      visible: { 
-                        opacity: 1, 
-                        scale: 1,
-                        transition: { type: "spring" as const, stiffness: 300, damping: 20 }
-                      }
-                    }}
-                    whileHover={{ scale: 1.1, y: -5 }}
-                  >
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center text-2xl border-2 border-white dark:border-gray-700 shadow-md">
-                      {player.avatar}
-                    </div>
-                    <span className="text-xs text-gray-500">{player.name}</span>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </motion.div>
+            <ScrollReveal variant="fadeUp">
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400 font-light">
+                  Otros invitados jugando:
+                </p>
+                <ScrollStagger className="flex justify-center gap-3 overflow-x-auto py-2">
+                  {otherPlayers.map((player) => (
+                    <ScrollStaggerItem key={player.id}>
+                      <motion.div
+                        className="flex flex-col items-center space-y-1 min-w-[60px]"
+                        whileHover={{ scale: 1.1, y: -5 }}
+                      >
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center text-2xl border-2 border-white dark:border-gray-700 shadow-md">
+                          {player.avatar}
+                        </div>
+                        <span className="text-xs text-gray-500">{player.name}</span>
+                      </motion.div>
+                    </ScrollStaggerItem>
+                  ))}
+                </ScrollStagger>
+              </div>
+            </ScrollReveal>
           )}
 
           {/* Botones */}
-          <motion.div 
-            className="space-y-3"
-            variants={itemVariants}
-          >
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                icon={<span>🏆</span>}
-                onClick={() => navigate('/ranking')}
+          <ScrollReveal variant="fadeUp" delay={0.2}>
+            <div className="space-y-3">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                Ver Ranking
-              </Button>
-            </motion.div>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  icon={<span>🏆</span>}
+                  onClick={() => navigate('/ranking')}
+                >
+                  Ver Ranking
+                </Button>
+              </motion.div>
 
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Button
-                variant="outline"
-                size="md"
-                fullWidth
-                onClick={() => navigate('/')}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                Volver al inicio
-              </Button>
-            </motion.div>
-          </motion.div>
+                <Button
+                  variant="outline"
+                  size="md"
+                  fullWidth
+                  onClick={() => navigate('/')}
+                >
+                  Volver al inicio
+                </Button>
+              </motion.div>
+            </div>
+          </ScrollReveal>
         </div>
       </motion.div>
     </PageLayout>

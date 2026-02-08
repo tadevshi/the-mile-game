@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card, MedalCanvas } from '@/shared';
+import { Button, Header, PageLayout, Card, MedalCanvas, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
 import { useWebSocket } from '@/shared/hooks';
 import { api, type RankingEntry } from '@/shared/lib/api';
 
@@ -296,77 +296,78 @@ export function RankingPage() {
           )}
 
           {/* Lista de participantes */}
-          <motion.div className="flex-grow space-y-3" variants={containerVariants}>
-            <motion.div
-              className="flex items-center justify-between px-4 mb-2"
-              variants={itemVariants}
-            >
-              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                Participante
-              </span>
-              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                Puntos
-              </span>
-            </motion.div>
+          <ScrollReveal variant="fadeUp" className="flex-grow">
+            <ScrollStagger className="space-y-3">
+              <div className="flex items-center justify-between px-4 mb-2">
+                <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  Participante
+                </span>
+                <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  Puntos
+                </span>
+              </div>
 
-            {/* Resto de jugadores */}
-            {restOfPlayers.map((entry) => {
-              const player = entry.player;
-              const isCurrentPlayer = player.id === currentPlayerId;
+              {/* Resto de jugadores */}
+              {restOfPlayers.map((entry) => {
+                const player = entry.player;
+                const isCurrentPlayer = player.id === currentPlayerId;
 
-              if (isCurrentPlayer) {
-                // Jugador actual destacado
+                if (isCurrentPlayer) {
+                  // Jugador actual destacado
+                  return (
+                    <ScrollStaggerItem key={player.id}>
+                      <motion.div
+                        className="bg-primary/10 border-2 border-primary/30 rounded-2xl p-4 flex items-center shadow-md relative overflow-hidden"
+                        whileHover={{ scale: 1.02, x: 5 }}
+                        layout
+                      >
+                        <div className="absolute top-0 right-0 p-1 bg-primary text-white text-[8px] font-bold rounded-bl-lg">
+                          TÚ
+                        </div>
+                        <div className="w-8 font-serif font-bold text-primary text-center">
+                          {entry.position}
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-xl ml-2 mr-4 border border-primary">
+                          {player.avatar}
+                        </div>
+                        <div className="flex-grow">
+                          <p className="font-serif text-slate-800 dark:text-slate-100 font-bold">
+                            {player.name}
+                          </p>
+                        </div>
+                        <div className="text-primary font-bold font-serif text-xl">
+                          {player.score}
+                        </div>
+                      </motion.div>
+                    </ScrollStaggerItem>
+                  );
+                }
+
                 return (
-                  <motion.div
-                    key={player.id}
-                    className="bg-primary/10 border-2 border-primary/30 rounded-2xl p-4 flex items-center shadow-md relative overflow-hidden"
-                    variants={itemVariants}
-                    whileHover={{ scale: 1.02, x: 5 }}
-                    layout
-                  >
-                    <div className="absolute top-0 right-0 p-1 bg-primary text-white text-[8px] font-bold rounded-bl-lg">
-                      TÚ
-                    </div>
-                    <div className="w-8 font-serif font-bold text-primary text-center">
-                      {entry.position}
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-xl ml-2 mr-4 border border-primary">
-                      {player.avatar}
-                    </div>
-                    <div className="flex-grow">
-                      <p className="font-serif text-slate-800 dark:text-slate-100 font-bold">
-                        {player.name}
-                      </p>
-                    </div>
-                    <div className="text-primary font-bold font-serif text-xl">
-                      {player.score}
-                    </div>
-                  </motion.div>
+                  <ScrollStaggerItem key={player.id}>
+                    <motion.div whileHover={{ scale: 1.02, x: 5 }}>
+                      <Card variant="glass" padding="sm" className="flex items-center">
+                        <div className="w-8 font-serif font-bold text-slate-400 text-center">
+                          {entry.position}
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-xl ml-2 mr-4">
+                          {player.avatar}
+                        </div>
+                        <div className="flex-grow">
+                          <p className="font-serif text-slate-700 dark:text-slate-200 font-semibold">
+                            {player.name}
+                          </p>
+                        </div>
+                        <div className="text-primary font-bold font-serif text-lg">
+                          {player.score}
+                        </div>
+                      </Card>
+                    </motion.div>
+                  </ScrollStaggerItem>
                 );
-              }
-
-              return (
-                <motion.div key={player.id} variants={itemVariants} whileHover={{ scale: 1.02, x: 5 }}>
-                  <Card variant="glass" padding="sm" className="flex items-center">
-                    <div className="w-8 font-serif font-bold text-slate-400 text-center">
-                      {entry.position}
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-xl ml-2 mr-4">
-                      {player.avatar}
-                    </div>
-                    <div className="flex-grow">
-                      <p className="font-serif text-slate-700 dark:text-slate-200 font-semibold">
-                        {player.name}
-                      </p>
-                    </div>
-                    <div className="text-primary font-bold font-serif text-lg">
-                      {player.score}
-                    </div>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </motion.div>
+              })}
+            </ScrollStagger>
+          </ScrollReveal>
 
           {/* Footer */}
           <motion.div className="mt-auto pt-6 text-center space-y-4" variants={itemVariants}>
