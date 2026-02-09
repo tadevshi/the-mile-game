@@ -1,15 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card } from '@/shared';
+import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton } from '@/shared';
 import { useWebSocket } from '@/shared/hooks';
 import { api, type RankingEntry } from '@/shared/lib/api';
-
-const medalColors: Record<string, string> = {
-  gold: 'border-gold',
-  silver: 'border-silver',
-  bronze: 'border-bronze',
-};
 
 const medalBgColors: Record<string, string> = {
   gold: 'bg-gold',
@@ -24,29 +18,6 @@ const podiumHeights: Record<number, string> = {
 };
 
 // Variantes de animación
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: "easeOut" as const,
-    },
-  },
-};
-
 const podiumVariants = {
   hidden: { opacity: 0, scale: 0.8, y: 50 },
   visible: (position: number) => ({
@@ -102,29 +73,30 @@ export function RankingPage() {
     },
   });
 
+  // Función para cargar ranking (reutilizable)
+  const loadRanking = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await api.getRanking();
+      setRanking(data);
+
+      // Obtener el ID del jugador actual del API client
+      const playerId = api.getPlayerId();
+      setCurrentPlayerId(playerId);
+
+      setError('');
+    } catch (err) {
+      console.error('Error loading ranking:', err);
+      setError('Error al cargar el ranking. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Cargar ranking inicial desde el API
   useEffect(() => {
-    const loadRanking = async () => {
-      try {
-        setIsLoading(true);
-        const data = await api.getRanking();
-        setRanking(data);
-        
-        // Obtener el ID del jugador actual del API client
-        const playerId = api.getPlayerId();
-        setCurrentPlayerId(playerId);
-        
-        setError('');
-      } catch (err) {
-        console.error('Error loading ranking:', err);
-        setError('Error al cargar el ranking. Intenta de nuevo.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadRanking();
-  }, []);
+  }, [loadRanking]);
 
   // Separar top 3 del resto
   const top3 = ranking.slice(0, 3).map((entry) => ({
@@ -138,20 +110,17 @@ export function RankingPage() {
 
   const restOfPlayers = ranking.slice(3);
 
-  // Si está cargando, mostrar spinner
+  // Si está cargando, mostrar skeleton
   if (isLoading) {
     return (
       <PageLayout background="watercolor" showSparkles={false}>
-        <div className="min-h-screen flex items-center justify-center">
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <div className="text-4xl mb-4">🏆</div>
-            <p className="font-serif text-slate-500">Cargando ranking...</p>
-          </motion.div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="min-h-screen"
+        >
+          <RankingSkeleton />
+        </motion.div>
       </PageLayout>
     );
   }
@@ -212,15 +181,10 @@ export function RankingPage() {
 
   return (
     <PageLayout background="watercolor" showSparkles={false}>
-      <motion.div
-        className="min-h-screen px-6 py-8"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <div className="min-h-screen px-6 py-8">
         <div className="max-w-md mx-auto space-y-6">
           {/* Header con indicador de conexión */}
-          <motion.div variants={itemVariants} className="text-center relative">
+          <div className="text-center relative">
             <Header
               title="Ranking"
               subtitle="¡Felicidades!"
@@ -245,7 +209,7 @@ export function RankingPage() {
                 {isWsConnected ? 'En vivo' : 'Desconectado'}
               </span>
             </div>
-          </motion.div>
+          </div>
 
           {/* Podio Top 3 */}
           {top3.length > 0 && (
@@ -261,31 +225,20 @@ export function RankingPage() {
                   variants={podiumVariants}
                   custom={player.position}
                 >
-                  {/* Avatar */}
+                  {/* Medallón 3D que reemplaza al Avatar */}
                   <motion.div
-                    className="relative mb-2"
-                    whileHover={{ scale: 1.1, y: -5 }}
+                    className="relative mb-2 flex flex-col items-center justify-center w-24 h-24"
+                    whileHover={{ scale: 1.1 }}
                     transition={{ type: 'spring' as const, stiffness: 300 }}
                   >
-                    {player.position === 1 && (
-                      <motion.span
-                        className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl"
-                        animate={{ rotate: [0, 15, -15, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
-                      >
-                        👑
-                      </motion.span>
-                    )}
+                    <MedalCanvas 
+                      type={player.position === 1 ? 'gold' : player.position === 2 ? 'silver' : 'bronze'} 
+                      avatar={player.avatar}
+                    />
+                    
+                    {/* Badge de posición (se mantiene para claridad) */}
                     <div
-                      className={`w-16 h-16 rounded-full border-4 ${medalColors[player.medal]} p-1 bg-white dark:bg-slate-800 shadow-lg ${player.position === 1 ? 'scale-110' : ''}`}
-                    >
-                      <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-2xl">
-                        {player.avatar}
-                      </div>
-                    </div>
-                    {/* Badge de posición */}
-                    <div
-                      className={`absolute -bottom-2 -right-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white dark:border-slate-900 ${medalBgColors[player.medal]}`}
+                      className={`absolute -bottom-1 -right-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white dark:border-slate-900 ${medalBgColors[player.medal]} z-30`}
                     >
                       {player.position}º
                     </div>
@@ -313,21 +266,18 @@ export function RankingPage() {
           )}
 
           {/* Lista de participantes */}
-          <motion.div className="flex-grow space-y-3" variants={containerVariants}>
-            <motion.div
-              className="flex items-center justify-between px-4 mb-2"
-              variants={itemVariants}
-            >
+          <div className="flex-grow space-y-3">
+            <div className="flex items-center justify-between px-4 mb-2">
               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                 Participante
               </span>
               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                 Puntos
               </span>
-            </motion.div>
+            </div>
 
             {/* Resto de jugadores */}
-            {restOfPlayers.map((entry) => {
+            {restOfPlayers.length > 0 ? restOfPlayers.map((entry) => {
               const player = entry.player;
               const isCurrentPlayer = player.id === currentPlayerId;
 
@@ -337,9 +287,10 @@ export function RankingPage() {
                   <motion.div
                     key={player.id}
                     className="bg-primary/10 border-2 border-primary/30 rounded-2xl p-4 flex items-center shadow-md relative overflow-hidden"
-                    variants={itemVariants}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
                     whileHover={{ scale: 1.02, x: 5 }}
-                    layout
                   >
                     <div className="absolute top-0 right-0 p-1 bg-primary text-white text-[8px] font-bold rounded-bl-lg">
                       TÚ
@@ -363,7 +314,13 @@ export function RankingPage() {
               }
 
               return (
-                <motion.div key={player.id} variants={itemVariants} whileHover={{ scale: 1.02, x: 5 }}>
+                <motion.div 
+                  key={player.id} 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  whileHover={{ scale: 1.02, x: 5 }}
+                >
                   <Card variant="glass" padding="sm" className="flex items-center">
                     <div className="w-8 font-serif font-bold text-slate-400 text-center">
                       {entry.position}
@@ -382,28 +339,34 @@ export function RankingPage() {
                   </Card>
                 </motion.div>
               );
-            })}
-          </motion.div>
+            }) : (
+              <motion.p 
+                className="text-center text-slate-400 py-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                No hay más jugadores en el ranking
+              </motion.p>
+            )}
+          </div>
 
           {/* Footer */}
-          <motion.div className="mt-auto pt-6 text-center space-y-4" variants={itemVariants}>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                icon={<span>🏠</span>}
-                onClick={() => navigate('/')}
-              >
-                Volver al inicio
-              </Button>
-            </motion.div>
+          <div className="mt-auto pt-6 text-center space-y-4">
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              icon={<span>🏠</span>}
+              onClick={() => navigate('/')}
+            >
+              Volver al inicio
+            </Button>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-semibold">
               Creciendo con magia • 2024
             </p>
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
     </PageLayout>
   );
 }
