@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton } from '@/shared';
@@ -73,29 +73,30 @@ export function RankingPage() {
     },
   });
 
+  // Función para cargar ranking (reutilizable)
+  const loadRanking = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await api.getRanking();
+      setRanking(data);
+
+      // Obtener el ID del jugador actual del API client
+      const playerId = api.getPlayerId();
+      setCurrentPlayerId(playerId);
+
+      setError('');
+    } catch (err) {
+      console.error('Error loading ranking:', err);
+      setError('Error al cargar el ranking. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Cargar ranking inicial desde el API
   useEffect(() => {
-    const loadRanking = async () => {
-      try {
-        setIsLoading(true);
-        const data = await api.getRanking();
-        setRanking(data);
-        
-        // Obtener el ID del jugador actual del API client
-        const playerId = api.getPlayerId();
-        setCurrentPlayerId(playerId);
-        
-        setError('');
-      } catch (err) {
-        console.error('Error loading ranking:', err);
-        setError('Error al cargar el ranking. Intenta de nuevo.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     loadRanking();
-  }, []);
+  }, [loadRanking]);
 
   // Separar top 3 del resto
   const top3 = ranking.slice(0, 3).map((entry) => ({
