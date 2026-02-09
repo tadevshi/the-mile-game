@@ -12,6 +12,17 @@ export { ButterflyBackground } from './components/ButterflyBackground';
 // 3D Components
 export { MedalCanvas } from './3d';
 
+// Skeleton Components
+export { 
+  Skeleton,
+  SkeletonText,
+  SkeletonAvatar,
+  SkeletonCard,
+  RankingSkeleton,
+  QuizSkeleton,
+  SkeletonContainer
+} from './components/Skeleton';
+
 // Hooks
 export { 
   ScrollReveal, 

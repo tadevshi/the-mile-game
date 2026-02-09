@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card, MedalCanvas, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
+import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton } from '@/shared';
 import { useWebSocket } from '@/shared/hooks';
 import { api, type RankingEntry } from '@/shared/lib/api';
 
@@ -18,29 +18,6 @@ const podiumHeights: Record<number, string> = {
 };
 
 // Variantes de animación
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: "easeOut" as const,
-    },
-  },
-};
-
 const podiumVariants = {
   hidden: { opacity: 0, scale: 0.8, y: 50 },
   visible: (position: number) => ({
@@ -132,20 +109,17 @@ export function RankingPage() {
 
   const restOfPlayers = ranking.slice(3);
 
-  // Si está cargando, mostrar spinner
+  // Si está cargando, mostrar skeleton
   if (isLoading) {
     return (
       <PageLayout background="watercolor" showSparkles={false}>
-        <div className="min-h-screen flex items-center justify-center">
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <div className="text-4xl mb-4">🏆</div>
-            <p className="font-serif text-slate-500">Cargando ranking...</p>
-          </motion.div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="min-h-screen"
+        >
+          <RankingSkeleton />
+        </motion.div>
       </PageLayout>
     );
   }
@@ -206,15 +180,10 @@ export function RankingPage() {
 
   return (
     <PageLayout background="watercolor" showSparkles={false}>
-      <motion.div
-        className="min-h-screen px-6 py-8"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <div className="min-h-screen px-6 py-8">
         <div className="max-w-md mx-auto space-y-6">
           {/* Header con indicador de conexión */}
-          <motion.div variants={itemVariants} className="text-center relative">
+          <div className="text-center relative">
             <Header
               title="Ranking"
               subtitle="¡Felicidades!"
@@ -239,7 +208,7 @@ export function RankingPage() {
                 {isWsConnected ? 'En vivo' : 'Desconectado'}
               </span>
             </div>
-          </motion.div>
+          </div>
 
           {/* Podio Top 3 */}
           {top3.length > 0 && (
@@ -296,98 +265,107 @@ export function RankingPage() {
           )}
 
           {/* Lista de participantes */}
-          <ScrollReveal variant="fadeUp" className="flex-grow">
-            <ScrollStagger className="space-y-3">
-              <div className="flex items-center justify-between px-4 mb-2">
-                <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                  Participante
-                </span>
-                <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                  Puntos
-                </span>
-              </div>
+          <div className="flex-grow space-y-3">
+            <div className="flex items-center justify-between px-4 mb-2">
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                Participante
+              </span>
+              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                Puntos
+              </span>
+            </div>
 
-              {/* Resto de jugadores */}
-              {restOfPlayers.map((entry) => {
-                const player = entry.player;
-                const isCurrentPlayer = player.id === currentPlayerId;
+            {/* Resto de jugadores */}
+            {restOfPlayers.length > 0 ? restOfPlayers.map((entry) => {
+              const player = entry.player;
+              const isCurrentPlayer = player.id === currentPlayerId;
 
-                if (isCurrentPlayer) {
-                  // Jugador actual destacado
-                  return (
-                    <ScrollStaggerItem key={player.id}>
-                      <motion.div
-                        className="bg-primary/10 border-2 border-primary/30 rounded-2xl p-4 flex items-center shadow-md relative overflow-hidden"
-                        whileHover={{ scale: 1.02, x: 5 }}
-                        layout
-                      >
-                        <div className="absolute top-0 right-0 p-1 bg-primary text-white text-[8px] font-bold rounded-bl-lg">
-                          TÚ
-                        </div>
-                        <div className="w-8 font-serif font-bold text-primary text-center">
-                          {entry.position}
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-xl ml-2 mr-4 border border-primary">
-                          {player.avatar}
-                        </div>
-                        <div className="flex-grow">
-                          <p className="font-serif text-slate-800 dark:text-slate-100 font-bold">
-                            {player.name}
-                          </p>
-                        </div>
-                        <div className="text-primary font-bold font-serif text-xl">
-                          {player.score}
-                        </div>
-                      </motion.div>
-                    </ScrollStaggerItem>
-                  );
-                }
-
+              if (isCurrentPlayer) {
+                // Jugador actual destacado
                 return (
-                  <ScrollStaggerItem key={player.id}>
-                    <motion.div whileHover={{ scale: 1.02, x: 5 }}>
-                      <Card variant="glass" padding="sm" className="flex items-center">
-                        <div className="w-8 font-serif font-bold text-slate-400 text-center">
-                          {entry.position}
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-xl ml-2 mr-4">
-                          {player.avatar}
-                        </div>
-                        <div className="flex-grow">
-                          <p className="font-serif text-slate-700 dark:text-slate-200 font-semibold">
-                            {player.name}
-                          </p>
-                        </div>
-                        <div className="text-primary font-bold font-serif text-lg">
-                          {player.score}
-                        </div>
-                      </Card>
-                    </motion.div>
-                  </ScrollStaggerItem>
+                  <motion.div
+                    key={player.id}
+                    className="bg-primary/10 border-2 border-primary/30 rounded-2xl p-4 flex items-center shadow-md relative overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    whileHover={{ scale: 1.02, x: 5 }}
+                  >
+                    <div className="absolute top-0 right-0 p-1 bg-primary text-white text-[8px] font-bold rounded-bl-lg">
+                      TÚ
+                    </div>
+                    <div className="w-8 font-serif font-bold text-primary text-center">
+                      {entry.position}
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-xl ml-2 mr-4 border border-primary">
+                      {player.avatar}
+                    </div>
+                    <div className="flex-grow">
+                      <p className="font-serif text-slate-800 dark:text-slate-100 font-bold">
+                        {player.name}
+                      </p>
+                    </div>
+                    <div className="text-primary font-bold font-serif text-xl">
+                      {player.score}
+                    </div>
+                  </motion.div>
                 );
-              })}
-            </ScrollStagger>
-          </ScrollReveal>
+              }
+
+              return (
+                <motion.div 
+                  key={player.id} 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  whileHover={{ scale: 1.02, x: 5 }}
+                >
+                  <Card variant="glass" padding="sm" className="flex items-center">
+                    <div className="w-8 font-serif font-bold text-slate-400 text-center">
+                      {entry.position}
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-xl ml-2 mr-4">
+                      {player.avatar}
+                    </div>
+                    <div className="flex-grow">
+                      <p className="font-serif text-slate-700 dark:text-slate-200 font-semibold">
+                        {player.name}
+                      </p>
+                    </div>
+                    <div className="text-primary font-bold font-serif text-lg">
+                      {player.score}
+                    </div>
+                  </Card>
+                </motion.div>
+              );
+            }) : (
+              <motion.p 
+                className="text-center text-slate-400 py-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                No hay más jugadores en el ranking
+              </motion.p>
+            )}
+          </div>
 
           {/* Footer */}
-          <motion.div className="mt-auto pt-6 text-center space-y-4" variants={itemVariants}>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                icon={<span>🏠</span>}
-                onClick={() => navigate('/')}
-              >
-                Volver al inicio
-              </Button>
-            </motion.div>
+          <div className="mt-auto pt-6 text-center space-y-4">
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              icon={<span>🏠</span>}
+              onClick={() => navigate('/')}
+            >
+              Volver al inicio
+            </Button>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-semibold">
               Creciendo con magia • 2024
             </p>
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </div>
     </PageLayout>
   );
 }
