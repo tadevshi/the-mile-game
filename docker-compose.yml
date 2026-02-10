@@ -33,6 +33,8 @@ services:
       DB_NAME: ${DB_NAME:-milegame}
       GIN_MODE: ${GIN_MODE:-release}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000,http://localhost:8081,http://localhost}
+    ports:
+      - "8080:8080"
     networks:
       - milegame-network
     depends_on:
