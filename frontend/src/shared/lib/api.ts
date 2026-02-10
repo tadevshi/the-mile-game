@@ -37,7 +37,7 @@ class ApiClient {
 
   constructor() {
     // URL del backend (desde variables de entorno o default)
-    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+    const baseURL = import.meta.env.VITE_API_URL || '/api';
 
     this.client = axios.create({
       baseURL,
@@ -131,7 +131,7 @@ class ApiClient {
 
   async healthCheck(): Promise<{ status: string }> {
     // Health check está en la raíz, no en /api
-    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    const baseURL = import.meta.env.VITE_API_URL || '';
     const response = await axios.get(`${baseURL}/health`);
     return response.data;
   }
