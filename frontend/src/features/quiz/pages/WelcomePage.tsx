@@ -7,7 +7,7 @@ export function WelcomePage() {
 
   return (
     <PageLayout background="butterfly-animated" showSparkles={false}>
-      <div className="flex flex-col items-center min-h-screen px-8 py-12 text-center">
+      <div className="flex flex-col items-center flex-1 px-8 py-12 text-center">
         {/* Sección superior - Título */}
         <ScrollReveal variant="fadeDown" className="w-full h-1/3 flex flex-col items-center justify-center relative mt-4">
           {/* Decoración mariposas SVG */}

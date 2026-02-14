@@ -129,7 +129,7 @@ export function QuizPage() {
       {/* Progress bar minimalista sticky */}
       <ProgressBarMinimal current={currentProgress} total={totalQuestions} />
       
-      <div className="min-h-screen px-6 py-8 pb-24 pt-10">
+      <div className="flex-1 px-6 py-8 pb-24 pt-10">
         <div className="max-w-md mx-auto space-y-8">
           {/* Header */}
           <ScrollReveal variant="fadeDown" className="text-center space-y-4">

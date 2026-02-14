@@ -83,7 +83,7 @@ export function ThankYouPage() {
       <ConfettiEffect score={score} isActive={hasCompleted} />
       
       <motion.div 
-        className="flex flex-col items-center min-h-screen px-8 py-12 text-center"
+        className="flex flex-col items-center flex-1 px-8 py-12 text-center"
         variants={containerVariants}
         initial="hidden"
         animate="visible"

@@ -117,7 +117,7 @@ export function RankingPage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="min-h-screen"
+          className="flex-1"
         >
           <RankingSkeleton />
         </motion.div>
@@ -129,7 +129,7 @@ export function RankingPage() {
   if (error) {
     return (
       <PageLayout background="watercolor" showSparkles={false}>
-        <div className="min-h-screen flex flex-col items-center justify-center px-6">
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
           <div className="text-center max-w-md space-y-6">
             <div className="text-6xl mb-4">⚠️</div>
             <h1 className="font-display text-3xl text-accent mb-4">
@@ -156,7 +156,7 @@ export function RankingPage() {
   if (ranking.length === 0) {
     return (
       <PageLayout background="watercolor" showSparkles={false}>
-        <div className="min-h-screen flex flex-col items-center justify-center px-6">
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
           <div className="text-center max-w-md space-y-6">
             <div className="text-6xl mb-4">🎮</div>
             <h1 className="font-display text-3xl text-accent mb-4">
@@ -181,8 +181,8 @@ export function RankingPage() {
 
   return (
     <PageLayout background="watercolor" showSparkles={false}>
-      <div className="min-h-screen px-6 py-8">
-        <div className="max-w-md mx-auto space-y-6">
+      <div className="flex-1 flex flex-col px-6 py-8">
+        <div className="max-w-md mx-auto w-full flex flex-col flex-1 space-y-6">
           {/* Header con indicador de conexión */}
           <div className="text-center relative">
             <Header
