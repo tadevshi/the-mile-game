@@ -22,7 +22,7 @@ export function PageLayout({
   };
 
   return (
-    <div className="relative min-h-screen bg-background-light dark:bg-background-dark overflow-x-hidden">
+    <div className="relative h-full min-h-full bg-background-light dark:bg-background-dark overflow-x-hidden flex flex-col">
       {/* Fondo animado con mariposas */}
       {background === 'butterfly-animated' && <ButterflyBackground />}
 
@@ -44,7 +44,7 @@ export function PageLayout({
       )}
 
       {/* Contenido */}
-      <main className={`relative z-10 min-h-screen flex flex-col ${className}`}>
+      <main className={`relative z-10 flex-1 flex flex-col ${className}`}>
         {children}
       </main>
     </div>

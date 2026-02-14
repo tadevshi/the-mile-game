@@ -104,7 +104,7 @@ export function RegisterPage() {
 
   return (
     <PageLayout background="watercolor" showSparkles={true}>
-      <div className="flex flex-col items-center min-h-screen px-8 py-12">
+      <div className="flex flex-col items-center flex-1 px-8 py-12">
         <div className="w-full max-w-md space-y-8">
           {/* Header */}
           <ScrollReveal variant="fadeDown" className="text-center">

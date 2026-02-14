@@ -26,7 +26,16 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  min-height: max(884px, 100dvh);
+  /* Fix mobile viewport issues */
+  height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Root container fix for mobile */
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Glassmorphism - usado en cards y ranking */
