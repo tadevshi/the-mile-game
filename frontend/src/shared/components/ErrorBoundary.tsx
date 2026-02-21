@@ -32,8 +32,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     this.setState({ hasError: false, error: null });
   };
 
-  handleReload = () => {
-    window.location.href = '/';
+  handleGoHome = () => {
+    // BASE_URL respeta el base path de Vite/reverse proxy (default: '/')
+    window.location.href = import.meta.env.BASE_URL || '/';
   };
 
   render() {
@@ -85,7 +86,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 Intentar de nuevo
               </button>
               <button
-                onClick={this.handleReload}
+                onClick={this.handleGoHome}
                 className="w-full py-3 px-6 border-2 border-primary/30 text-primary rounded-full font-medium hover:bg-primary/5 transition-all active:scale-95"
               >
                 Volver al inicio

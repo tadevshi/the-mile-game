@@ -64,11 +64,15 @@ export function ThankYouPage() {
     }
   }, [hasCompleted, navigate]);
 
-  // Fetchear ranking real y filtrar al jugador actual
+  // Fetchear ranking real y filtrar al jugador actual.
+  // isMounted evita llamar setOtherPlayers si el usuario navega antes de que resuelva la promise.
   useEffect(() => {
     if (!hasCompleted) return;
 
+    let isMounted = true;
+
     api.getRanking().then((entries) => {
+      if (!isMounted) return;
       const currentId = api.getPlayerId();
       const others = entries
         .map((e) => e.player)
@@ -78,6 +82,8 @@ export function ThankYouPage() {
     }).catch(() => {
       // Si falla silenciosamente, simplemente no mostramos el carrusel
     });
+
+    return () => { isMounted = false; };
   }, [hasCompleted]);
 
   // Mensaje según puntaje

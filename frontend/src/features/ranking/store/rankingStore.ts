@@ -12,8 +12,9 @@ export interface RankingState {
   setCurrentPlayerId: (id: string | null) => void;
 }
 
-// Store minimalista — el ranking real viene de la API (api.getRanking())
-// Este store solo persiste el ID del jugador actual para destacarlo en el ranking
+// Store minimalista — el ranking real viene de la API (api.getRanking()).
+// Este store NO persiste: se resetea en cada refresh. El currentPlayerId
+// se puede recuperar en cualquier momento desde api.getPlayerId() (localStorage).
 export const useRankingStore = create<RankingState>()((set) => ({
   currentPlayerId: null,
   setCurrentPlayerId: (id) => set({ currentPlayerId: id }),
