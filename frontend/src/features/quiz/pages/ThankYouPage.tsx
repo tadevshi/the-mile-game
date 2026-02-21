@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
 import { ConfettiEffect } from '@/shared/components/Confetti';
-import { api, type RankingEntry } from '@/shared/lib/api';
+import { rankingService } from '../../ranking/services/rankingApi';
+import type { Player } from '@/shared/lib/api';
 
 // Variantes de animación
 const containerVariants = {
@@ -55,7 +56,7 @@ export function ThankYouPage() {
   const hasCompleted = useQuizStore((state) => state.hasCompleted);
 
   // Participantes reales desde la API
-  const [otherPlayers, setOtherPlayers] = useState<RankingEntry['player'][]>([]);
+  const [otherPlayers, setOtherPlayers] = useState<Player[]>([]);
 
   // Si no completó el quiz, redirigir al inicio
   useEffect(() => {
@@ -71,13 +72,8 @@ export function ThankYouPage() {
 
     let isMounted = true;
 
-    api.getRanking().then((entries) => {
+    rankingService.getOtherPlayers(5).then((others) => {
       if (!isMounted) return;
-      const currentId = api.getPlayerId();
-      const others = entries
-        .map((e) => e.player)
-        .filter((p) => p.id !== currentId)
-        .slice(0, 5);
       setOtherPlayers(others);
     }).catch(() => {
       // Si falla silenciosamente, simplemente no mostramos el carrusel

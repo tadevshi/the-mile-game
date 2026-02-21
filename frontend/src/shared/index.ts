@@ -31,6 +31,7 @@ export {
   ScrollStaggerItem,
   scrollVariants 
 } from './hooks/useScrollAnimation';
+export { usePullToRefresh } from './hooks/usePullToRefresh';
 
 // API Client
 export { api } from './lib/api';

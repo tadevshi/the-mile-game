@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button, Input, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
-import { api } from '@/shared/lib/api';
+import { quizService } from '../services/quizApi';
 
 // Lista de emojis disponibles para avatar
 const AVATAR_EMOJIS = [
@@ -83,7 +83,7 @@ export function RegisterPage() {
       resetQuiz();
       
       // Crear jugador en el backend
-      const player = await api.createPlayer({
+      const player = await quizService.createPlayer({
         name: playerName.trim(),
         avatar: selectedAvatar,
       });

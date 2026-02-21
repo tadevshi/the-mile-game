@@ -1,14 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button, Input, TextArea, Header, PageLayout, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
-import { useQuizStore } from '../store/quizStore';
-import { api } from '@/shared/lib/api';
+import { useQuiz } from '../hooks/useQuiz';
 
 // Componente ProgressBar completo
 function ProgressBar({ current, total }: { current: number; total: number }) {
   const percentage = Math.round((current / total) * 100);
-  
+
   return (
     <div className="w-full space-y-2">
       <div className="flex justify-between items-center text-sm">
@@ -34,7 +33,7 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
 // Componente ProgressBar minimalista (sticky)
 function ProgressBarMinimal({ current, total }: { current: number; total: number }) {
   const percentage = Math.round((current / total) * 100);
-  
+
   return (
     <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-pink-100/80 dark:bg-slate-800/80 backdrop-blur-sm">
       <motion.div
@@ -69,24 +68,17 @@ const preferenceQuestions = [
 
 export function QuizPage() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  // Zustand store - seleccionamos solo lo que necesitamos
-  const answers = useQuizStore((state) => state.answers);
-  const playerName = useQuizStore((state) => state.playerName);
-  const setFavoriteAnswer = useQuizStore((state) => state.setFavoriteAnswer);
-  const setPreferenceAnswer = useQuizStore((state) => state.setPreferenceAnswer);
-  const setDescription = useQuizStore((state) => state.setDescription);
-  const setScore = useQuizStore((state) => state.setScore);
-  const setCompleted = useQuizStore((state) => state.setCompleted);
-
-  // Calcular progreso
-  const totalQuestions = favoriteQuestions.length + preferenceQuestions.length + 1; // +1 por descripción
-  const answeredFavorites = Object.values(answers.favorites).filter(v => v.trim() !== '').length;
-  const answeredPreferences = Object.values(answers.preferences).filter(v => v !== '').length;
-  const answeredDescription = answers.description.trim() !== '' ? 1 : 0;
-  const currentProgress = answeredFavorites + answeredPreferences + answeredDescription;
+  const {
+    answers,
+    playerName,
+    isLoading,
+    error,
+    progress,
+    setFavoriteAnswer,
+    setPreferenceAnswer,
+    setDescription,
+    submitQuiz,
+  } = useQuiz();
 
   // Si no hay nombre de jugador, redirigir a registro
   useEffect(() => {
@@ -95,40 +87,11 @@ export function QuizPage() {
     }
   }, [playerName, navigate]);
 
-  const handleSubmit = async () => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      // Enviar respuestas al backend
-      const response = await api.submitQuiz({
-        favorites: answers.favorites,
-        preferences: answers.preferences,
-        description: answers.description,
-      });
-
-      // Guardar puntaje en el store
-      setScore(response.score);
-
-      // Marcar como completado
-      setCompleted(true);
-
-      console.log('Quiz submitted! Score:', response.score);
-
-      navigate('/thank-you');
-    } catch (err) {
-      console.error('Error submitting quiz:', err);
-      setError('Error al enviar respuestas. Intenta de nuevo.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <PageLayout background="butterfly-animated" showSparkles={false}>
       {/* Progress bar minimalista sticky */}
-      <ProgressBarMinimal current={currentProgress} total={totalQuestions} />
-      
+      <ProgressBarMinimal current={progress.current} total={progress.total} />
+
       <div className="flex-1 px-6 py-8 pb-24 pt-10">
         <div className="max-w-md mx-auto space-y-8">
           {/* Header */}
@@ -141,7 +104,7 @@ export function QuizPage() {
             />
 
             {/* Progress Bar */}
-            <ProgressBar current={currentProgress} total={totalQuestions} />
+            <ProgressBar current={progress.current} total={progress.total} />
           </ScrollReveal>
 
           {/* Error message */}
@@ -229,7 +192,7 @@ export function QuizPage() {
             </section>
           </ScrollReveal>
 
-          {/* Botón enviar - Sin mostrar puntaje */}
+          {/* Botón enviar */}
           <ScrollReveal variant="scaleUp" delay={0.3}>
             <div className="pt-4">
               <Button
@@ -237,7 +200,7 @@ export function QuizPage() {
                 size="lg"
                 fullWidth
                 icon={<span>✉</span>}
-                onClick={handleSubmit}
+                onClick={submitQuiz}
                 isLoading={isLoading}
                 disabled={isLoading}
               >

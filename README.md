@@ -36,7 +36,9 @@
 ✅ **Animaciones** - Framer Motion para transiciones suaves  
 ✅ **Confetti** - Celebraciones visuales según el puntaje  
 ✅ **Responsive Design** - Mobile-first, optimizado para smartphones  
-✅ **Real-time Updates** - Polling cada 30s (WebSockets próximamente)  
+✅ **Real-time Updates** - WebSockets para ranking en vivo  
+✅ **3D Medals** - Monedas giratorias React Three Fiber en el podio  
+✅ **Error Boundaries** - Manejo de errores global e inline  
 
 ---
 
@@ -48,27 +50,32 @@
 |------------|---------|-----------|
 | React | 19.x | Framework UI |
 | TypeScript | 5.x | Type safety |
-| Vite | 5.x | Build tool / Dev server |
+| Vite | 7.x | Build tool / Dev server |
+| React Router | 7.x | Navegación SPA |
 | Tailwind CSS | 4.x | Estilos utility-first |
-| Framer Motion | 11.x | Animaciones 2D |
-| Zustand | 4.x | Estado global |
+| Framer Motion | 12.x | Animaciones 2D + transiciones |
+| React Three Fiber | 9.x | 3D declarativo (Three.js) |
+| Drei | 10.x | Helpers para R3F |
+| Zustand | 5.x | Estado global |
 | Axios | 1.x | HTTP client |
 | canvas-confetti | 1.x | Efectos de celebración |
+| lottie-react | 2.x | Animaciones Lottie |
 
 ### **Backend**
 
 | Tecnología | Propósito |
 |------------|-----------|
-| Go 1.23 | API REST |
+| Go 1.23 | API REST + WebSockets |
 | Gin | HTTP framework |
+| gorilla/websocket | WebSocket hub con auto-reconnect |
 | PostgreSQL 15 | Base de datos relacional |
 | Docker | Containerización |
 
-### **Testing** (Futuro)
+### **Testing**
 
-- **Vitest** - Unit tests frontend
-- **Playwright** - E2E tests
-- **Go testing** - Backend tests (scorer, normalizer ya testeados al 100%)
+- ✅ **Go testing** - `normalizer_test.go` + `scorer_test.go` (100% coverage)
+- ✅ **Playwright** - 38 test cases documentados en `TEST_PLAN.md` (specs en `testsprite_tests/`, requiere `npm install`)
+- [ ] **Vitest** - Unit tests frontend (pendiente)
 
 ---
 
@@ -85,13 +92,13 @@
 │  │ Components ← Store (Zustand)            │   │
 │  └─────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────┘
-                       ↕ HTTP/REST
+               ↕ HTTP/REST    ↕ WebSocket (/ws)
 ┌─────────────────────────────────────────────────┐
-│              Backend (Go)                       │
+│              Backend (Go + Gin)                 │
 │  ┌─────────────────────────────────────────┐   │
 │  │ Handlers → Services → Repository        │   │
-│  │                           ↓              │   │
-│  │                      PostgreSQL          │   │
+│  │      ↓                    ↓              │   │
+│  │  WS Hub               PostgreSQL         │   │
 │  └─────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────┘
 ```
@@ -346,46 +353,49 @@ server {
 the-mile-game/
 ├── frontend/                 # React Application
 │   ├── src/
-│   │   ├── app/              # App setup (router, providers)
+│   │   ├── app/              # (vacío — router/providers en App.tsx)
 │   │   ├── features/         # Features (quiz, ranking)
 │   │   │   ├── quiz/
-│   │   │   │   ├── components/
-│   │   │   │   ├── hooks/
-│   │   │   │   ├── pages/
-│   │   │   │   ├── services/
-│   │   │   │   ├── store/
+│   │   │   │   ├── hooks/        # useQuiz.ts (stub, sin implementar)
+│   │   │   │   ├── pages/        # WelcomePage, RegisterPage, QuizPage, ThankYouPage
+│   │   │   │   ├── services/     # quizApi.ts (stub, sin implementar)
+│   │   │   │   ├── store/        # quizStore.ts (Zustand, persistido)
 │   │   │   │   └── types/
 │   │   │   └── ranking/
-│   │   │       └── ...
+│   │   │       ├── hooks/        # useRanking.ts (stub, sin implementar)
+│   │   │       ├── pages/        # RankingPage.tsx (WebSocket + 3D medals)
+│   │   │       ├── services/     # rankingApi.ts (stub, sin implementar)
+│   │   │       └── store/        # rankingStore.ts (solo currentPlayerId)
 │   │   ├── shared/           # Shared code
-│   │   │   ├── components/   # UI components
-│   │   │   ├── lib/          # API client, utils
-│   │   │   └── types/
+│   │   │   ├── components/   # Button, Header, PageLayout, ButterflyBackground,
+│   │   │   │                 # Confetti, ErrorBoundary, Skeleton
+│   │   │   ├── 3d/           # MedalCanvas, Coin3D (React Three Fiber)
+│   │   │   ├── hooks/        # useWebSocket, useScrollAnimation, usePullToRefresh
+│   │   │   └── lib/          # ApiClient (Axios singleton)
 │   │   └── styles/
+│   ├── testsprite_tests/     # Playwright specs (38 tests, Playwright no instalado)
+│   ├── TEST_PLAN.md          # Plan de tests E2E
 │   ├── Dockerfile
 │   ├── nginx.conf
 │   └── package.json
 │
 ├── backend/                  # Go API
-│   ├── cmd/
-│   │   └── api/
-│   │       └── main.go       # Entry point
+│   ├── cmd/api/main.go       # Entry point
 │   ├── internal/
-│   │   ├── handlers/         # HTTP handlers
+│   │   ├── handlers/         # HTTP handlers (5 endpoints)
 │   │   ├── models/           # Data models
-│   │   ├── repository/       # Database layer
-│   │   └── services/         # Business logic
-│   │       ├── normalizer.go
-│   │       ├── scorer.go
-│   │       └── *_test.go
-│   ├── migrations/           # SQL migrations
+│   │   ├── repository/       # player_repository, quiz_repository, db
+│   │   ├── services/         # normalizer, scorer (+tests 100% cov)
+│   │   └── websocket/        # hub.go (gorilla, ping/pong, broadcast)
+│   ├── migrations/           # 001_initial_schema.sql
 │   ├── Dockerfile
 │   ├── go.mod
 │   └── go.sum
 │
-├── docker-compose.yml        # Docker orchestration
-├── .env.example              # Environment template
-├── AGENTS.md                 # Architecture docs
+├── docker-compose.yml        # Docker orchestration (3 services)
+├── .env / .env.example       # Environment config
+├── run-tests.sh              # Backend test runner
+├── AGENTS.md                 # Architecture docs (para IA y colaboradores)
 └── README.md                 # This file
 ```
 
@@ -498,6 +508,14 @@ curl http://localhost:8081/api/ranking
 ]
 ```
 
+#### **WebSocket**
+
+```http
+GET    /ws                   # WebSocket para ranking real-time
+```
+
+El servidor emite mensajes `ranking_update` con el ranking completo cada vez que alguien envía sus respuestas. Incluye ping/pong keepalive (54s period, 60s timeout).
+
 #### **Health Check**
 
 ```http
@@ -537,19 +555,29 @@ chore: tareas de mantenimiento
 
 ### **Roadmap**
 
-#### **Fase 3: Polish** (En progreso)
+#### **Completado**
 
-- [ ] WebSockets para ranking real-time
-- [ ] Animaciones 3D con React Three Fiber (monedas giratorias)
-- [ ] Video de celebración para ganador
-- [ ] Tests con Vitest y Playwright
+- ✅ Setup Vite + React 19 + TypeScript + Tailwind 4
+- ✅ Backend Go + Gin + PostgreSQL + Docker Compose
+- ✅ Quiz completo (13 preguntas, scoring server-side)
+- ✅ Ranking en tiempo real con WebSockets
+- ✅ 3D medals con React Three Fiber
+- ✅ Animaciones Framer Motion + ButterflyBackground
+- ✅ Confetti y celebraciones según puntaje
+- ✅ Error Boundary (global + inline para 3D)
+- ✅ Skeleton loading states
+- ✅ Pull-to-refresh en mobile
+- ✅ Despliegue en servidor local (192.168.100.82:8081)
 
-#### **Futuro**
+#### **Pendiente**
 
+- [ ] Implementar `useQuiz.ts` y `quizApi.ts` (actualmente stubs vacíos)
+- [ ] Implementar `useRanking.ts` y `rankingApi.ts` (actualmente stubs vacíos)
+- [ ] Instalar y ejecutar tests Playwright (`testsprite_tests/`)
+- [ ] Video de celebración para el ganador
+- [ ] Lottie animations decorativas
 - [ ] Sistema de juegos múltiples (no solo quiz)
-- [ ] Admin panel para crear quizzes personalizados
-- [ ] Compartir resultados en redes sociales
-- [ ] PWA (Progressive Web App)
+- [ ] Admin panel para gestionar respuestas correctas
 
 ---
 

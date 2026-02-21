@@ -1,7 +1,7 @@
 # AGENTS.md - The Mile Game
 
 > Documento de contexto para agentes de IA y colaboradores humanos.
-> Última actualización: 2026-01-26
+> Última actualización: 2026-02-21
 
 ---
 
@@ -24,33 +24,36 @@
 
 | Tecnología | Versión | Propósito |
 |------------|---------|-----------|
-| React | 18.x | Framework UI |
+| React | 19.x | Framework UI |
 | TypeScript | 5.x | Type safety |
-| Vite | 5.x | Build tool / Dev server |
-| React Router | 6.x | Navegación SPA |
-| Tailwind CSS | 3.x | Estilos utility-first |
-| Framer Motion | 11.x | Animaciones 2D, transiciones, gestos |
-| React Three Fiber | 8.x | 3D declarativo (Three.js) |
-| Drei | 9.x | Helpers para R3F |
+| Vite | 7.x | Build tool / Dev server |
+| React Router | 7.x | Navegación SPA |
+| Tailwind CSS | 4.x | Estilos utility-first |
+| Framer Motion | 12.x | Animaciones 2D, transiciones, gestos |
+| React Three Fiber | 9.x | 3D declarativo (Three.js) |
+| Drei | 10.x | Helpers para R3F |
 | Lottie React | 2.x | Animaciones complejas pre-hechas |
 | canvas-confetti | 1.x | Efectos de celebración |
-| TanStack Query | 5.x | Data fetching, caching, sync |
-| Zustand | 4.x | Estado global simple |
+| Zustand | 5.x | Estado global simple |
 | Axios | 1.x | HTTP client |
 
 ### Backend
 
 | Tecnología | Propósito |
 |------------|-----------|
-| Go | API REST + WebSockets |
-| Arquitectura por capas | Clean Architecture / Hexagonal |
+| Go 1.23 | API REST + WebSockets |
+| Gin | HTTP framework |
+| gorilla/websocket | WebSocket hub (ping/pong, broadcast) |
+| PostgreSQL 15 | Base de datos relacional |
+| Docker Compose | Orquestación de servicios |
 
-### Testing (Futuro)
+### Testing
 
-| Tecnología | Propósito |
-|------------|-----------|
-| Vitest | Unit tests |
-| Playwright | E2E tests |
+| Tecnología | Estado | Propósito |
+|------------|--------|-----------|
+| Go testing | ✅ Implementado | Unit tests backend (100% coverage) |
+| Playwright | Specs escritas, no instalado | E2E tests (38 casos en `testsprite_tests/`) |
+| Vitest | Pendiente | Unit tests frontend |
 
 ---
 
@@ -62,38 +65,36 @@ Cada feature (juego) es un módulo independiente con su propia estructura de cap
 
 ```
 src/
-├── app/                    # Configuración global
-│   ├── App.tsx             # Root component
-│   ├── router.tsx          # Definición de rutas
-│   └── providers.tsx       # Context providers
+├── app/                    # Vacío — router y providers viven en App.tsx directamente
 │
 ├── features/               # Módulos por funcionalidad
 │   ├── quiz/               # Feature: Quiz de Mile
-│   │   ├── components/     # UI específica
-│   │   ├── hooks/          # Lógica de negocio
-│   │   ├── services/       # API calls
-│   │   ├── store/          # Estado local (Zustand slice)
-│   │   ├── types/          # TypeScript types
-│   │   ├── pages/          # Vistas/pantallas
+│   │   ├── hooks/          # useQuiz.ts — STUB: retorna {} (sin implementar)
+│   │   ├── services/       # quizApi.ts — STUB: retorna {} (sin implementar)
+│   │   ├── store/          # quizStore.ts (Zustand, persistido en localStorage)
+│   │   ├── types/          # quiz.types.ts
+│   │   ├── pages/          # WelcomePage, RegisterPage, QuizPage, ThankYouPage
+│   │   │                   # ThankYou.tsx — ARCHIVO VACÍO (no usar)
 │   │   └── index.ts        # Public API del feature
 │   │
-│   ├── ranking/            # Feature: Sistema de ranking
-│   └── [future-game]/      # Futuros juegos
+│   └── ranking/            # Feature: Sistema de ranking
+│       ├── hooks/          # useRanking.ts — STUB: retorna {} (sin implementar)
+│       ├── services/       # rankingApi.ts — STUB: retorna {} (sin implementar)
+│       ├── store/          # rankingStore.ts (solo currentPlayerId)
+│       ├── types/          # ranking.types.ts
+│       ├── pages/          # RankingPage.tsx (WebSocket live + 3D medals)
+│       └── index.ts
 │
 ├── shared/                 # Código compartido
-│   ├── components/         # UI reutilizable (Button, Card, Modal)
-│   ├── animations/         # Framer Motion variants
-│   ├── 3d/                 # Componentes React Three Fiber
-│   ├── hooks/              # Hooks genéricos
-│   ├── lib/                # Clients (axios, etc.)
-│   ├── types/              # Tipos globales
-│   └── utils/              # Funciones puras helper
+│   ├── components/         # Button, Header, PageLayout, ButterflyBackground,
+│   │                       # Confetti, ErrorBoundary, Skeleton
+│   ├── 3d/                 # MedalCanvas.tsx, Coin3D.tsx (React Three Fiber)
+│   ├── hooks/              # useWebSocket.ts, useScrollAnimation.tsx,
+│   │                       # usePullToRefresh.ts (no exportado aún)
+│   ├── lib/                # api.ts (ApiClient singleton Axios)
+│   └── index.ts            # Public API
 │
-├── assets/                 # Recursos estáticos
-│   ├── images/
-│   ├── videos/
-│   └── lottie/
-│
+├── assets/                 # Recursos estáticos (imágenes, videos, lottie)
 └── styles/
     └── globals.css         # Tailwind + custom styles
 ```
@@ -253,49 +254,56 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
 
 ### Animaciones Requeridas
 
-| Tipo | Implementación | Prioridad |
-|------|----------------|-----------|
-| Transiciones entre pantallas | Framer Motion | Alta |
-| Hover/tap en botones | Framer Motion | Alta |
-| Confetti al ganar | canvas-confetti | Alta |
-| Elementos flotantes (mariposas) | CSS keyframes o Framer | Media |
-| Monedas 3D girando | React Three Fiber | Media |
-| Video de celebración ganador | HTML5 Video | Media |
-| Animaciones Lottie decorativas | Lottie React | Baja |
+| Tipo | Implementación | Estado |
+|------|----------------|--------|
+| Transiciones entre pantallas | Framer Motion | ✅ Implementado |
+| Hover/tap en botones | Framer Motion | ✅ Implementado |
+| Confetti al ganar | canvas-confetti | ✅ Implementado |
+| Elementos flotantes (mariposas) | CSS keyframes + Framer | ✅ Implementado |
+| Monedas 3D girando | React Three Fiber | ✅ Implementado |
+| Video de celebración ganador | HTML5 Video | Pendiente |
+| Animaciones Lottie decorativas | Lottie React | Pendiente |
 
 ---
 
 ## Estado Actual del Proyecto
 
-### Completado
+### Completado (Producción)
 
-- [x] Diseño inicial en HTML/CSS/JS vanilla (`src/` folder - LEGACY)
-- [x] Definición de arquitectura
-- [x] Selección de stack tecnológico
-- [x] Documentación AGENTS.md
+- [x] Setup Vite + React 19 + TypeScript + Tailwind 4
+- [x] Estructura feature-based (quiz, ranking)
+- [x] Todas las páginas implementadas (Welcome, Register, Quiz, ThankYou, Ranking)
+- [x] Backend Go + Gin + PostgreSQL (handlers, services, repository)
+- [x] Scoring server-side con normalización de texto (100% test coverage)
+- [x] WebSockets para ranking en tiempo real (gorilla/websocket, auto-reconnect)
+- [x] 3D medals con React Three Fiber en el podio
+- [x] Animaciones Framer Motion (transiciones por ruta, hover, tap)
+- [x] ButterflyBackground animado (8 mariposas, 15 partículas, 6 sparkles)
+- [x] Confetti adaptativo según puntaje (canvas-confetti)
+- [x] Error Boundary global + inline (fallback emoji para 3D)
+- [x] Skeleton loading states (RankingSkeleton, QuizSkeleton, etc.)
+- [x] Pull-to-refresh hook (móvil)
+- [x] Emoji avatar picker en registro
+- [x] Docker Compose (3 servicios: postgres, backend, frontend/nginx)
+- [x] Nginx: proxy /api → backend, proxy /ws → WebSocket, SPA fallback
+- [x] Despliegue funcional en 192.168.100.82:8081
 
-### Pendiente - Fase 1: Setup
+### Deuda Técnica (No bloqueante)
 
-- [ ] Inicializar proyecto con Vite + React + TypeScript
-- [ ] Configurar Tailwind CSS
-- [ ] Configurar path aliases
-- [ ] Crear estructura de carpetas
-- [ ] Setup ESLint + Prettier
+- [ ] `useQuiz.ts` y `quizApi.ts` son stubs vacíos — la lógica está directo en las pages
+- [ ] `useRanking.ts` y `rankingApi.ts` son stubs vacíos — la lógica está en RankingPage
+- [ ] `ThankYou.tsx` es un archivo vacío (usar `ThankYouPage.tsx`)
+- [ ] `usePullToRefresh.ts` no está exportado desde `shared/index.ts`
+- [ ] `quizStore.ts` tiene `correctAnswers` desactualizados (Taylor Swift → Ricardo Arjona real)
+- [ ] `app/` directory vacío (se documentó como conteniendo router/providers)
 
-### Pendiente - Fase 2: Core Features
+### Pendiente - Features Nuevas
 
-- [ ] Migrar quiz a React (feature/quiz)
-- [ ] Implementar sistema de ranking (feature/ranking)
-- [ ] Conectar con backend Go
-- [ ] Implementar WebSockets para ranking real-time
-
-### Pendiente - Fase 3: Polish
-
-- [ ] Animaciones con Framer Motion
-- [ ] Efectos 3D con React Three Fiber
-- [ ] Confetti y celebraciones
-- [ ] Video de ganador
-- [ ] Testing
+- [ ] Instalar Playwright y ejecutar los 38 tests en `testsprite_tests/`
+- [ ] Video de celebración para el ganador (HTML5 Video)
+- [ ] Lottie animations decorativas
+- [ ] Vitest unit tests para frontend
+- [ ] Sistema de múltiples juegos (arquitectura ya preparada)
 
 ---
 
@@ -371,30 +379,20 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
 
 ---
 
-## API Endpoints (Backend Go - Por definir)
+## API Endpoints (Backend Go)
 
 ```
-GET  /api/quiz/questions      # Obtener preguntas
-POST /api/quiz/submit         # Enviar respuestas
-GET  /api/ranking             # Obtener ranking
-WS   /ws/ranking              # WebSocket para ranking real-time
+POST /api/players             # Crear jugador (name, avatar)
+GET  /api/players/:id         # Obtener jugador por UUID
+GET  /api/players             # Listar todos los jugadores
+POST /api/quiz/submit         # Enviar respuestas (header: X-Player-ID)
+GET  /api/quiz/answers/:id    # Obtener respuestas de un jugador
+GET  /api/ranking             # Obtener ranking completo
+WS   /ws                      # WebSocket para ranking real-time
+GET  /health                  # Health check
 ```
 
----
-
-## Archivos Legacy
-
-El directorio `src/` contiene una versión inicial en HTML/CSS/JS vanilla. Esta versión:
-- Sirve como referencia visual y de lógica
-- Será reemplazada por la versión React
-- Puede usarse para testing rápido del diseño
-
-```
-src/
-├── index.html    # Estructura HTML de las 3 pantallas
-├── styles.css    # Estilos completos con paleta rosa
-└── script.js     # Lógica del quiz funcional
-```
+El flujo de submit: recibe respuestas → normaliza texto → guarda en DB → calcula score → actualiza player → broadcast ranking vía WebSocket.
 
 ---
 
@@ -411,7 +409,6 @@ src/
 - [React Three Fiber](https://docs.pmnd.rs/react-three-fiber)
 - [Tailwind CSS](https://tailwindcss.com)
 - [Zustand](https://github.com/pmndrs/zustand)
-- [TanStack Query](https://tanstack.com/query)
 
 ---
 
