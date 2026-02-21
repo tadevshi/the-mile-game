@@ -10,8 +10,8 @@ test.describe('Register Page Form Validation', () => {
     await expect(page.getByText('Registro')).toBeVisible();
     await expect(page.getByText('¿Quién juega hoy?')).toBeVisible();
     
-    // Check avatar decoration
-    await expect(page.getByText('👑')).toBeVisible();
+    // Check avatar decoration (default avatar is 👸)
+    await expect(page.getByText('👸')).toBeVisible();
     
     // Check input field
     const nameInput = page.getByPlaceholder(/Escribe tu nombre/i);

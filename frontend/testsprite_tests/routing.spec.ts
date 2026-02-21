@@ -70,7 +70,8 @@ test.describe('Routing Between Pages', () => {
   });
 
   test('should handle deep linking to quiz without registration', async ({ page }) => {
-    // Clear any existing state
+    // Navigate to app first, then clear any existing state
+    await page.goto('http://localhost:5173/');
     await page.evaluate(() => localStorage.clear());
     
     // Try to access quiz directly
