@@ -287,14 +287,13 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
 - [x] Docker Compose (3 servicios: postgres, backend, frontend/nginx)
 - [x] Nginx: proxy /api → backend, proxy /ws → WebSocket, SPA fallback
 - [x] Despliegue funcional en 192.168.100.82:8081
+- [x] `useQuiz.ts` y `quizApi.ts` implementados (lógica extraída de las pages)
+- [x] `useRanking.ts` y `rankingApi.ts` implementados (lógica extraída de RankingPage)
+- [x] `ThankYou.tsx` eliminado en favor de `ThankYouPage.tsx`
+- [x] `usePullToRefresh.ts` exportado desde `shared/index.ts`
+- [x] `quizStore.ts` actualizado con `correctAnswers` correctos
 
 ### Deuda Técnica (No bloqueante)
-
-- [ ] `useQuiz.ts` y `quizApi.ts` son stubs vacíos — la lógica está directo en las pages
-- [ ] `useRanking.ts` y `rankingApi.ts` son stubs vacíos — la lógica está en RankingPage
-- [ ] `ThankYou.tsx` es un archivo vacío (usar `ThankYouPage.tsx`)
-- [ ] `usePullToRefresh.ts` no está exportado desde `shared/index.ts`
-- [ ] `quizStore.ts` tiene `correctAnswers` desactualizados (Taylor Swift → Ricardo Arjona real)
 - [ ] `app/` directory vacío (se documentó como conteniendo router/providers)
 
 ### Pendiente - Features Nuevas
