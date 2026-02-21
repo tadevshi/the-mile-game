@@ -1,16 +1,11 @@
-// Types del Quiz
-export interface Question {
+// Types del Quiz — preguntas usadas en QuizPage
+export interface FavoriteQuestion {
   id: string;
-  text: string;
-  type: 'text' | 'choice';
+  label: string;
 }
 
-export interface Answer {
-  questionId: string;
-  value: string;
-}
-
-export interface QuizState {
-  answers: Answer[];
-  currentStep: number;
+export interface PreferenceQuestion {
+  id: string;
+  label: string;
+  options: [string, string];
 }

@@ -1,12 +1,2 @@
-// Types del Ranking
-export interface Player {
-  id: string;
-  name: string;
-  avatar?: string;
-}
-
-export interface RankingEntry {
-  player: Player;
-  score: number;
-  position: number;
-}
+// Re-export canonical types from shared API client — single source of truth
+export type { Player, RankingEntry } from '@/shared/lib/api';

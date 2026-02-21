@@ -24,37 +24,15 @@ export interface QuizState {
   score: number;
   setCompleted: (completed: boolean) => void;
   setScore: (score: number) => void;
-  calculateScore: () => void;
   
   // Reset
   resetQuiz: () => void;
 }
 
-// Respuestas correctas (mock - después vendrán del backend)
-export const correctAnswers = {
-  favorites: {
-    singer: 'Taylor Swift', // Ejemplo - ajustar según las respuestas reales de Mile
-    flower: 'Rosa',
-    drink: 'Café',
-    disney: 'La Sirenita',
-    season: 'Primavera',
-    color: 'Rosa',
-    dislike: 'El desorden',
-  },
-  preferences: {
-    coffee: 'Café',
-    place: 'Playa',
-    weather: 'Calor',
-    time: 'Noche',
-    food: 'Sushi',
-    alcohol: 'Vino',
-  },
-};
-
 // Store con persistencia en localStorage
 export const useQuizStore = create<QuizState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       // Estado inicial
       playerName: '',
       answers: {
@@ -92,27 +70,6 @@ export const useQuizStore = create<QuizState>()(
       setCompleted: (completed) => set({ hasCompleted: completed }),
       
       setScore: (score) => set({ score }),
-      
-      calculateScore: () => {
-        const { answers } = get();
-        let score = 0;
-        
-        // Calcular puntos por favoritos (7 preguntas = 7 puntos)
-        Object.entries(answers.favorites).forEach(([key, value]) => {
-          if (correctAnswers.favorites[key as keyof typeof correctAnswers.favorites]?.toLowerCase() === value.toLowerCase()) {
-            score += 1;
-          }
-        });
-        
-        // Calcular puntos por preferencias (6 preguntas = 6 puntos)
-        Object.entries(answers.preferences).forEach(([key, value]) => {
-          if (correctAnswers.preferences[key as keyof typeof correctAnswers.preferences] === value) {
-            score += 1;
-          }
-        });
-        
-        set({ score });
-      },
       
       resetQuiz: () =>
         set({

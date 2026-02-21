@@ -1,9 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton } from '@/shared';
-import { useWebSocket } from '@/shared/hooks';
-import { api, type RankingEntry } from '@/shared/lib/api';
+import { useRanking } from '../hooks/useRanking';
 
 const medalBgColors: Record<string, string> = {
   gold: 'bg-gold',
@@ -33,82 +31,18 @@ const podiumVariants = {
   }),
 };
 
-// WebSocket URL - usar la misma URL que el API pero con ws://
-const WS_URL = import.meta.env.VITE_WS_URL || 
-  (window.location.protocol === 'https:' 
-    ? `wss://${window.location.host}/ws` 
-    : `ws://${window.location.host}/ws`);
-
 export function RankingPage() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [ranking, setRanking] = useState<RankingEntry[]>([]);
-  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
-
-  // Estado de conexión WebSocket
-  const [isWsConnected, setIsWsConnected] = useState(false);
-
-  // WebSocket para ranking en tiempo real
-  useWebSocket(WS_URL, {
-    onMessage: (message) => {
-      // El backend envía 'ranking' no 'data'
-      const rankingData = (message as { ranking?: RankingEntry[] }).ranking;
-      if (message.type === 'ranking_update' && Array.isArray(rankingData)) {
-        console.log('[WebSocket] Ranking updated:', rankingData);
-        setRanking(rankingData);
-      }
-    },
-    onConnect: () => {
-      console.log('[RankingPage] WebSocket connected');
-      setIsWsConnected(true);
-    },
-    onDisconnect: () => {
-      console.log('[RankingPage] WebSocket disconnected');
-      setIsWsConnected(false);
-    },
-    onError: (error) => {
-      console.error('[RankingPage] WebSocket error:', error);
-      setIsWsConnected(false);
-    },
-  });
-
-  // Función para cargar ranking (reutilizable)
-  const loadRanking = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const data = await api.getRanking();
-      setRanking(data);
-
-      // Obtener el ID del jugador actual del API client
-      const playerId = api.getPlayerId();
-      setCurrentPlayerId(playerId);
-
-      setError('');
-    } catch (err) {
-      console.error('Error loading ranking:', err);
-      setError('Error al cargar el ranking. Intenta de nuevo.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Cargar ranking inicial desde el API
-  useEffect(() => {
-    loadRanking();
-  }, [loadRanking]);
-
-  // Separar top 3 del resto
-  const top3 = ranking.slice(0, 3).map((entry) => ({
-    ...entry.player,
-    position: entry.position,
-    medal: entry.position === 1 ? 'gold' : entry.position === 2 ? 'silver' : 'bronze',
-  }));
-
-  // Reordenar para mostrar: 2do, 1ro, 3ro en el podio
-  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
-
-  const restOfPlayers = ranking.slice(3);
+  const {
+    ranking,
+    isLoading,
+    error,
+    currentPlayerId,
+    isWsConnected,
+    top3,
+    podiumOrder,
+    restOfPlayers,
+  } = useRanking();
 
   // Si está cargando, mostrar skeleton
   if (isLoading) {
@@ -231,12 +165,12 @@ export function RankingPage() {
                     whileHover={{ scale: 1.1 }}
                     transition={{ type: 'spring' as const, stiffness: 300 }}
                   >
-                    <MedalCanvas 
-                      type={player.position === 1 ? 'gold' : player.position === 2 ? 'silver' : 'bronze'} 
+                    <MedalCanvas
+                      type={player.position === 1 ? 'gold' : player.position === 2 ? 'silver' : 'bronze'}
                       avatar={player.avatar}
                     />
-                    
-                    {/* Badge de posición (se mantiene para claridad) */}
+
+                    {/* Badge de posición */}
                     <div
                       className={`absolute -bottom-1 -right-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white dark:border-slate-900 ${medalBgColors[player.medal]} z-30`}
                     >
@@ -282,7 +216,6 @@ export function RankingPage() {
               const isCurrentPlayer = player.id === currentPlayerId;
 
               if (isCurrentPlayer) {
-                // Jugador actual destacado
                 return (
                   <motion.div
                     key={player.id}
@@ -314,8 +247,8 @@ export function RankingPage() {
               }
 
               return (
-                <motion.div 
-                  key={player.id} 
+                <motion.div
+                  key={player.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
@@ -340,7 +273,7 @@ export function RankingPage() {
                 </motion.div>
               );
             }) : (
-              <motion.p 
+              <motion.p
                 className="text-center text-slate-400 py-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
