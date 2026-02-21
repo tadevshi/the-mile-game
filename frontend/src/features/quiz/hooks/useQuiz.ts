@@ -18,7 +18,10 @@ export function useQuiz() {
   const setCompleted = useQuizStore((state) => state.setCompleted);
 
   // Derived: progress
-  const totalQuestions = 7 + 6 + 1; // favorites + preferences + description
+  const totalFavorites = Object.keys(answers.favorites).length;
+  const totalPreferences = Object.keys(answers.preferences).length;
+  const totalDescription = 1; // single description question
+  const totalQuestions = totalFavorites + totalPreferences + totalDescription;
   const answeredFavorites = Object.values(answers.favorites).filter((v) => v.trim() !== '').length;
   const answeredPreferences = Object.values(answers.preferences).filter((v) => v !== '').length;
   const answeredDescription = answers.description.trim() !== '' ? 1 : 0;
