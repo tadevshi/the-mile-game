@@ -31,6 +31,8 @@ export interface SubmitQuizResponse {
 }
 
 // Cliente API
+const PLAYER_ID_KEY = 'mile-game-player-id';
+
 class ApiClient {
   private client: AxiosInstance;
   private playerId: string | null = null;
@@ -38,6 +40,14 @@ class ApiClient {
   constructor() {
     // URL del backend (desde variables de entorno o default)
     const baseURL = import.meta.env.VITE_API_URL || '/api';
+
+    // Recuperar playerId de localStorage (sobrevive refresh/memory pressure)
+    try {
+      this.playerId = localStorage.getItem(PLAYER_ID_KEY);
+    } catch {
+      // localStorage puede no estar disponible (incognito, etc.)
+      this.playerId = null;
+    }
 
     this.client = axios.create({
       baseURL,
@@ -61,9 +71,14 @@ class ApiClient {
     );
   }
 
-  // Guardar player ID para requests posteriores
+  // Guardar player ID para requests posteriores (persiste en localStorage)
   setPlayerId(id: string) {
     this.playerId = id;
+    try {
+      localStorage.setItem(PLAYER_ID_KEY, id);
+    } catch {
+      // Silently fail if localStorage is unavailable
+    }
   }
 
   getPlayerId(): string | null {
@@ -72,6 +87,11 @@ class ApiClient {
 
   clearPlayerId() {
     this.playerId = null;
+    try {
+      localStorage.removeItem(PLAYER_ID_KEY);
+    } catch {
+      // Silently fail if localStorage is unavailable
+    }
   }
 
   // ==========================================

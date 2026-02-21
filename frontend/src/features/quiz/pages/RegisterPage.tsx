@@ -138,39 +138,39 @@ export function RegisterPage() {
                   </p>
                 </ScrollStaggerItem>
 
-                {/* Selector de emojis */}
+                {/* Selector de emojis - fuera del ScrollStaggerItem para que no herede opacity:0 */}
                 {showEmojiPicker && (
-                  <ScrollStaggerItem>
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-pink-100 max-h-60 overflow-y-auto"
-                    >
-                      <div className="grid grid-cols-6 gap-2">
-                        {AVATAR_EMOJIS.map((emoji) => (
-                          <motion.button
-                            key={emoji}
-                            onClick={() => {
-                              setSelectedAvatar(emoji);
-                              setShowEmojiPicker(false);
-                            }}
-                            className={`w-10 h-10 rounded-lg flex items-center justify-center text-2xl transition-all ${
-                              selectedAvatar === emoji
-                                ? 'bg-primary text-white shadow-md'
-                                : 'hover:bg-pink-50'
-                            }`}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                          >
-                            {emoji}
-                          </motion.button>
-                        ))}
-                      </div>
-                      <p className="text-[10px] text-center text-slate-400 mt-2">
-                        Opcional - Si no elegís, usaremos uno por defecto
-                      </p>
-                    </motion.div>
-                  </ScrollStaggerItem>
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: 'auto' }}
+                    exit={{ opacity: 0, y: -10, height: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                    className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-pink-100 max-h-60 overflow-y-auto"
+                  >
+                    <div className="grid grid-cols-6 gap-2">
+                      {AVATAR_EMOJIS.map((emoji) => (
+                        <motion.button
+                          key={emoji}
+                          onClick={() => {
+                            setSelectedAvatar(emoji);
+                            setShowEmojiPicker(false);
+                          }}
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center text-2xl transition-all ${
+                            selectedAvatar === emoji
+                              ? 'bg-primary text-white shadow-md'
+                              : 'hover:bg-pink-50'
+                          }`}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                        >
+                          {emoji}
+                        </motion.button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-center text-slate-400 mt-2">
+                      Opcional - Si no elegís, usaremos uno por defecto
+                    </p>
+                  </motion.div>
                 )}
               </ScrollStagger>
 

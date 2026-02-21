@@ -46,7 +46,7 @@ func TestCalculate(t *testing.T) {
 				"weather": "frio",
 				"time":    "noche",
 				"food":    "sushi",
-				"drink":   "tequila",
+				"alcohol": "tequila",
 			},
 			expected: 13,
 		},
@@ -67,7 +67,7 @@ func TestCalculate(t *testing.T) {
 				"weather": "calor",
 				"time":    "dia",
 				"food":    "pizza",
-				"drink":   "vino",
+				"alcohol": "vino",
 			},
 			expected: 0,
 		},
@@ -88,7 +88,7 @@ func TestCalculate(t *testing.T) {
 				"weather": "calor",   // wrong
 				"time":    "noche",   // correct
 				"food":    "pizza",   // wrong
-				"drink":   "tequila", // correct
+				"alcohol": "tequila", // correct
 			},
 			expected: 7, // 4 favorites + 3 preferences
 		},

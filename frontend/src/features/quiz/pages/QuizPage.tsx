@@ -64,7 +64,7 @@ const preferenceQuestions = [
   { id: 'weather', label: '¿Frío o Calor?', options: ['Frío', 'Calor'] },
   { id: 'time', label: '¿Día o Noche?', options: ['Día', 'Noche'] },
   { id: 'food', label: '¿Pizza o Sushi?', options: ['Pizza', 'Sushi'] },
-  { id: 'drink', label: '¿Tequila o Vino?', options: ['Tequila', 'Vino'] },
+  { id: 'alcohol', label: '¿Tequila o Vino?', options: ['Tequila', 'Vino'] },
 ];
 
 export function QuizPage() {
