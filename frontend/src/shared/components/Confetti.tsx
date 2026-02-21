@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
 
 interface ConfettiProps {
@@ -7,7 +7,22 @@ interface ConfettiProps {
 }
 
 export function ConfettiEffect({ score, isActive }: ConfettiProps) {
+  const rafRef = useRef<number | null>(null);
+  const timeoutsRef = useRef<number[]>([]);
+
+  const cleanup = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    timeoutsRef.current.forEach((id) => clearTimeout(id));
+    timeoutsRef.current = [];
+  }, []);
+
   const triggerConfetti = useCallback(() => {
+    // Cleanup any previous animation before starting new one
+    cleanup();
+
     // Configuración base
     const defaults = {
       origin: { y: 0.7 },
@@ -40,13 +55,15 @@ export function ConfettiEffect({ score, isActive }: ConfettiProps) {
         });
 
         if (Date.now() < end) {
-          requestAnimationFrame(frame);
+          rafRef.current = requestAnimationFrame(frame);
+        } else {
+          rafRef.current = null;
         }
       };
       frame();
 
       // Explosión adicional de celebración
-      setTimeout(() => {
+      const explosionTimeout = window.setTimeout(() => {
         confetti({
           ...defaults,
           particleCount: 100,
@@ -57,6 +74,7 @@ export function ConfettiEffect({ score, isActive }: ConfettiProps) {
           drift: 0,
         });
       }, 500);
+      timeoutsRef.current.push(explosionTimeout);
 
     } else if (score >= 7) {
       // Puntaje medio-alto: Confetti moderado
@@ -70,7 +88,7 @@ export function ConfettiEffect({ score, isActive }: ConfettiProps) {
       });
 
       // Segunda ronda
-      setTimeout(() => {
+      const secondTimeout = window.setTimeout(() => {
         confetti({
           ...defaults,
           particleCount: 50,
@@ -79,6 +97,7 @@ export function ConfettiEffect({ score, isActive }: ConfettiProps) {
           shapes: ['circle'],
         });
       }, 300);
+      timeoutsRef.current.push(secondTimeout);
 
     } else if (score >= 4) {
       // Puntaje medio: Confetti simple
@@ -102,15 +121,17 @@ export function ConfettiEffect({ score, isActive }: ConfettiProps) {
         scalar: 0.6,
       });
     }
-  }, [score]);
+  }, [score, cleanup]);
 
   useEffect(() => {
     if (isActive) {
       // Pequeño delay para que la página termine de cargar
-      const timer = setTimeout(triggerConfetti, 300);
-      return () => clearTimeout(timer);
+      const timer = window.setTimeout(triggerConfetti, 300);
+      timeoutsRef.current.push(timer);
+
+      return cleanup;
     }
-  }, [isActive, triggerConfetti]);
+  }, [isActive, triggerConfetti, cleanup]);
 
   return null; // Este componente no renderiza nada visible
 }

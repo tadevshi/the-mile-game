@@ -47,7 +47,7 @@ export const correctAnswers = {
     weather: 'Calor',
     time: 'Noche',
     food: 'Sushi',
-    drink: 'Vino',
+    alcohol: 'Vino',
   },
 };
 

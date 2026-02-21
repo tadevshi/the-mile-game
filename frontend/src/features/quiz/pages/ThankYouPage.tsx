@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
-import { useRankingStore } from '@features/ranking/store/rankingStore';
 import { ConfettiEffect } from '@/shared/components/Confetti';
+import { api, type RankingEntry } from '@/shared/lib/api';
 
 // Variantes de animación
 const containerVariants = {
@@ -53,13 +53,9 @@ export function ThankYouPage() {
   const playerName = useQuizStore((state) => state.playerName);
   const score = useQuizStore((state) => state.score);
   const hasCompleted = useQuizStore((state) => state.hasCompleted);
-  
-  // Ranking para mostrar otros jugadores
-  const players = useRankingStore((state) => state.players);
-  const currentPlayerId = useRankingStore((state) => state.currentPlayerId);
-  
-  // Filtrar solo los otros jugadores (no el actual) para el carrusel
-  const otherPlayers = players.filter((p) => p.id !== currentPlayerId).slice(0, 5);
+
+  // Participantes reales desde la API
+  const [otherPlayers, setOtherPlayers] = useState<RankingEntry['player'][]>([]);
 
   // Si no completó el quiz, redirigir al inicio
   useEffect(() => {
@@ -67,6 +63,28 @@ export function ThankYouPage() {
       navigate('/');
     }
   }, [hasCompleted, navigate]);
+
+  // Fetchear ranking real y filtrar al jugador actual.
+  // isMounted evita llamar setOtherPlayers si el usuario navega antes de que resuelva la promise.
+  useEffect(() => {
+    if (!hasCompleted) return;
+
+    let isMounted = true;
+
+    api.getRanking().then((entries) => {
+      if (!isMounted) return;
+      const currentId = api.getPlayerId();
+      const others = entries
+        .map((e) => e.player)
+        .filter((p) => p.id !== currentId)
+        .slice(0, 5);
+      setOtherPlayers(others);
+    }).catch(() => {
+      // Si falla silenciosamente, simplemente no mostramos el carrusel
+    });
+
+    return () => { isMounted = false; };
+  }, [hasCompleted]);
 
   // Mensaje según puntaje
   const getMessage = () => {

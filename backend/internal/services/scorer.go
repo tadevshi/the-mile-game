@@ -29,7 +29,7 @@ func NewScorer() *Scorer {
 		"weather": "frio",
 		"time":    "noche",
 		"food":    "sushi",
-		"drink":   "tequila",
+		"alcohol": "tequila",
 	}
 
 	// Normalizar las respuestas correctas para almacenarlas

@@ -8,6 +8,7 @@ export { PageLayout } from './components/PageLayout';
 export { PageTransition, fadeInUp, staggerContainer } from './components/PageTransition';
 export { ConfettiEffect, fireConfetti } from './components/Confetti';
 export { ButterflyBackground } from './components/ButterflyBackground';
+export { ErrorBoundary } from './components/ErrorBoundary';
 
 // 3D Components
 export { MedalCanvas } from './3d';

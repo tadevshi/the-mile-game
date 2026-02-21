@@ -46,13 +46,18 @@ export function WelcomePage() {
               animate={{ scale: [1.05, 1.1, 1.05], opacity: [0.2, 0.4, 0.2] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             />
-            {/* Placeholder para la foto de Mile */}
+            {/* Foto de Mile */}
             <motion.div 
-              className="w-40 h-40 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center border-4 border-white dark:border-gray-800 shadow-xl"
+              className="w-40 h-40 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <span className="font-display text-6xl text-white">M</span>
+              <img 
+                src="/princess_logo.png" 
+                alt="Mile"
+                className="w-full h-full object-cover"
+                loading="eager"
+              />
             </motion.div>
           </Card>
         </ScrollReveal>
