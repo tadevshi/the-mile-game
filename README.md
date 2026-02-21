@@ -568,11 +568,10 @@ chore: tareas de mantenimiento
 - ✅ Skeleton loading states
 - ✅ Pull-to-refresh en mobile
 - ✅ Despliegue en servidor local (192.168.100.82:8081)
+- ✅ Implementados `useQuiz.ts` y `quizApi.ts`
+- ✅ Implementados `useRanking.ts` y `rankingApi.ts`
 
 #### **Pendiente**
-
-- [ ] Implementar `useQuiz.ts` y `quizApi.ts` (actualmente stubs vacíos)
-- [ ] Implementar `useRanking.ts` y `rankingApi.ts` (actualmente stubs vacíos)
 - [ ] Instalar y ejecutar tests Playwright (`testsprite_tests/`)
 - [ ] Video de celebración para el ganador
 - [ ] Lottie animations decorativas
