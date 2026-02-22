@@ -294,6 +294,17 @@ export function RankingPage() {
             >
               Volver al inicio
             </Button>
+
+            <Button
+              variant="outline"
+              size="md"
+              fullWidth
+              icon={<span>📸</span>}
+              onClick={() => navigate('/corkboard')}
+            >
+              Cartelera de Fotos
+            </Button>
+
             <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-semibold">
               Creciendo con magia • @tadevshi  • 2026
             </p>

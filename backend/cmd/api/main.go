@@ -36,13 +36,14 @@ func main() {
 	// Crear repositorios
 	playerRepo := repository.NewPlayerRepository(db)
 	quizRepo := repository.NewQuizRepository(db)
+	postcardRepo := repository.NewPostcardRepository(db)
 
 	// Crear WebSocket Hub
 	hub := websocket.NewHub()
 	go hub.Run()
 
 	// Crear handlers con WebSocket hub
-	handler := handlers.NewHandler(playerRepo, quizRepo, hub)
+	handler := handlers.NewHandler(playerRepo, quizRepo, postcardRepo, hub)
 
 	// Configurar router
 	r := gin.Default()
@@ -79,6 +80,10 @@ func main() {
 
 		// Ranking
 		api.GET("/ranking", handler.GetRanking)
+
+		// Postcards (Cartelera de Corcho)
+		api.POST("/postcards", handler.CreatePostcard)
+		api.GET("/postcards", handler.ListPostcards)
 	}
 
 	// WebSocket endpoint (sin /api prefix, igual que health)

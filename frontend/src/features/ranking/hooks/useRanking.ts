@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useWebSocket } from '@/shared/hooks';
+import { useWebSocket, type WebSocketMessage } from '@/shared/hooks';
 import { api, type RankingEntry } from '@/shared/lib/api';
 import { rankingService } from '../services/rankingApi';
 
@@ -18,7 +18,7 @@ export function useRanking() {
 
   // WebSocket for real-time updates
   useWebSocket(WS_URL, {
-    onMessage: (message) => {
+    onMessage: (message: WebSocketMessage) => {
       const rankingData = (message as { ranking?: RankingEntry[] }).ranking;
       if (message.type === 'ranking_update' && Array.isArray(rankingData)) {
         setRanking(rankingData);

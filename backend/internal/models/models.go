@@ -43,3 +43,23 @@ type SubmitQuizRequest struct {
 	Preferences map[string]string `json:"preferences" binding:"required"`
 	Description string            `json:"description"`
 }
+
+// Postcard representa una postal en la cartelera de corcho
+type Postcard struct {
+	ID           uuid.UUID `json:"id" db:"id"`
+	PlayerID     uuid.UUID `json:"player_id" db:"player_id"`
+	PlayerName   string    `json:"player_name" db:"player_name"`     // JOIN con players
+	PlayerAvatar string    `json:"player_avatar" db:"player_avatar"` // JOIN con players
+	ImagePath    string    `json:"image_path" db:"image_path"`
+	Message      string    `json:"message" db:"message"`
+	Rotation     float64   `json:"rotation" db:"rotation"`
+	CreatedAt    time.Time `json:"created_at" db:"created_at"`
+}
+
+// CreatePostcardResponse respuesta al crear una postal
+type CreatePostcardResponse struct {
+	ID        uuid.UUID `json:"id"`
+	ImagePath string    `json:"image_path"`
+	Rotation  float64   `json:"rotation"`
+	Message   string    `json:"message"`
+}

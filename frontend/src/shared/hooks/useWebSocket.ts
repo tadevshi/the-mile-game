@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-interface WebSocketMessage {
+export interface WebSocketMessage {
   type: string;
   data: unknown;
 }
 
 type MessageHandler = (message: WebSocketMessage) => void;
 
-interface UseWebSocketOptions {
+export interface UseWebSocketOptions {
   onMessage?: MessageHandler;
   onConnect?: () => void;
   onDisconnect?: () => void;
@@ -159,5 +159,3 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
     disconnect,
   };
 }
-
-export type { WebSocketMessage };

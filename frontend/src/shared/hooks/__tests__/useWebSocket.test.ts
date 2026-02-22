@@ -15,8 +15,10 @@ class MockWebSocket {
   onmessage: ((event: { data: string }) => void) | null = null
   onclose:   ((event: { code: number; reason: string }) => void) | null = null
   onerror:   ((error: Event) => void) | null = null
+  url: string
 
-  constructor(public readonly url: string) {
+  constructor(url: string) {
+    this.url = url
     MockWebSocket.instances.push(this)
     // Simulate async connection (fires after current microtask queue)
     setTimeout(() => this.onopen?.(), 0)
@@ -45,14 +47,14 @@ describe('useWebSocket', () => {
   let originalWebSocket: typeof WebSocket
 
   beforeEach(() => {
-    originalWebSocket = global.WebSocket
-    global.WebSocket = MockWebSocket as unknown as typeof WebSocket
+    originalWebSocket = globalThis.WebSocket
+    ;(globalThis as unknown as Record<string, unknown>).WebSocket = MockWebSocket as unknown as typeof WebSocket
     MockWebSocket.instances = []
     vi.useFakeTimers()
   })
 
   afterEach(() => {
-    global.WebSocket = originalWebSocket
+    ;(globalThis as unknown as Record<string, unknown>).WebSocket = originalWebSocket
     vi.useRealTimers()
     vi.clearAllMocks()
   })

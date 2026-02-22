@@ -1,7 +1,13 @@
 package handlers
 
 import (
+	"fmt"
+	"io"
+	"math/rand"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -13,19 +19,21 @@ import (
 
 // Handler maneja las peticiones HTTP
 type Handler struct {
-	playerRepo *repository.PlayerRepository
-	quizRepo   *repository.QuizRepository
-	scorer     *services.Scorer
-	hub        *websocket.Hub
+	playerRepo   *repository.PlayerRepository
+	quizRepo     *repository.QuizRepository
+	postcardRepo *repository.PostcardRepository
+	scorer       *services.Scorer
+	hub          *websocket.Hub
 }
 
 // NewHandler crea un nuevo handler
-func NewHandler(playerRepo *repository.PlayerRepository, quizRepo *repository.QuizRepository, hub *websocket.Hub) *Handler {
+func NewHandler(playerRepo *repository.PlayerRepository, quizRepo *repository.QuizRepository, postcardRepo *repository.PostcardRepository, hub *websocket.Hub) *Handler {
 	return &Handler{
-		playerRepo: playerRepo,
-		quizRepo:   quizRepo,
-		scorer:     services.NewScorer(),
-		hub:        hub,
+		playerRepo:   playerRepo,
+		quizRepo:     quizRepo,
+		postcardRepo: postcardRepo,
+		scorer:       services.NewScorer(),
+		hub:          hub,
 	}
 }
 
@@ -182,4 +190,128 @@ func (h *Handler) GetRanking(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, ranking)
+}
+
+// ==========================================
+// Postcards (Cartelera de Corcho)
+// ==========================================
+
+// CreatePostcard crea una nueva postal con imagen subida
+func (h *Handler) CreatePostcard(c *gin.Context) {
+	// Obtener playerID del header
+	playerIDStr := c.GetHeader("X-Player-ID")
+	if playerIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Player ID required"})
+		return
+	}
+
+	playerID, err := uuid.Parse(playerIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid player ID"})
+		return
+	}
+
+	// Verificar que el jugador existe
+	_, err = h.playerRepo.GetByID(playerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
+		return
+	}
+
+	// Obtener el archivo de imagen del multipart form
+	file, header, err := c.Request.FormFile("image")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image file required"})
+		return
+	}
+	defer file.Close()
+
+	// Validar tipo de archivo
+	contentType := header.Header.Get("Content-Type")
+	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Only JPEG, PNG, and WebP images are allowed"})
+		return
+	}
+
+	// Validar tamaño (max 10MB)
+	if header.Size > 10*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image too large (max 10MB)"})
+		return
+	}
+
+	// Obtener mensaje del form
+	message := c.Request.FormValue("message")
+	if len(message) > 500 {
+		message = message[:500]
+	}
+
+	// Generar nombre único para el archivo
+	ext := filepath.Ext(header.Filename)
+	if ext == "" {
+		ext = ".jpg"
+	}
+	filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
+
+	// Crear directorio de uploads si no existe
+	uploadsDir := os.Getenv("UPLOADS_DIR")
+	if uploadsDir == "" {
+		uploadsDir = "/app/uploads/postcards"
+	}
+	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create uploads directory"})
+		return
+	}
+
+	// Guardar archivo en disco
+	filePath := filepath.Join(uploadsDir, filename)
+	dst, err := os.Create(filePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+		return
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to write image"})
+		return
+	}
+
+	// Generar rotación aleatoria entre -30 y 30 grados
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rotation := (rng.Float64() * 60) - 30 // -30 a 30
+
+	// Ruta pública de la imagen (servida por nginx)
+	publicImagePath := "/uploads/postcards/" + filename
+
+	// Guardar en DB
+	postcard, err := h.postcardRepo.Create(playerID, publicImagePath, message, rotation)
+	if err != nil {
+		// Si falla la DB, limpiar el archivo subido
+		os.Remove(filePath)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create postcard"})
+		return
+	}
+
+	// Broadcast por WebSocket a todos los clientes
+	if h.hub != nil {
+		h.hub.BroadcastPostcard(*postcard)
+	}
+
+	c.JSON(http.StatusCreated, postcard)
+}
+
+// ListPostcards obtiene todas las postales
+func (h *Handler) ListPostcards(c *gin.Context) {
+	postcards, err := h.postcardRepo.List()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list postcards"})
+		return
+	}
+
+	// Devolver array vacío en lugar de null si no hay postales
+	if postcards == nil {
+		postcards = []models.Postcard{}
+	}
+
+	c.JSON(http.StatusOK, postcards)
 }

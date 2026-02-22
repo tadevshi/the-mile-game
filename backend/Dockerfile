@@ -24,6 +24,9 @@ WORKDIR /app
 # Instalar ca-certificates para HTTPS
 RUN apk --no-cache add ca-certificates
 
+# Crear directorio para uploads (el volumen se montará aquí)
+RUN mkdir -p /app/uploads/postcards
+
 # Copiar el binario desde el builder
 COPY --from=builder /app/main .
 

@@ -1,0 +1,143 @@
+import { useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toPng } from 'html-to-image';
+import { PushPin } from './PushPin';
+import type { Postcard } from '../types/postcards.types';
+
+interface PostcardModalProps {
+  postcard: Postcard | null;
+  onClose: () => void;
+}
+
+export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
+  const postcardRef = useRef<HTMLDivElement>(null);
+
+  const handleDownload = async () => {
+    if (!postcardRef.current || !postcard) return;
+
+    try {
+      const dataUrl = await toPng(postcardRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+      });
+
+      const link = document.createElement('a');
+      link.download = `postal-${postcard.player_name.toLowerCase().replace(/\s+/g, '-')}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Error downloading postcard:', err);
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {postcard && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {/* Backdrop */}
+          <motion.div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={onClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+
+          {/* Contenido */}
+          <motion.div
+            className="relative z-10 w-full max-w-lg"
+            initial={{ scale: 0.8, opacity: 0, y: 30 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0, y: 30 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          >
+            {/* Pin centrado */}
+            <div className="flex justify-center mb-[-8px] relative z-20">
+              <PushPin className="scale-125" />
+            </div>
+
+            {/* Postal expandida */}
+            <div
+              ref={postcardRef}
+              className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200"
+            >
+              {/* Layout postal: foto arriba en mobile, lado a lado en desktop */}
+              <div className="flex flex-col md:flex-row">
+                {/* Foto */}
+                <div className="md:w-1/2 aspect-square md:aspect-auto relative overflow-hidden bg-gray-100">
+                  <img
+                    src={postcard.image_path}
+                    alt={`Postal de ${postcard.player_name}`}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Separador */}
+                <div className="hidden md:block w-px bg-gray-200" />
+                <div className="md:hidden h-px bg-gray-200" />
+
+                {/* Mensaje */}
+                <div className="md:w-1/2 p-5 flex flex-col justify-between relative min-h-[180px]">
+                  {/* Líneas decorativas */}
+                  <div className="absolute inset-x-5 top-12 space-y-5 pointer-events-none">
+                    <div className="h-px bg-gray-100" />
+                    <div className="h-px bg-gray-100" />
+                    <div className="h-px bg-gray-100" />
+                    <div className="h-px bg-gray-100" />
+                    <div className="h-px bg-gray-100" />
+                  </div>
+
+                  <div className="relative z-10">
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-2">
+                      mensaje:
+                    </p>
+                    <p className="text-sm text-gray-700 leading-relaxed font-serif italic">
+                      {postcard.message || '...'}
+                    </p>
+                  </div>
+
+                  {/* From */}
+                  <div className="relative z-10 mt-4 pt-3 border-t border-gray-200">
+                    <p className="text-sm text-gray-500 flex items-center gap-2">
+                      <span className="text-xl">{postcard.player_avatar}</span>
+                      <span className="font-semibold text-accent">
+                        {postcard.player_name}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Botones debajo de la postal */}
+            <div className="flex justify-center gap-3 mt-4">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleDownload}
+                className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium text-gray-700 shadow-lg border border-gray-200 flex items-center gap-2 cursor-pointer"
+              >
+                <span>📥</span> Descargar
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onClose}
+                className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium text-gray-700 shadow-lg border border-gray-200 cursor-pointer"
+              >
+                Cerrar
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

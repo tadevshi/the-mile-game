@@ -62,6 +62,12 @@ type RankingUpdateMessage struct {
 	Ranking []models.RankingEntry `json:"ranking"`
 }
 
+// PostcardNewMessage mensaje específico para nueva postal en la cartelera
+type PostcardNewMessage struct {
+	Type     string          `json:"type"`
+	Postcard models.Postcard `json:"postcard"`
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -152,6 +158,23 @@ func (h *Hub) BroadcastRanking(ranking []models.RankingEntry) {
 
 	h.broadcast <- data
 	log.Printf("WebSocket: Ranking broadcasteado a %d clientes", len(h.clients))
+}
+
+// BroadcastPostcard envía una nueva postal a todos los clientes conectados
+func (h *Hub) BroadcastPostcard(postcard models.Postcard) {
+	msg := PostcardNewMessage{
+		Type:     "postcard_new",
+		Postcard: postcard,
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Error marshaling postcard: %v", err)
+		return
+	}
+
+	h.broadcast <- data
+	log.Printf("WebSocket: Postal broadcasteada a %d clientes", len(h.clients))
 }
 
 // GetClientCount devuelve el número de clientes conectados
