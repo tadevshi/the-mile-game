@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button, Input, TextArea, Header, PageLayout, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
 import { useQuiz } from '../hooks/useQuiz';
+import { useQuizStore } from '../store/quizStore';
 
 // Componente ProgressBar completo
 function ProgressBar({ current, total }: { current: number; total: number }) {
@@ -68,6 +69,7 @@ const preferenceQuestions = [
 
 export function QuizPage() {
   const navigate = useNavigate();
+  const [hydrated, setHydrated] = useState(false);
   const {
     answers,
     playerName,
@@ -80,12 +82,20 @@ export function QuizPage() {
     submitQuiz,
   } = useQuiz();
 
+  // Wait for Zustand persist to rehydrate from localStorage before redirecting
+  useEffect(() => {
+    const unsub = useQuizStore.persist.onFinishHydration(() => setHydrated(true));
+    // If already hydrated (e.g. navigated in-app), mark immediately
+    if (useQuizStore.persist.hasHydrated()) setHydrated(true);
+    return unsub;
+  }, []);
+
   // Si no hay nombre de jugador, redirigir a registro
   useEffect(() => {
-    if (!playerName) {
+    if (hydrated && !playerName) {
       navigate('/register');
     }
-  }, [playerName, navigate]);
+  }, [hydrated, playerName, navigate]);
 
   return (
     <PageLayout background="butterfly-animated" showSparkles={false}>

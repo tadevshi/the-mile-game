@@ -23,6 +23,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {/* Input estilo Material: solo borde inferior */}
         <input
           ref={ref}
+          type="text"
           className={`
             bg-transparent border-0 border-b-2 
             ${error ? 'border-red-500' : 'border-primary/50 focus:border-accent'}

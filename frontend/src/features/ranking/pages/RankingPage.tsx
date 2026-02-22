@@ -295,7 +295,7 @@ export function RankingPage() {
               Volver al inicio
             </Button>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-semibold">
-              Creciendo con magia • 2024
+              Creciendo con magia • @tadevshi  • 2026
             </p>
           </div>
         </div>
