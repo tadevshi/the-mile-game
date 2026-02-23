@@ -70,13 +70,13 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
             >
               {/* Mobile: vertical (foto arriba, mensaje abajo) */}
               {/* Desktop: horizontal (foto izquierda, mensaje derecha) — mismo formato que la card */}
-              <div className="flex flex-col md:flex-row md:min-h-[320px]">
-                {/* Foto */}
-                <div className="aspect-[4/3] md:aspect-auto md:w-1/2 relative overflow-hidden bg-gray-100">
+              <div className="flex flex-col md:flex-row">
+                {/* Foto — sin absolute, sin object-cover: la imagen se muestra completa */}
+                <div className="md:w-1/2 overflow-hidden bg-gray-100">
                   <img
                     src={postcard.image_path}
                     alt={`Postal de ${postcard.player_name}`}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="w-full h-auto max-h-[60vh] object-contain"
                   />
                 </div>
 
@@ -84,7 +84,7 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
                 <div className="h-px md:h-auto md:w-px bg-gray-200" />
 
                 {/* Mensaje */}
-                <div className="md:w-1/2 p-5 flex flex-col justify-between relative min-h-[140px]">
+                <div className="md:w-1/2 p-6 flex flex-col justify-between relative min-h-[200px]">
                   {/* Líneas decorativas */}
                   <div className="absolute inset-x-5 top-12 space-y-5 pointer-events-none">
                     <div className="h-px bg-gray-100" />
