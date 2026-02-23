@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card, ScrollReveal } from '@/shared';
+import { useQuizStore } from '../store/quizStore';
 
 export function WelcomePage() {
   const navigate = useNavigate();
+  const hasCompleted = useQuizStore((s) => s.hasCompleted);
 
   return (
     <PageLayout background="butterfly-animated" showSparkles={false}>
@@ -87,6 +89,26 @@ export function WelcomePage() {
           >
             Empezar Juego
           </Button>
+
+          {/* Botón condicional: Cartelera de Fotos (solo si ya jugó) */}
+          {hasCompleted && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Button
+                variant="outline"
+                size="md"
+                fullWidth
+                icon={<span>📸</span>}
+                onClick={() => navigate('/corkboard')}
+                className="!border-primary/50 !text-primary hover:!bg-primary/10"
+              >
+                Cartelera de Fotos
+              </Button>
+            </motion.div>
+          )}
 
           <p className="text-gray-400 dark:text-gray-500 text-xs italic tracking-wide">
             Prepárate para la diversión

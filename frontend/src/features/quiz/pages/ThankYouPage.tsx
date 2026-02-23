@@ -210,6 +210,21 @@ export function ThankYouPage() {
                 whileTap={{ scale: 0.98 }}
               >
                 <Button
+                  variant="secondary"
+                  size="md"
+                  fullWidth
+                  icon={<span>📸</span>}
+                  onClick={() => navigate('/corkboard')}
+                >
+                  Cartelera de Fotos
+                </Button>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button
                   variant="outline"
                   size="md"
                   fullWidth

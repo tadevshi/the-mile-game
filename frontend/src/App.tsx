@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { WelcomePage, RegisterPage, QuizPage, ThankYouPage } from '@features/quiz';
 import { RankingPage } from '@features/ranking';
+import { CorkboardPage } from '@features/postcards';
 import { ErrorBoundary } from '@/shared';
 import type { ReactNode } from 'react';
 
@@ -162,6 +163,16 @@ function AnimatedRoutes() {
           element={
             <AnimatedPage variants={slideLeftVariants}>
               <RankingPage />
+            </AnimatedPage>
+          } 
+        />
+
+        {/* CORKBOARD: Fade elegante (experiencia independiente) */}
+        <Route 
+          path="/corkboard" 
+          element={
+            <AnimatedPage variants={fadeVariants}>
+              <CorkboardPage />
             </AnimatedPage>
           } 
         />

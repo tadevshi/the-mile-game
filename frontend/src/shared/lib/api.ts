@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance, type AxiosError } from 'axios';
+import type { Postcard } from '@features/postcards/types/postcards.types';
 
 // Tipos de datos que vienen del backend
 export interface Player {
@@ -142,6 +143,38 @@ class ApiClient {
 
   async getRanking(): Promise<RankingEntry[]> {
     const response = await this.client.get<RankingEntry[]>('/ranking');
+    return response.data;
+  }
+
+  // ==========================================
+  // Postcards (Cartelera de Corcho)
+  // ==========================================
+
+  async createPostcard(image: File, message: string): Promise<Postcard> {
+    if (!this.playerId) {
+      throw new Error('No player ID set. Call createPlayer first.');
+    }
+
+    const formData = new FormData();
+    formData.append('image', image);
+    formData.append('message', message);
+
+    const response = await this.client.post<Postcard>(
+      '/postcards',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'X-Player-ID': this.playerId,
+        },
+        timeout: 30000, // 30s para uploads
+      }
+    );
+    return response.data;
+  }
+
+  async listPostcards(): Promise<Postcard[]> {
+    const response = await this.client.get<Postcard[]>('/postcards');
     return response.data;
   }
 

@@ -1,7 +1,7 @@
 # AGENTS.md - The Mile Game
 
 > Documento de contexto para agentes de IA y colaboradores humanos.
-> Última actualización: 2026-02-21
+> Última actualización: 2026-02-22
 
 ---
 
@@ -36,6 +36,7 @@
 | canvas-confetti | 1.x | Efectos de celebración |
 | Zustand | 5.x | Estado global simple |
 | Axios | 1.x | HTTP client |
+| html-to-image | 1.x | Exportar elementos DOM como PNG |
 
 ### Backend
 
@@ -77,12 +78,21 @@ src/
 │   │   │                   # ThankYou.tsx — ARCHIVO VACÍO (no usar)
 │   │   └── index.ts        # Public API del feature
 │   │
-│   └── ranking/            # Feature: Sistema de ranking
-│       ├── hooks/          # useRanking.ts — STUB: retorna {} (sin implementar)
-│       ├── services/       # rankingApi.ts — STUB: retorna {} (sin implementar)
-│       ├── store/          # rankingStore.ts (solo currentPlayerId)
-│       ├── types/          # ranking.types.ts
-│       ├── pages/          # RankingPage.tsx (WebSocket live + 3D medals)
+│   ├── ranking/            # Feature: Sistema de ranking
+│   │   ├── hooks/          # useRanking.ts — STUB: retorna {} (sin implementar)
+│   │   ├── services/       # rankingApi.ts — STUB: retorna {} (sin implementar)
+│   │   ├── store/          # rankingStore.ts (solo currentPlayerId)
+│   │   ├── types/          # ranking.types.ts
+│   │   ├── pages/          # RankingPage.tsx (WebSocket live + 3D medals)
+│   │   └── index.ts
+│   │
+│   └── postcards/          # Feature: Cartelera de Corcho
+│       ├── hooks/          # usePostcards.ts (WebSocket real-time)
+│       ├── services/       # postcardApi.ts (image upload + resize)
+│       ├── store/          # postcardStore.ts (Zustand)
+│       ├── types/          # postcards.types.ts
+│       ├── pages/          # CorkboardPage.tsx
+│       ├── components/     # PostcardCard, PostcardModal, AddPostcardSheet, PushPin
 │       └── index.ts
 │
 ├── shared/                 # Código compartido
@@ -292,6 +302,11 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
 - [x] `ThankYou.tsx` eliminado en favor de `ThankYouPage.tsx`
 - [x] `usePullToRefresh.ts` exportado desde `shared/index.ts`
 - [x] `quizStore.ts` actualizado con `correctAnswers` correctos
+- [x] **Cartelera de Corcho** — Feature completo:
+  - [x] Backend: tabla postcards, handlers, WebSocket broadcast
+  - [x] Frontend: CorkboardPage, componentes, WebSocket real-time
+  - [x] Botones de acceso en Welcome, ThankYou, Ranking
+  - [x] Descarga de postales como PNG
 
 ### Deuda Técnica (No bloqueante)
 - [ ] `app/` directory vacío (se documentó como conteniendo router/providers)
@@ -343,6 +358,17 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
    - Card del usuario actual destacada ("TÚ")
    - Botón "Volver al inicio"
 
+6. **Cartelera de Corcho** (`/corkboard`)
+   - Fondo de textura de corcho realista
+   - Postales "clavadas" con pins decorativos
+   - Rotaciones aleatorias (-30° a 30°) para efecto desordenado
+   - **Desktop**: Grid con postales dispersas, hover zoom al centro
+   - **Mobile**: Columna única, tap abre modal fullscreen
+   - Botón flotante (FAB) para agregar nueva postal
+   - Cámara frontal para selfie + campo de mensaje
+   - Descarga de postales como PNG
+   - Actualización en tiempo real vía WebSocket
+
 ### Preguntas (Basado en Diseño)
 
 **Sección Favoritos (Texto libre o Multiple Choice a definir):**
@@ -387,11 +413,15 @@ GET  /api/players             # Listar todos los jugadores
 POST /api/quiz/submit         # Enviar respuestas (header: X-Player-ID)
 GET  /api/quiz/answers/:id    # Obtener respuestas de un jugador
 GET  /api/ranking             # Obtener ranking completo
-WS   /ws                      # WebSocket para ranking real-time
+POST /api/postcards           # Crear postal (multipart: image + message, header: X-Player-ID)
+GET  /api/postcards           # Listar todas las postales
+WS   /ws                      # WebSocket para ranking y postcards real-time
 GET  /health                  # Health check
 ```
 
 El flujo de submit: recibe respuestas → normaliza texto → guarda en DB → calcula score → actualiza player → broadcast ranking vía WebSocket.
+
+El flujo de postcards: recibe imagen → valida tipo/tamaño → guarda en disco → genera rotación aleatoria → guarda en DB → broadcast nueva postal vía WebSocket.
 
 ---
 

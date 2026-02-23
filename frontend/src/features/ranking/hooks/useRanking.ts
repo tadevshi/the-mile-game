@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useWebSocket } from '@/shared/hooks';
+import { useWebSocketStore } from '@/shared/store/websocketStore';
 import { api, type RankingEntry } from '@/shared/lib/api';
 import { rankingService } from '../services/rankingApi';
 
@@ -14,20 +14,31 @@ export function useRanking() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
-  const [isWsConnected, setIsWsConnected] = useState(false);
+  
+  // Use selectors to avoid unnecessary re-renders
+  const isWsConnected = useWebSocketStore((state) => state.isConnected);
 
-  // WebSocket for real-time updates
-  useWebSocket(WS_URL, {
-    onMessage: (message) => {
+  // Initialize WebSocket connection and subscriptions
+  useEffect(() => {
+    const wsStore = useWebSocketStore.getState();
+    
+    // Connect if not already connected
+    if (!wsStore.isConnected && !wsStore.isConnecting) {
+      wsStore.connect(WS_URL);
+    }
+
+    // Subscribe to messages
+    const unsubscribe = wsStore.subscribe((message) => {
       const rankingData = (message as { ranking?: RankingEntry[] }).ranking;
       if (message.type === 'ranking_update' && Array.isArray(rankingData)) {
         setRanking(rankingData);
       }
-    },
-    onConnect: () => setIsWsConnected(true),
-    onDisconnect: () => setIsWsConnected(false),
-    onError: () => setIsWsConnected(false),
-  });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const loadRanking = useCallback(async () => {
     try {

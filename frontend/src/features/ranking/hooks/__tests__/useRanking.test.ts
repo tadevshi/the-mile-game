@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import type { RankingEntry } from '@/shared/lib/api'
+import { useWebSocketStore } from '@/shared/store/websocketStore'
 
-// Mock useWebSocket to avoid real WebSocket connections
-vi.mock('@/shared/hooks', () => ({
-  useWebSocket: vi.fn(),
+// Mock useWebSocketStore to avoid real WebSocket connections
+vi.mock('@/shared/store/websocketStore', () => ({
+  useWebSocketStore: vi.fn(),
 }))
 
 vi.mock('../../services/rankingApi', () => ({
@@ -19,10 +20,8 @@ vi.mock('@/shared/lib/api', () => ({
   },
 }))
 
-import { useWebSocket } from '@/shared/hooks'
 import { useRanking } from '../useRanking'
 import { rankingService } from '../../services/rankingApi'
-import type { UseWebSocketOptions } from '@/shared/hooks/useWebSocket'
 
 const mockRanking: RankingEntry[] = [
   { position: 1, player: { id: 'p1', name: 'Ana',   avatar: '👸', score: 10, created_at: '' } },
@@ -32,19 +31,37 @@ const mockRanking: RankingEntry[] = [
   { position: 5, player: { id: 'p5', name: 'Eva',   avatar: '🌸', score: 3,  created_at: '' } },
 ]
 
-const WS_RETURN = {
-  isConnected: false,
-  lastMessage: null,
-  sendMessage: vi.fn(),
-  connect: vi.fn(),
-  disconnect: vi.fn(),
-}
-
 describe('useRanking', () => {
+  let mockSubscribe: ReturnType<typeof vi.fn>;
+  let mockConnect: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(rankingService.getRanking).mockResolvedValue(mockRanking)
-    vi.mocked(useWebSocket).mockReturnValue(WS_RETURN)
+    
+    mockSubscribe = vi.fn().mockReturnValue(vi.fn()); // Returns unsubscribe function
+    mockConnect = vi.fn();
+    
+    // Setup default store mock implementation
+    // Handle both getState and direct call (for selectors)
+    const mockStore = Object.assign(
+      vi.fn((selector) => {
+        if (typeof selector === 'function') {
+          return selector({ isConnected: true });
+        }
+        return { isConnected: true };
+      }),
+      {
+        getState: () => ({
+          isConnected: false,
+          isConnecting: false,
+          connect: mockConnect,
+          subscribe: mockSubscribe,
+        }),
+      }
+    );
+    
+    vi.mocked(useWebSocketStore).mockImplementation(mockStore as any);
   })
 
   // ─── loadRanking ─────────────────────────────────────────────────────────────
@@ -197,12 +214,11 @@ describe('useRanking', () => {
 
   describe('WebSocket integration', () => {
     it('updates ranking when it receives a ranking_update message', async () => {
-      let capturedOptions: UseWebSocketOptions | undefined
-
-      vi.mocked(useWebSocket).mockImplementation((_url, options) => {
-        capturedOptions = options
-        return WS_RETURN
-      })
+      let messageHandler: ((msg: any) => void) | undefined;
+      mockSubscribe.mockImplementation((handler: any) => {
+        messageHandler = handler;
+        return vi.fn(); // unsubscribe
+      });
 
       const { result } = renderHook(() => useRanking())
       await waitFor(() => expect(result.current.isLoading).toBe(false))
@@ -212,23 +228,23 @@ describe('useRanking', () => {
       ]
 
       act(() => {
-        capturedOptions?.onMessage?.({
-          type: 'ranking_update',
-          data: null,
-          ranking: updatedRanking,
-        } as unknown as { type: string; data: unknown })
+        if (messageHandler) {
+          messageHandler({
+            type: 'ranking_update',
+            ranking: updatedRanking,
+          });
+        }
       })
 
       expect(result.current.ranking).toEqual(updatedRanking)
     })
 
     it('ignores messages that are not ranking_update', async () => {
-      let capturedOptions: UseWebSocketOptions | undefined
-
-      vi.mocked(useWebSocket).mockImplementation((_url, options) => {
-        capturedOptions = options
-        return WS_RETURN
-      })
+      let messageHandler: ((msg: any) => void) | undefined;
+      mockSubscribe.mockImplementation((handler: any) => {
+        messageHandler = handler;
+        return vi.fn(); // unsubscribe
+      });
 
       const { result } = renderHook(() => useRanking())
       await waitFor(() => expect(result.current.isLoading).toBe(false))
@@ -236,43 +252,41 @@ describe('useRanking', () => {
       const originalRanking = result.current.ranking
 
       act(() => {
-        capturedOptions?.onMessage?.({ type: 'other_event', data: null })
+        if (messageHandler) {
+          messageHandler({ type: 'other_event' });
+        }
       })
 
       expect(result.current.ranking).toEqual(originalRanking)
     })
 
-    it('sets isWsConnected=true on WebSocket connect', async () => {
-      let capturedOptions: UseWebSocketOptions | undefined
-
-      vi.mocked(useWebSocket).mockImplementation((_url, options) => {
-        capturedOptions = options
-        return WS_RETURN
-      })
-
-      const { result } = renderHook(() => useRanking())
-      await waitFor(() => expect(result.current.isLoading).toBe(false))
-
-      act(() => { capturedOptions?.onConnect?.() })
-
-      expect(result.current.isWsConnected).toBe(true)
+    it('connects to WebSocket if not already connected', () => {
+      renderHook(() => useRanking())
+      expect(mockConnect).toHaveBeenCalledOnce()
     })
-
-    it('sets isWsConnected=false on WebSocket disconnect', async () => {
-      let capturedOptions: UseWebSocketOptions | undefined
-
-      vi.mocked(useWebSocket).mockImplementation((_url, options) => {
-        capturedOptions = options
-        return { ...WS_RETURN, isConnected: true }
-      })
-
+    
+    it('returns connection status from store', () => {
+      const mockStore = Object.assign(
+        vi.fn((selector) => {
+          if (typeof selector === 'function') {
+            return selector({ isConnected: true });
+          }
+          return { isConnected: true };
+        }),
+        {
+          getState: () => ({
+            isConnected: false,
+            isConnecting: false,
+            connect: mockConnect,
+            subscribe: mockSubscribe,
+          }),
+        }
+      );
+      
+      vi.mocked(useWebSocketStore).mockImplementation(mockStore as any);
+      
       const { result } = renderHook(() => useRanking())
-      await waitFor(() => expect(result.current.isLoading).toBe(false))
-
-      act(() => { capturedOptions?.onConnect?.() })
-      act(() => { capturedOptions?.onDisconnect?.() })
-
-      expect(result.current.isWsConnected).toBe(false)
+      expect(result.current.isWsConnected).toBe(true)
     })
   })
 })
