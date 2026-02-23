@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -226,10 +225,23 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// Validar tipo de archivo
-	contentType := header.Header.Get("Content-Type")
-	if contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Only JPEG, PNG, and WebP images are allowed"})
+	// Validar el contenido real del archivo leyendo los primeros 512 bytes
+	buffer := make([]byte, 512)
+	if _, err := file.Read(buffer); err != nil && err != io.EOF {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		return
+	}
+
+	// Volver el puntero del archivo al principio para que io.Copy lo guarde entero después
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process file"})
+		return
+	}
+
+	// Detectar el tipo de contenido real ignorando lo que diga el header
+	detectedType := http.DetectContentType(buffer)
+	if detectedType != "image/jpeg" && detectedType != "image/png" && detectedType != "image/webp" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file content. Only JPEG, PNG, and WebP images are allowed"})
 		return
 	}
 
@@ -245,10 +257,12 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 		message = message[:500]
 	}
 
-	// Generar nombre único para el archivo
-	ext := filepath.Ext(header.Filename)
-	if ext == "" {
-		ext = ".jpg"
+	// Forzar la extensión basada en el tipo MIME detectado, JAMÁS confiar en el header
+	ext := ".jpg"
+	if detectedType == "image/png" {
+		ext = ".png"
+	} else if detectedType == "image/webp" {
+		ext = ".webp"
 	}
 	filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
 
@@ -277,8 +291,9 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	}
 
 	// Generar rotación aleatoria entre -30 y 30 grados
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	rotation := (rng.Float64() * 60) - 30 // -30 a 30
+	// En Go 1.20+ math/rand viene auto-seedeado, no hace falta instanciar un generador nuevo
+	// cada request porque es costoso y de principiante.
+	rotation := (rand.Float64() * 60) - 30 // -30 a 30
 
 	// Ruta pública de la imagen (servida por nginx)
 	publicImagePath := "/uploads/postcards/" + filename

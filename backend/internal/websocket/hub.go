@@ -109,16 +109,31 @@ func (h *Hub) Run() {
 
 		case message := <-h.broadcast:
 			h.mu.RLock()
+			// Coleccionar los clientes a borrar para no modificar el mapa durante el RLock
+			var deadClients []*Client
+
 			for client := range h.clients {
 				select {
 				case client.send <- message:
 				default:
-					// Cliente lento, cerrar conexión
-					close(client.send)
-					delete(h.clients, client)
+					// Cliente lento, lo anotamos para borrar después
+					deadClients = append(deadClients, client)
 				}
 			}
 			h.mu.RUnlock()
+
+			// Ahora sí, con Lock exclusivo borramos los muertos
+			if len(deadClients) > 0 {
+				h.mu.Lock()
+				for _, client := range deadClients {
+					if _, ok := h.clients[client]; ok {
+						delete(h.clients, client)
+						close(client.send)
+					}
+				}
+				h.mu.Unlock()
+				log.Printf("WebSocket: Borrados %d clientes lentos. Total: %d", len(deadClients), len(h.clients))
+			}
 		}
 	}
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { usePostcardStore } from '../store/postcardStore';
 import { postcardService } from '../services/postcardApi';
-import { useWebSocket } from '@/shared/hooks/useWebSocket';
+import { useWebSocketStore } from '@/shared/store/websocketStore';
 import type { Postcard } from '../types/postcards.types';
 
 // Construir la URL del WebSocket según entorno
@@ -23,17 +23,27 @@ export function usePostcards() {
 
   const hasFetchedRef = useRef(false);
 
-  // WebSocket para recibir postales nuevas en tiempo real
-  useWebSocket(getWsUrl(), {
-    onMessage: useCallback(
-      (message: { type: string; data?: unknown; postcard?: unknown }) => {
-        if (message.type === 'postcard_new' && message.postcard) {
-          addPostcard(message.postcard as Postcard);
-        }
-      },
-      [addPostcard]
-    ),
-  });
+  // Initialize WebSocket connection and subscriptions
+  useEffect(() => {
+    const wsStore = useWebSocketStore.getState();
+    const url = getWsUrl();
+    
+    // Connect if not already connected
+    if (!wsStore.isConnected && !wsStore.isConnecting) {
+      wsStore.connect(url);
+    }
+
+    // Subscribe to messages
+    const unsubscribe = wsStore.subscribe((message) => {
+      if (message.type === 'postcard_new' && message.postcard) {
+        addPostcard(message.postcard as Postcard);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [addPostcard]);
 
   // Fetch inicial de postales
   const fetchPostcards = useCallback(async () => {
