@@ -1,0 +1,12 @@
+# Development-only overrides.
+# Exposes the backend port to the host so the Vite dev server can proxy
+# /api and /ws requests directly to the backend container.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# DO NOT use in production — nginx already proxies internally via Docker network.
+services:
+  backend:
+    ports:
+      - "8080:8080"
