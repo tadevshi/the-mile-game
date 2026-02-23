@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { usePostcards } from '../hooks/usePostcards';
@@ -19,13 +19,6 @@ export function CorkboardPage() {
 
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
-
-  // Guard: solo accesible si completó el quiz
-  useEffect(() => {
-    if (!hasCompleted) {
-      navigate('/');
-    }
-  }, [hasCompleted, navigate]);
 
   const handleAddPostcard = async (image: File, message: string) => {
     await createPostcard(image, message);
@@ -138,19 +131,21 @@ export function CorkboardPage() {
         )}
       </div>
 
-      {/* FAB — Agregar postal */}
-      <motion.button
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-accent text-white shadow-xl shadow-accent/30 flex items-center justify-center text-2xl cursor-pointer border-2 border-white/20"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setIsAddOpen(true)}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.5 }}
-        aria-label="Agregar postal"
-      >
-        📸
-      </motion.button>
+      {/* FAB — Agregar postal (solo si completó el quiz) */}
+      {hasCompleted && (
+        <motion.button
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-accent text-white shadow-xl shadow-accent/30 flex items-center justify-center text-2xl cursor-pointer border-2 border-white/20"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsAddOpen(true)}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.5 }}
+          aria-label="Agregar postal"
+        >
+          📸
+        </motion.button>
+      )}
 
       {/* Botón volver — abajo izquierda */}
       <div className="fixed bottom-6 left-6 z-40">

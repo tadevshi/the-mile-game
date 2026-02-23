@@ -52,7 +52,7 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
 
           {/* Contenido */}
           <motion.div
-            className="relative z-10 w-full max-w-lg"
+            className="relative z-10 w-full max-w-md md:max-w-2xl"
             initial={{ scale: 0.8, opacity: 0, y: 30 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 30 }}
@@ -68,27 +68,24 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
               ref={postcardRef}
               className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200"
             >
-              {/* Layout postal: foto arriba en mobile, lado a lado en desktop */}
-              <div className="flex flex-col md:flex-row">
-                {/* Foto */}
-                <div className="md:w-1/2 aspect-square md:aspect-auto relative overflow-hidden bg-gray-100">
+              {/* Layout vertical: foto arriba, mensaje abajo */}
+              <div className="flex flex-col">
+                {/* Foto — ancho completo, aspect ratio natural */}
+                <div className="relative overflow-hidden bg-gray-100">
                   <img
                     src={postcard.image_path}
                     alt={`Postal de ${postcard.player_name}`}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="w-full h-auto max-h-[50vh] object-contain"
                   />
                 </div>
 
                 {/* Separador */}
-                <div className="hidden md:block w-px bg-gray-200" />
-                <div className="md:hidden h-px bg-gray-200" />
+                <div className="h-px bg-gray-200" />
 
                 {/* Mensaje */}
-                <div className="md:w-1/2 p-5 flex flex-col justify-between relative min-h-[180px]">
+                <div className="p-5 flex flex-col justify-between relative min-h-[140px]">
                   {/* Líneas decorativas */}
                   <div className="absolute inset-x-5 top-12 space-y-5 pointer-events-none">
-                    <div className="h-px bg-gray-100" />
-                    <div className="h-px bg-gray-100" />
                     <div className="h-px bg-gray-100" />
                     <div className="h-px bg-gray-100" />
                     <div className="h-px bg-gray-100" />
@@ -98,7 +95,7 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
                     <p className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-2">
                       mensaje:
                     </p>
-                    <p className="text-sm text-gray-700 leading-relaxed font-serif italic">
+                    <p className="text-sm md:text-base text-gray-700 leading-relaxed font-serif italic">
                       {postcard.message || '...'}
                     </p>
                   </div>
