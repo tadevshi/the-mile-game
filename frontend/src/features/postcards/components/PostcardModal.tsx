@@ -58,34 +58,36 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
             exit={{ scale: 0.8, opacity: 0, y: 30 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           >
-            {/* Pin centrado */}
-            <div className="flex justify-center mb-[-8px] relative z-20">
+            {/* Pin centrado — z-30 siempre encima de la postal */}
+            <div className="flex justify-center mb-[-8px] relative z-30 pointer-events-none">
               <PushPin className="scale-125" />
             </div>
 
-            {/* Postal expandida */}
+            {/* Postal expandida — esquinas rectas como postal real */}
             <div
               ref={postcardRef}
-              className="bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200"
+              className="bg-white shadow-2xl overflow-hidden border border-gray-200"
             >
-              {/* Layout vertical: foto arriba, mensaje abajo */}
-              <div className="flex flex-col">
-                {/* Foto — ancho completo, aspect ratio natural */}
-                <div className="relative overflow-hidden bg-gray-100">
+              {/* Mobile: vertical (foto arriba, mensaje abajo) */}
+              {/* Desktop: horizontal (foto izquierda, mensaje derecha) — mismo formato que la card */}
+              <div className="flex flex-col md:flex-row md:min-h-[320px]">
+                {/* Foto */}
+                <div className="aspect-[4/3] md:aspect-auto md:w-1/2 relative overflow-hidden bg-gray-100">
                   <img
                     src={postcard.image_path}
                     alt={`Postal de ${postcard.player_name}`}
-                    className="w-full h-auto max-h-[50vh] object-contain"
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
                 </div>
 
                 {/* Separador */}
-                <div className="h-px bg-gray-200" />
+                <div className="h-px md:h-auto md:w-px bg-gray-200" />
 
                 {/* Mensaje */}
-                <div className="p-5 flex flex-col justify-between relative min-h-[140px]">
+                <div className="md:w-1/2 p-5 flex flex-col justify-between relative min-h-[140px]">
                   {/* Líneas decorativas */}
                   <div className="absolute inset-x-5 top-12 space-y-5 pointer-events-none">
+                    <div className="h-px bg-gray-100" />
                     <div className="h-px bg-gray-100" />
                     <div className="h-px bg-gray-100" />
                     <div className="h-px bg-gray-100" />

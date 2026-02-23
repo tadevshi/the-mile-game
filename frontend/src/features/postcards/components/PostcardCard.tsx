@@ -14,15 +14,15 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
 
   return (
     <div className="relative pt-4">
-      {/* Push pin centrado arriba */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20">
+      {/* Push pin centrado arriba — z-40 para estar SIEMPRE encima de la postal (hover usa z-30) */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
         <PushPin />
       </div>
 
       {/* Postal con rotación */}
       <motion.div
         ref={cardRef}
-        className="postcard-card relative bg-white rounded-lg shadow-lg cursor-pointer overflow-hidden border border-gray-200"
+        className="postcard-card relative bg-white shadow-lg cursor-pointer overflow-hidden border border-gray-200"
         style={{ rotate: postcard.rotation }}
         whileHover={{ scale: 1.05, zIndex: 30, rotate: 0 }}
         whileTap={{ scale: 0.97 }}
