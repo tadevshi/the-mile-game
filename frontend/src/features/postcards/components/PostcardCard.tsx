@@ -33,7 +33,8 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
         transition={{ type: 'spring', stiffness: 260, damping: 20 }}
       >
         {/* Layout postal: foto izquierda, mensaje derecha */}
-        <div className="flex h-full min-h-[160px] md:min-h-[180px]">
+        {/* Usamos aspect ratio fijo para que siempre mantenga proporción de postal */}
+        <div className="flex w-full aspect-[2/1] max-h-[220px]">
           {/* Foto — lado izquierdo */}
           <div className="w-1/2 relative overflow-hidden bg-gray-100">
             <img
