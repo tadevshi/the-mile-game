@@ -25,16 +25,19 @@ export function CorkboardPage() {
   };
 
   return (
-    <div
-      className="min-h-screen relative"
-      style={{
-        backgroundImage: `url(${corkTexture})`,
-        backgroundRepeat: 'repeat',
-        backgroundSize: '600px',
-      }}
-    >
-      {/* Viñeta sutil sobre el corcho */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]" />
+    <div className="min-h-screen relative">
+      {/* Fondo de corcho — fixed para que no scrollee con el contenido */}
+      <div
+        className="fixed inset-0 -z-10"
+        style={{
+          backgroundImage: `url(${corkTexture})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
+      {/* Viñeta sutil sobre el corcho — también fija */}
+      <div className="fixed inset-0 -z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]" />
 
       {/* Header */}
       <div className="relative z-10 pt-6 pb-4 px-4 text-center">
