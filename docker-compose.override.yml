@@ -1,7 +1,0 @@
-# Override for local development: exposes backend port to host
-# so Vite dev server can proxy /api requests to the backend container.
-# This file is auto-merged by docker-compose when present.
-services:
-  backend:
-    ports:
-      - "8080:8080"
