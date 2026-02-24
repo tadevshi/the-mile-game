@@ -90,7 +90,7 @@ export function WelcomePage() {
             Empezar Juego
           </Button>
 
-          {/* Botón condicional: Cartelera de Fotos (solo si ya jugó Y feature habilitado) */}
+          {/* Botón condicional: Dejar foto en cartelera (solo si ya jugó Y feature habilitado) */}
           {FEATURES.CORKBOARD && hasCompleted && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -102,10 +102,10 @@ export function WelcomePage() {
                 size="md"
                 fullWidth
                 icon={<span>📸</span>}
-                onClick={() => navigate('/corkboard')}
+                onClick={() => navigate('/corkboard?add=true')}
                 className="!border-primary/50 !text-primary hover:!bg-primary/10"
               >
-                Cartelera de Fotos
+                Dejar tu Foto para Mile
               </Button>
             </motion.div>
           )}
