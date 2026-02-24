@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useEffect, useState, useRef } from 'react';
+import { memo, useEffect, useState, useRef } from 'react';
 
 // Componente Mariposa con orientación realista
 function Butterfly({ 
@@ -150,12 +150,14 @@ function Sparkle({
   size,
   startX,
   startY,
+  repeatDelay,
 }: {
   delay: number;
   duration: number;
   size: number;
   startX: string;
   startY: string;
+  repeatDelay: number;
 }) {
   return (
     <motion.div
@@ -175,7 +177,7 @@ function Sparkle({
         duration,
         delay,
         repeat: Infinity,
-        repeatDelay: Math.random() * 4,
+        repeatDelay,
         ease: "easeInOut",
       }}
     >
@@ -190,8 +192,43 @@ function Sparkle({
   );
 }
 
-// Background animado completo
-export function ButterflyBackground() {
+// --- Datos estáticos generados una única vez al cargar el módulo ---
+// Si estuvieran dentro del componente sin useMemo, se regenerarían en cada
+// re-render (p. ej. cuando el usuario tipea), causando que Framer Motion
+// detecte nuevos valores y haga un jump abrupto en las animaciones.
+
+const BUTTERFLIES = Array.from({ length: 8 }, (_, i) => ({
+  id: i,
+  delay: i * 0.8,
+  duration: 12 + Math.random() * 8,
+  size: 24 + Math.random() * 16,
+  startX: `${10 + Math.random() * 80}%`,
+  startY: `${60 + Math.random() * 30}%`,
+  color: (['#FBCFE8', '#F9A8D4', '#F48FB1', '#FBBF24'] as const)[Math.floor(Math.random() * 4)],
+}));
+
+const PARTICLES = Array.from({ length: 15 }, (_, i) => ({
+  id: i,
+  delay: Math.random() * 5,
+  duration: 8 + Math.random() * 6,
+  size: 4 + Math.random() * 8,
+  startX: `${Math.random() * 100}%`,
+  startY: `${Math.random() * 100}%`,
+}));
+
+const SPARKLES = Array.from({ length: 6 }, (_, i) => ({
+  id: i,
+  delay: Math.random() * 3,
+  duration: 2 + Math.random() * 2,
+  repeatDelay: Math.random() * 4,
+  size: 8 + Math.random() * 8,
+  startX: `${20 + Math.random() * 60}%`,
+  startY: `${20 + Math.random() * 60}%`,
+}));
+
+// Background animado completo — memo evita re-renders cuando el padre cambia
+// estado (p. ej. inputs del quiz), ya que este componente no recibe props.
+export const ButterflyBackground = memo(function ButterflyBackground() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -200,54 +237,23 @@ export function ButterflyBackground() {
 
   if (!mounted) return null;
 
-  // Generar mariposas con posiciones aleatorias
-  const butterflies = Array.from({ length: 8 }, (_, i) => ({
-    id: i,
-    delay: i * 0.8,
-    duration: 12 + Math.random() * 8,
-    size: 24 + Math.random() * 16,
-    startX: `${10 + Math.random() * 80}%`,
-    startY: `${60 + Math.random() * 30}%`,
-    color: ['#FBCFE8', '#F9A8D4', '#F48FB1', '#FBBF24'][Math.floor(Math.random() * 4)],
-  }));
-
-  // Generar partículas
-  const particles = Array.from({ length: 15 }, (_, i) => ({
-    id: i,
-    delay: Math.random() * 5,
-    duration: 8 + Math.random() * 6,
-    size: 4 + Math.random() * 8,
-    startX: `${Math.random() * 100}%`,
-    startY: `${Math.random() * 100}%`,
-  }));
-
-  // Generar sparkles
-  const sparkles = Array.from({ length: 6 }, (_, i) => ({
-    id: i,
-    delay: Math.random() * 3,
-    duration: 2 + Math.random() * 2,
-    size: 8 + Math.random() * 8,
-    startX: `${20 + Math.random() * 60}%`,
-    startY: `${20 + Math.random() * 60}%`,
-  }));
-
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
       {/* Capa de gradiente suave */}
       <div className="absolute inset-0 bg-gradient-to-br from-pink-50/50 via-white/30 to-pink-100/40 dark:from-slate-900/50 dark:via-slate-800/30 dark:to-slate-900/40" />
 
       {/* Mariposas animadas */}
-      {butterflies.map((b) => (
+      {BUTTERFLIES.map((b) => (
         <Butterfly key={b.id} {...b} />
       ))}
 
       {/* Partículas flotantes */}
-      {particles.map((p) => (
+      {PARTICLES.map((p) => (
         <FloatingParticle key={p.id} {...p} />
       ))}
 
       {/* Sparkles brillantes */}
-      {sparkles.map((s) => (
+      {SPARKLES.map((s) => (
         <Sparkle key={s.id} {...s} />
       ))}
 
@@ -278,4 +284,4 @@ export function ButterflyBackground() {
       />
     </div>
   );
-}
+});
