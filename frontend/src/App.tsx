@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { WelcomePage, RegisterPage, QuizPage, ThankYouPage } from '@features/quiz';
 import { RankingPage } from '@features/ranking';
 import { CorkboardPage } from '@features/postcards';
-import { ErrorBoundary } from '@/shared';
+import { ErrorBoundary, FEATURES } from '@/shared';
 import type { ReactNode } from 'react';
 
 // === VARIANTES DE TRANSICIÓN ESPECÍFICAS ===
@@ -167,15 +167,17 @@ function AnimatedRoutes() {
           } 
         />
 
-        {/* CORKBOARD: Fade elegante (experiencia independiente) */}
-        <Route 
-          path="/corkboard" 
-          element={
-            <AnimatedPage variants={fadeVariants}>
-              <CorkboardPage />
-            </AnimatedPage>
-          } 
-        />
+        {/* CORKBOARD: Feature sorpresa — habilitado via VITE_ENABLE_CORKBOARD=true */}
+        {FEATURES.CORKBOARD && (
+          <Route 
+            path="/corkboard" 
+            element={
+              <AnimatedPage variants={fadeVariants}>
+                <CorkboardPage />
+              </AnimatedPage>
+            } 
+          />
+        )}
         
         {/* Ruta 404: Fade suave */}
         <Route 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
+import { Button, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollStaggerItem, FEATURES } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
 import { ConfettiEffect } from '@/shared/components/Confetti';
 import { rankingService } from '../../ranking/services/rankingApi';
@@ -205,6 +205,7 @@ export function ThankYouPage() {
                 </Button>
               </motion.div>
 
+              {FEATURES.CORKBOARD && (
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -219,6 +220,7 @@ export function ThankYouPage() {
                   Cartelera de Fotos
                 </Button>
               </motion.div>
+              )}
 
               <motion.div
                 whileHover={{ scale: 1.02 }}

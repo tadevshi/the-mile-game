@@ -35,6 +35,9 @@ export { usePullToRefresh } from './hooks/usePullToRefresh';
 
 // API Client
 export { api } from './lib/api';
+
+// Feature Flags
+export { FEATURES } from './lib/featureFlags';
 export type { 
   Player, 
   RankingEntry, 
