@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { usePostcards } from '../hooks/usePostcards';
 import { useQuizStore } from '@features/quiz/store/quizStore';
@@ -14,11 +14,19 @@ import corkTexture from '@/assets/cartelera.png';
 
 export function CorkboardPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const hasCompleted = useQuizStore((s) => s.hasCompleted);
   const { postcards, isLoading, error, createPostcard } = usePostcards();
 
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+
+  // Auto-abrir el sheet si viene de "Dejar tu Foto para Mile" (WelcomePage)
+  useEffect(() => {
+    if (searchParams.get('add') === 'true' && hasCompleted) {
+      setIsAddOpen(true);
+    }
+  }, [searchParams, hasCompleted]);
 
   const handleAddPostcard = async (image: File, message: string) => {
     await createPostcard(image, message);

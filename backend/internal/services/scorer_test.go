@@ -18,6 +18,10 @@ func TestNewScorer(t *testing.T) {
 	if len(s.correctPreferences) != 6 {
 		t.Errorf("Scorer should have 6 preference questions, got %d", len(s.correctPreferences))
 	}
+	// Verificar que dislike tiene las 3 respuestas válidas
+	if len(s.correctFavorites["dislike"]) != 3 {
+		t.Errorf("dislike should have 3 valid answers, got %d", len(s.correctFavorites["dislike"]))
+	}
 }
 
 func TestCalculate(t *testing.T) {
@@ -39,6 +43,48 @@ func TestCalculate(t *testing.T) {
 				"season":  "primavera",
 				"color":   "rosado",
 				"dislike": "aranas", // "las" se elimina
+			},
+			preferences: map[string]string{
+				"coffee":  "te",
+				"place":   "playa",
+				"weather": "frio",
+				"time":    "noche",
+				"food":    "sushi",
+				"alcohol": "tequila",
+			},
+			expected: 13,
+		},
+		{
+			name: "dislike - madrugar es correcto",
+			favorites: map[string]string{
+				"singer":  "ricardo arjona",
+				"flower":  "girasol",
+				"drink":   "te verde",
+				"disney":  "bella y bestia",
+				"season":  "primavera",
+				"color":   "rosado",
+				"dislike": "madrugar",
+			},
+			preferences: map[string]string{
+				"coffee":  "te",
+				"place":   "playa",
+				"weather": "frio",
+				"time":    "noche",
+				"food":    "sushi",
+				"alcohol": "tequila",
+			},
+			expected: 13,
+		},
+		{
+			name: "dislike - el sol es correcto",
+			favorites: map[string]string{
+				"singer":  "ricardo arjona",
+				"flower":  "girasol",
+				"drink":   "te verde",
+				"disney":  "bella y bestia",
+				"season":  "primavera",
+				"color":   "rosado",
+				"dislike": "sol", // "el" se elimina como artículo
 			},
 			preferences: map[string]string{
 				"coffee":  "te",
@@ -187,13 +233,57 @@ func TestGetNormalizer(t *testing.T) {
 func TestCorrectAnswersAreNormalized(t *testing.T) {
 	s := NewScorer()
 
-	// Verificar que las respuestas correctas están normalizadas
-	for key, value := range s.correctFavorites {
-		expected := s.normalizer.NormalizeForStorage(value)
-		// Como almacenamos ya normalizado, debería ser igual
-		if value != expected {
-			t.Errorf("Correct answer for %s should be normalized: got %q, want %q",
-				key, value, expected)
+	// Verificar que todas las respuestas correctas de favoritos están normalizadas
+	for key, values := range s.correctFavorites {
+		for i, value := range values {
+			expected := s.normalizer.NormalizeForStorage(value)
+			if value != expected {
+				t.Errorf("Correct answer[%d] for %s should be normalized: got %q, want %q",
+					i, key, value, expected)
+			}
 		}
+	}
+}
+
+func TestDislikeAcceptsAllValidAnswers(t *testing.T) {
+	s := NewScorer()
+
+	validDislikes := []string{
+		"aranas",   // "las arañas" normalizado
+		"madrugar", // madrugar normalizado
+		"sol",      // "el sol" normalizado (artículo eliminado)
+	}
+
+	basePreferences := map[string]string{
+		"coffee":  "te",
+		"place":   "playa",
+		"weather": "frio",
+		"time":    "noche",
+		"food":    "sushi",
+		"alcohol": "tequila",
+	}
+
+	baseFavorites := map[string]string{
+		"singer": "ricardo arjona",
+		"flower": "girasol",
+		"drink":  "te verde",
+		"disney": "bella y bestia",
+		"season": "primavera",
+		"color":  "rosado",
+	}
+
+	for _, dislike := range validDislikes {
+		t.Run("dislike="+dislike, func(t *testing.T) {
+			favorites := make(map[string]string)
+			for k, v := range baseFavorites {
+				favorites[k] = v
+			}
+			favorites["dislike"] = dislike
+
+			score := s.Calculate(favorites, basePreferences)
+			if score != 13 {
+				t.Errorf("dislike=%q should give perfect score 13, got %d", dislike, score)
+			}
+		})
 	}
 }

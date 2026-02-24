@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Button, Input, TextArea, Header, PageLayout, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
 import { useQuiz } from '../hooks/useQuiz';
 import { useQuizStore } from '../store/quizStore';
+import { FAVORITE_QUESTIONS, PREFERENCE_QUESTIONS } from '../types/quiz.constants';
 
 // Componente ProgressBar completo
 function ProgressBar({ current, total }: { current: number; total: number }) {
@@ -47,25 +48,7 @@ function ProgressBarMinimal({ current, total }: { current: number; total: number
   );
 }
 
-// Preguntas del quiz
-const favoriteQuestions = [
-  { id: 'singer', label: '¿Cantante favorito?' },
-  { id: 'flower', label: '¿Flor favorita?' },
-  { id: 'drink', label: '¿Cuál es mi bebida favorita?' },
-  { id: 'disney', label: '¿Película de Disney favorita?' },
-  { id: 'season', label: '¿Estación del año preferida?' },
-  { id: 'color', label: '¿Cuál es mi color favorito?' },
-  { id: 'dislike', label: '¿Menciona algo que no me guste?' },
-];
-
-const preferenceQuestions = [
-  { id: 'coffee', label: '¿Café o Té?', options: ['Café', 'Té'] },
-  { id: 'place', label: '¿Playa o Montaña?', options: ['Playa', 'Montaña'] },
-  { id: 'weather', label: '¿Frío o Calor?', options: ['Frío', 'Calor'] },
-  { id: 'time', label: '¿Día o Noche?', options: ['Día', 'Noche'] },
-  { id: 'food', label: '¿Pizza o Sushi?', options: ['Pizza', 'Sushi'] },
-  { id: 'alcohol', label: '¿Tequila o Vino?', options: ['Tequila', 'Vino'] },
-];
+// Preguntas del quiz — definidas en quiz.constants.ts, importadas aquí
 
 export function QuizPage() {
   const navigate = useNavigate();
@@ -127,7 +110,7 @@ export function QuizPage() {
           {/* Sección 1: Favoritos */}
           <ScrollReveal variant="fadeUp">
             <ScrollStagger className="space-y-5">
-              {favoriteQuestions.map((q) => (
+              {FAVORITE_QUESTIONS.map((q) => (
                 <ScrollStaggerItem key={q.id}>
                   <Input
                     label={q.label}
@@ -153,7 +136,7 @@ export function QuizPage() {
               </div>
 
               <ScrollStagger className="grid grid-cols-2 gap-y-6 gap-x-4">
-                {preferenceQuestions.map((q) => (
+                {PREFERENCE_QUESTIONS.map((q) => (
                   <ScrollStaggerItem key={q.id}>
                     <div className="flex flex-col items-center space-y-3">
                       <span className="font-serif italic text-base text-slate-700 dark:text-slate-200">

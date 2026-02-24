@@ -12,6 +12,12 @@ RUN npm ci
 # Copiar código fuente
 COPY . .
 
+# Build args para feature flags (Vite hornea estos valores en el bundle)
+ARG VITE_API_URL=/api
+ARG VITE_ENABLE_CORKBOARD=false
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_ENABLE_CORKBOARD=$VITE_ENABLE_CORKBOARD
+
 # Build de producción
 RUN npm run build
 

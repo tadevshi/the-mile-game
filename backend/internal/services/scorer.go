@@ -3,24 +3,25 @@ package services
 // Scorer calcula el puntaje del quiz usando normalización de texto
 type Scorer struct {
 	normalizer         *Normalizer
-	correctFavorites   map[string]string // Respuestas YA NORMALIZADAS
-	correctPreferences map[string]string // Respuestas YA NORMALIZADAS
+	correctFavorites   map[string][]string // Respuestas YA NORMALIZADAS (múltiples válidas por pregunta)
+	correctPreferences map[string]string   // Respuestas YA NORMALIZADAS
 }
 
 // NewScorer crea un nuevo calculador de puntajes
 func NewScorer() *Scorer {
 	normalizer := NewNormalizer()
 
-	// Definir respuestas correctas y normalizarlas inmediatamente
-	// Estas son las respuestas que Mile ha definido como correctas
-	rawFavorites := map[string]string{
-		"singer":  "ricardo arjona",
-		"flower":  "girasol",
-		"drink":   "te verde",
-		"disney":  "la bella y la bestia",
-		"season":  "primavera",
-		"color":   "rosado",
-		"dislike": "las arañas",
+	// Definir respuestas correctas y normalizarlas inmediatamente.
+	// Cada pregunta puede tener UNA o VARIAS respuestas válidas.
+	// Estas son las respuestas que Mile ha definido como correctas.
+	rawFavorites := map[string][]string{
+		"singer":  {"ricardo arjona"},
+		"flower":  {"girasol"},
+		"drink":   {"te verde"},
+		"disney":  {"la bella y la bestia"},
+		"season":  {"primavera"},
+		"color":   {"rosado"},
+		"dislike": {"las arañas", "madrugar", "el sol"}, // Cualquiera de las tres es correcta
 	}
 
 	rawPreferences := map[string]string{
@@ -33,9 +34,13 @@ func NewScorer() *Scorer {
 	}
 
 	// Normalizar las respuestas correctas para almacenarlas
-	normalizedFavorites := make(map[string]string)
-	for key, value := range rawFavorites {
-		normalizedFavorites[key] = normalizer.NormalizeForStorage(value)
+	normalizedFavorites := make(map[string][]string)
+	for key, values := range rawFavorites {
+		normalized := make([]string, len(values))
+		for i, v := range values {
+			normalized[i] = normalizer.NormalizeForStorage(v)
+		}
+		normalizedFavorites[key] = normalized
 	}
 
 	normalizedPreferences := make(map[string]string)
@@ -50,25 +55,27 @@ func NewScorer() *Scorer {
 	}
 }
 
-// Calculate calcula el puntaje basado en las respuestas del usuario
-// Las respuestas del usuario deben venir ya normalizadas del handler
+// Calculate calcula el puntaje basado en las respuestas del usuario.
+// Las respuestas del usuario deben venir ya normalizadas del handler.
 func (s *Scorer) Calculate(favorites, preferences map[string]string) int {
 	score := 0
 
 	// Puntuar favoritos (7 preguntas)
-	// Las respuestas del usuario ya vienen normalizadas desde el handler
-	for key, correctAnswer := range s.correctFavorites {
+	// Cada pregunta puede tener múltiples respuestas válidas — basta con que
+	// la respuesta del usuario coincida con alguna de ellas.
+	for key, correctAnswers := range s.correctFavorites {
 		if userAnswer, ok := favorites[key]; ok {
-			// Comparación directa ya que ambas están normalizadas
-			if userAnswer == correctAnswer {
-				score++
+			for _, correctAnswer := range correctAnswers {
+				if userAnswer == correctAnswer {
+					score++
+					break
+				}
 			}
 		}
 	}
 
 	// Puntuar preferencias (6 preguntas)
-	// Las preferencias son opciones fijas (A/B), no necesitan normalización
-	// pero las almacenamos normalizadas por consistencia
+	// Las preferencias son opciones fijas (A/B), siempre una sola respuesta correcta.
 	for key, correctAnswer := range s.correctPreferences {
 		if userAnswer, ok := preferences[key]; ok {
 			if userAnswer == correctAnswer {

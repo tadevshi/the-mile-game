@@ -51,6 +51,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_ENABLE_CORKBOARD: ${VITE_ENABLE_CORKBOARD:-false}
     container_name: milegame-web
     ports:
       - "${FRONTEND_PORT:-8081}:80"

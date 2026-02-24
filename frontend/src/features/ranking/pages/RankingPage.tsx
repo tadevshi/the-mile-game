@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton } from '@/shared';
+import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton, FEATURES } from '@/shared';
 import { useRanking } from '../hooks/useRanking';
 
 const medalBgColors: Record<string, string> = {
@@ -295,6 +295,7 @@ export function RankingPage() {
               Volver al inicio
             </Button>
 
+            {FEATURES.CORKBOARD && (
             <Button
               variant="outline"
               size="md"
@@ -304,6 +305,7 @@ export function RankingPage() {
             >
               Cartelera de Fotos
             </Button>
+            )}
 
             <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-semibold">
               Creciendo con magia • @tadevshi  • 2026

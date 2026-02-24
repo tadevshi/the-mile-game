@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card, ScrollReveal } from '@/shared';
+import { Button, Header, PageLayout, Card, ScrollReveal, FEATURES } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
 
 export function WelcomePage() {
@@ -90,8 +90,8 @@ export function WelcomePage() {
             Empezar Juego
           </Button>
 
-          {/* Botón condicional: Cartelera de Fotos (solo si ya jugó) */}
-          {hasCompleted && (
+          {/* Botón condicional: Dejar foto en cartelera (solo si ya jugó Y feature habilitado) */}
+          {FEATURES.CORKBOARD && hasCompleted && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -102,10 +102,10 @@ export function WelcomePage() {
                 size="md"
                 fullWidth
                 icon={<span>📸</span>}
-                onClick={() => navigate('/corkboard')}
+                onClick={() => navigate('/corkboard?add=true')}
                 className="!border-primary/50 !text-primary hover:!bg-primary/10"
               >
-                Cartelera de Fotos
+                Dejar tu Foto para Mile
               </Button>
             </motion.div>
           )}
