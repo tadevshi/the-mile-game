@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuizStore } from '../store/quizStore';
 import { quizService } from '../services/quizApi';
+import { TOTAL_QUESTIONS, FAVORITE_QUESTIONS, PREFERENCE_QUESTIONS } from '../types/quiz.constants';
 
 export function useQuiz() {
   const navigate = useNavigate();
@@ -18,16 +19,19 @@ export function useQuiz() {
   const setCompleted = useQuizStore((state) => state.setCompleted);
 
   // Derived: progress
-  const totalFavorites = Object.keys(answers.favorites).length;
-  const totalPreferences = Object.keys(answers.preferences).length;
-  const totalDescription = 1; // single description question
-  const totalQuestions = totalFavorites + totalPreferences + totalDescription;
-  const answeredFavorites = Object.values(answers.favorites).filter((v) => v.trim() !== '').length;
-  const answeredPreferences = Object.values(answers.preferences).filter((v) => v !== '').length;
+  // IMPORTANTE: el total es FIJO — no se calcula desde las keys del objeto answers
+  // porque ese objeto crece a medida que el usuario responde, haciendo que el
+  // total cambie dinámicamente y el progreso muestre "1 de 2", "2 de 3", etc.
+  const answeredFavorites = FAVORITE_QUESTIONS.filter(
+    (q) => (answers.favorites[q.id] ?? '').trim() !== ''
+  ).length;
+  const answeredPreferences = PREFERENCE_QUESTIONS.filter(
+    (q) => (answers.preferences[q.id] ?? '') !== ''
+  ).length;
   const answeredDescription = answers.description.trim() !== '' ? 1 : 0;
   const progress = {
     current: answeredFavorites + answeredPreferences + answeredDescription,
-    total: totalQuestions,
+    total: TOTAL_QUESTIONS,
   };
 
   const submitQuiz = async () => {
