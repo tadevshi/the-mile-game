@@ -4,6 +4,7 @@ import { WelcomePage, RegisterPage, QuizPage, ThankYouPage } from '@features/qui
 import { RankingPage } from '@features/ranking';
 import { CorkboardPage } from '@features/postcards';
 import { ErrorBoundary, FEATURES } from '@/shared';
+import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import type { ReactNode } from 'react';
 
 // === VARIANTES DE TRANSICIÓN ESPECÍFICAS ===
@@ -202,6 +203,8 @@ function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
+        {/* ThemeToggle vive fuera del router para persistir entre rutas sin re-montar */}
+        <ThemeToggle />
         <AnimatedRoutes />
       </BrowserRouter>
     </ErrorBoundary>
