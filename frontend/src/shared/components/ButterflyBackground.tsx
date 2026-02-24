@@ -1,5 +1,23 @@
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { memo, useEffect, useState, useRef } from 'react';
+
+// Trayectoria de vuelo en serpentina (módulo-level: no cambia entre renders)
+const BUTTERFLY_PATH_X = [0, 60, 120, 80, 40, 0, -40, -80, -40, 0];
+const BUTTERFLY_PATH_Y = [0, -40, -20, -60, -30, -50, -30, -10, -40, 0];
+
+/**
+ * Devuelve el delta angular mínimo entre dos ángulos en grados.
+ * Garantiza que la rotación siempre tome el arco más corto (≤ 180°),
+ * evitando que la mariposa dé una vuelta completa cuando cruza 0°/360°.
+ *
+ * Ejemplo: from=350°, to=10° → delta = +20° (no -340°)
+ */
+function shortestAngleDelta(from: number, to: number): number {
+  let diff = (to - from) % 360;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+  return diff;
+}
 
 // Componente Mariposa con orientación realista
 function Butterfly({ 
@@ -18,11 +36,22 @@ function Butterfly({
   color?: string;
 }) {
   const prevPos = useRef({ x: 0, y: 0 });
-  const [rotation, setRotation] = useState(0);
 
-  // Trayectoria suave en forma de "8" o serpentina
-  const pathX = [0, 60, 120, 80, 40, 0, -40, -80, -40, 0];
-  const pathY = [0, -40, -20, -60, -30, -50, -30, -10, -40, 0];
+  // rawAngle acumula el ángulo sin wrapping para que el spring siempre
+  // tenga un target correcto (p. ej. puede llegar a 720° sin problemas).
+  // useMotionValue no dispara re-renders de React — se actualiza directo en el DOM.
+  const rawAngle = useMotionValue(0);
+
+  // Spring de rotación: simula inercia angular.
+  // stiffness bajo + damping moderado = giro suave que "sigue" la trayectoria
+  // en lugar de snapear. Ajustá estos valores para más/menos lag visual:
+  //   stiffness más alto → más reactivo / stiffness más bajo → más "flotante"
+  //   damping más alto → sin rebote / damping más bajo → ligero overshoot
+  const smoothAngle = useSpring(rawAngle, {
+    stiffness: 20,
+    damping: 7,
+    mass: 0.6,
+  });
 
   return (
     <motion.div
@@ -39,8 +68,8 @@ function Butterfly({
     >
       <motion.div
         animate={{
-          x: pathX,
-          y: pathY,
+          x: BUTTERFLY_PATH_X,
+          y: BUTTERFLY_PATH_Y,
         }}
         transition={{
           duration,
@@ -55,13 +84,18 @@ function Butterfly({
           const dy = currentY - prevPos.current.y;
           
           if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-            // Calcular ángulo de movimiento y sumar 90° (la mariposa mira hacia arriba)
-            const angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
-            setRotation(angle);
+            // Ángulo "instantáneo" hacia donde apunta el vector de movimiento
+            const targetAngle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+
+            // Acumulamos el delta mínimo sobre el valor actual del MotionValue
+            // para que el spring interpole siempre por el arco corto
+            const delta = shortestAngleDelta(rawAngle.get(), targetAngle);
+            rawAngle.set(rawAngle.get() + delta);
+
             prevPos.current = { x: currentX, y: currentY };
           }
         }}
-        style={{ rotate: rotation }}
+        style={{ rotate: smoothAngle }}
       >
         <svg
           viewBox="0 0 64 64"
