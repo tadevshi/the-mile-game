@@ -8,9 +8,11 @@
  *   build:
  *     args:
  *       VITE_ENABLE_CORKBOARD: "true"
+ *       VITE_ENABLE_SECRET_BOX: "true"
  *
  * O en .env (root):
  *   VITE_ENABLE_CORKBOARD=true
+ *   VITE_ENABLE_SECRET_BOX=true
  */
 
 export const FEATURES = {
@@ -20,4 +22,11 @@ export const FEATURES = {
    * y redesplegar con: docker-compose up --build -d
    */
   CORKBOARD: import.meta.env.VITE_ENABLE_CORKBOARD === 'true',
+
+  /**
+   * Secret Box — Formulario para postales de personas que no pueden asistir.
+   * Habilitar ANTES de la fiesta para que el link funcione.
+   * La ruta /secret-box?token=TOKEN solo funciona si este flag está activo.
+   */
+  SECRET_BOX: import.meta.env.VITE_ENABLE_SECRET_BOX === 'true',
 } as const;

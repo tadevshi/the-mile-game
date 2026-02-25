@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance, type AxiosError } from 'axios';
-import type { Postcard } from '@features/postcards/types/postcards.types';
+import type { Postcard, SecretBoxStatus } from '@features/postcards/types/postcards.types';
 
 // Tipos de datos que vienen del backend
 export interface Player {
@@ -150,7 +150,7 @@ class ApiClient {
   // Postcards (Cartelera de Corcho)
   // ==========================================
 
-  async createPostcard(image: File, message: string): Promise<Postcard> {
+  async createPostcard(image: File, message: string, senderName?: string): Promise<Postcard> {
     if (!this.playerId) {
       throw new Error('No player ID set. Call createPlayer first.');
     }
@@ -158,6 +158,9 @@ class ApiClient {
     const formData = new FormData();
     formData.append('image', image);
     formData.append('message', message);
+    if (senderName?.trim()) {
+      formData.append('sender_name', senderName.trim());
+    }
 
     const response = await this.client.post<Postcard>(
       '/postcards',
@@ -173,6 +176,26 @@ class ApiClient {
     return response.data;
   }
 
+  async createSecretPostcard(image: File, message: string, senderName: string, token: string): Promise<Postcard> {
+    const formData = new FormData();
+    formData.append('image', image);
+    formData.append('message', message);
+    formData.append('sender_name', senderName.trim());
+
+    const response = await this.client.post<Postcard>(
+      '/postcards/secret',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'X-Secret-Token': token,
+        },
+        timeout: 30000,
+      }
+    );
+    return response.data;
+  }
+
   async listPostcards(): Promise<Postcard[]> {
     const response = await this.client.get<Postcard[]>('/postcards');
     return response.data;
@@ -181,6 +204,33 @@ class ApiClient {
   async getDescriptions(): Promise<string[]> {
     const response = await this.client.get<{ descriptions: string[] }>('/quiz/descriptions');
     return response.data.descriptions ?? [];
+  }
+
+  // ==========================================
+  // Admin — Secret Box
+  // ==========================================
+
+  async getSecretBoxStatus(adminKey: string): Promise<SecretBoxStatus> {
+    const response = await this.client.get<SecretBoxStatus>('/admin/status', {
+      headers: { 'X-Admin-Key': adminKey },
+    });
+    return response.data;
+  }
+
+  async listSecretPostcards(adminKey: string): Promise<Postcard[]> {
+    const response = await this.client.get<Postcard[]>('/admin/secret-box', {
+      headers: { 'X-Admin-Key': adminKey },
+    });
+    return response.data;
+  }
+
+  async revealSecretBox(adminKey: string): Promise<{ message: string; postcards: Postcard[] }> {
+    const response = await this.client.post<{ message: string; postcards: Postcard[] }>(
+      '/admin/reveal',
+      {},
+      { headers: { 'X-Admin-Key': adminKey } }
+    );
+    return response.data;
   }
 
   // ==========================================

@@ -7,8 +7,12 @@ export const postcardService = {
     return api.listPostcards();
   },
 
-  async create(image: File, message: string): Promise<Postcard> {
-    return api.createPostcard(image, message);
+  async create(image: File, message: string, senderName?: string): Promise<Postcard> {
+    return api.createPostcard(image, message, senderName);
+  },
+
+  async createSecret(image: File, message: string, senderName: string, token: string): Promise<Postcard> {
+    return api.createSecretPostcard(image, message, senderName, token);
   },
 
   /**
