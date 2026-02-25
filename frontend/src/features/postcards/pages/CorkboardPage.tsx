@@ -56,7 +56,7 @@ export function CorkboardPage() {
       </div>
 
       {/* Header */}
-      <div className="relative z-10 pt-6 pb-4 px-4 text-center">
+      <div className="relative z-10 pt-6 pb-4 px-4 text-center pointer-events-none">
         <motion.h1
           className="text-4xl md:text-5xl font-display text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
           initial={{ opacity: 0, y: -20 }}
@@ -76,7 +76,7 @@ export function CorkboardPage() {
       </div>
 
       {/* Contenido principal */}
-      <div className="relative z-10 px-4 pb-28">
+      <div className="relative z-10 px-4 pb-28 pointer-events-none">
         {/* Estado: cargando */}
         {isLoading && postcards.length === 0 && (
           <div className="flex justify-center items-center py-20">
@@ -130,7 +130,7 @@ export function CorkboardPage() {
               <motion.div
                 key={postcard.id}
                 // Offset vertical aleatorio en desktop para dar efecto desordenado
-                className="md:first:mt-0"
+                className="md:first:mt-0 pointer-events-auto"
                 style={{
                   marginTop: typeof window !== 'undefined' && window.innerWidth >= 768
                     ? `${((index * 37) % 40) - 10}px`
