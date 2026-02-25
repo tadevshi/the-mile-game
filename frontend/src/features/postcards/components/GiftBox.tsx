@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fireConfetti } from '@/shared/components/Confetti';
 import type { Postcard } from '../types/postcards.types';
 
 interface GiftBoxProps {
@@ -38,6 +39,13 @@ export function GiftBox({ postcards, onRevealComplete }: GiftBoxProps) {
       setVisibleCount(count);
       if (count >= postcards.length) {
         clearInterval(interval);
+        // Última postal clavada — disparar confetti espectacular 🎊
+        fireConfetti({ particleCount: 120, spread: 100, origin: { y: 0.6 }, zIndex: 200 });
+        // Segunda explosión con delay para más impacto
+        setTimeout(() => {
+          fireConfetti({ particleCount: 80, spread: 120, origin: { x: 0.2, y: 0.5 }, zIndex: 200 });
+          fireConfetti({ particleCount: 80, spread: 120, origin: { x: 0.8, y: 0.5 }, zIndex: 200 });
+        }, 300);
         // After last postcard lands, wait then complete
         completionTimeout = setTimeout(() => {
           setPhase('done');

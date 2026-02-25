@@ -22,3 +22,6 @@ export const PREFERENCE_QUESTIONS: PreferenceQuestion[] = [
 // Total de preguntas — CONSTANTE fija, no depende del estado de las respuestas
 export const TOTAL_QUESTIONS =
   FAVORITE_QUESTIONS.length + PREFERENCE_QUESTIONS.length + 1; // +1 descripción
+
+// Puntaje máximo — la descripción no es puntuable, solo feed
+export const MAX_SCORE = FAVORITE_QUESTIONS.length + PREFERENCE_QUESTIONS.length;

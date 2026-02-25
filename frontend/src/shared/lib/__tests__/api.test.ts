@@ -156,4 +156,119 @@ describe('ApiClient', () => {
       expect(result).toEqual(ranking)
     })
   })
+
+  // ─── createSecretPostcard ────────────────────────────────────────────────────
+
+  describe('createSecretPostcard', () => {
+    it('POSTs to /postcards/secret with X-Secret-Token header', async () => {
+      const postcard = { id: 'uuid-1', message: 'Hola!', sender_name: 'Abuela Rosa', is_secret: true }
+      mockPost.mockResolvedValueOnce({ data: postcard })
+
+      const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' })
+      await api.createSecretPostcard(file, 'Hola!', 'Abuela Rosa', 'my-secret-token')
+
+      expect(mockPost).toHaveBeenCalledWith(
+        '/postcards/secret',
+        expect.any(FormData),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-Secret-Token': 'my-secret-token',
+            'Content-Type': 'multipart/form-data',
+          }),
+        })
+      )
+    })
+
+    it('returns the created secret postcard', async () => {
+      const postcard = { id: 'uuid-1', message: 'Te quiero!', sender_name: 'Tía Laura', is_secret: true }
+      mockPost.mockResolvedValueOnce({ data: postcard })
+
+      const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' })
+      const result = await api.createSecretPostcard(file, 'Te quiero!', 'Tía Laura', 'token-123')
+
+      expect(result).toEqual(postcard)
+    })
+  })
+
+  // ─── getSecretBoxStatus ──────────────────────────────────────────────────────
+
+  describe('getSecretBoxStatus', () => {
+    it('GETs /admin/status with X-Admin-Key header', async () => {
+      mockGet.mockResolvedValueOnce({ data: { total: 5, revealed: false, revealed_at: null } })
+
+      await api.getSecretBoxStatus('admin-passphrase')
+
+      expect(mockGet).toHaveBeenCalledWith(
+        '/admin/status',
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'X-Admin-Key': 'admin-passphrase' }),
+        })
+      )
+    })
+
+    it('returns the secret box status', async () => {
+      const status = { total: 3, revealed: true, revealed_at: '2026-03-15T20:00:00Z' }
+      mockGet.mockResolvedValueOnce({ data: status })
+
+      const result = await api.getSecretBoxStatus('admin-key')
+      expect(result).toEqual(status)
+    })
+  })
+
+  // ─── listSecretPostcards ─────────────────────────────────────────────────────
+
+  describe('listSecretPostcards', () => {
+    it('GETs /admin/secret-box with X-Admin-Key header', async () => {
+      mockGet.mockResolvedValueOnce({ data: [] })
+
+      await api.listSecretPostcards('admin-passphrase')
+
+      expect(mockGet).toHaveBeenCalledWith(
+        '/admin/secret-box',
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'X-Admin-Key': 'admin-passphrase' }),
+        })
+      )
+    })
+
+    it('returns the list of secret postcards', async () => {
+      const postcards = [
+        { id: 'uuid-1', sender_name: 'Abuela Rosa', message: '¡Feliz cumple!', is_secret: true },
+        { id: 'uuid-2', sender_name: 'Tío Jorge', message: 'Un abrazo enorme', is_secret: true },
+      ]
+      mockGet.mockResolvedValueOnce({ data: postcards })
+
+      const result = await api.listSecretPostcards('admin-key')
+      expect(result).toEqual(postcards)
+    })
+  })
+
+  // ─── revealSecretBox ─────────────────────────────────────────────────────────
+
+  describe('revealSecretBox', () => {
+    it('POSTs to /admin/reveal with X-Admin-Key header', async () => {
+      mockPost.mockResolvedValueOnce({ data: { message: 'Revealed!', postcards: [] } })
+
+      await api.revealSecretBox('admin-passphrase')
+
+      expect(mockPost).toHaveBeenCalledWith(
+        '/admin/reveal',
+        {},
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'X-Admin-Key': 'admin-passphrase' }),
+        })
+      )
+    })
+
+    it('returns the revealed postcards', async () => {
+      const postcards = [
+        { id: 'uuid-1', sender_name: 'Abuela Rosa', message: '¡Feliz cumple!', is_secret: true },
+      ]
+      mockPost.mockResolvedValueOnce({ data: { message: 'Secret Box revealed!', postcards } })
+
+      const result = await api.revealSecretBox('admin-key')
+      expect(result.postcards).toEqual(postcards)
+      expect(result.message).toBe('Secret Box revealed!')
+    })
+  })
 })

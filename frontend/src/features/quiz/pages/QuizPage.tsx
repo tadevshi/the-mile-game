@@ -135,27 +135,37 @@ export function QuizPage() {
                 <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-primary" />
               </div>
 
-              <ScrollStagger className="grid grid-cols-2 gap-y-6 gap-x-4">
+              <ScrollStagger className="flex flex-col gap-4">
                 {PREFERENCE_QUESTIONS.map((q) => (
                   <ScrollStaggerItem key={q.id}>
-                    <div className="flex flex-col items-center space-y-3">
-                      <span className="font-serif italic text-base text-slate-700 dark:text-slate-200">
+                    <div className="flex items-center gap-3">
+                      {/* Label de la pregunta */}
+                      <span className="font-serif italic text-sm text-slate-600 dark:text-slate-300 w-32 shrink-0 text-right leading-tight">
                         {q.label}
                       </span>
-                      <div className="flex space-x-4">
-                        {q.options.map((opt) => (
-                          <button
-                            key={opt}
-                            onClick={() => !isLoading && setPreferenceAnswer(q.id, opt)}
-                            className={`w-8 h-8 rounded-full border-2 transition-all ${
-                              answers.preferences[q.id] === opt
-                                ? 'bg-accent border-accent scale-110'
-                                : 'border-primary hover:bg-primary/20'
-                            } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title={opt}
-                            disabled={isLoading}
-                          />
-                        ))}
+
+                      {/* Pills con texto */}
+                      <div className="flex gap-2 flex-1">
+                        {q.options.map((opt) => {
+                          const isSelected = answers.preferences[q.id] === opt;
+                          return (
+                            <motion.button
+                              key={opt}
+                              onClick={() => !isLoading && setPreferenceAnswer(q.id, opt)}
+                              className={`flex-1 py-2 px-3 rounded-full border-2 text-sm font-semibold transition-colors ${
+                                isSelected
+                                  ? 'bg-accent border-accent text-white'
+                                  : 'border-primary text-primary bg-white/60 dark:bg-slate-800/60 hover:bg-primary/10'
+                              } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              whileTap={isLoading ? {} : { scale: 0.95 }}
+                              animate={isSelected ? { scale: 1.05 } : { scale: 1 }}
+                              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                              disabled={isLoading}
+                            >
+                              {opt}
+                            </motion.button>
+                          );
+                        })}
                       </div>
                     </div>
                   </ScrollStaggerItem>

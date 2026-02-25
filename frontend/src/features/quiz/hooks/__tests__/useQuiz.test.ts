@@ -56,13 +56,13 @@ describe('useQuiz', () => {
     })
 
     it('counts a filled preference answer', () => {
-      useQuizStore.getState().setPreferenceAnswer('coffee_tea', 'Café')
+      useQuizStore.getState().setPreferenceAnswer('coffee', 'Café')
       const { result } = renderHook(() => useQuiz())
       expect(result.current.progress.current).toBe(1)
     })
 
     it('does not count an empty preference', () => {
-      useQuizStore.getState().setPreferenceAnswer('coffee_tea', '')
+      useQuizStore.getState().setPreferenceAnswer('coffee', '')
       const { result } = renderHook(() => useQuiz())
       expect(result.current.progress.current).toBe(0)
     })
@@ -82,16 +82,16 @@ describe('useQuiz', () => {
     it('accumulates favorites + preferences + description', () => {
       useQuizStore.getState().setFavoriteAnswer('singer', 'Taylor')
       useQuizStore.getState().setFavoriteAnswer('color', 'pink')
-      useQuizStore.getState().setPreferenceAnswer('coffee_tea', 'Café')
+      useQuizStore.getState().setPreferenceAnswer('coffee', 'Café')
       useQuizStore.getState().setDescription('Genial')
       const { result } = renderHook(() => useQuiz())
       expect(result.current.progress.current).toBe(4)
     })
 
-    it('total reflects all questions in the store', () => {
-      // favorites: 0 keys, preferences: 0 keys → total = 0 + 0 + 1 (description slot)
+    it('total reflects TOTAL_QUESTIONS constant (14)', () => {
+      // total is fixed — does NOT grow dynamically as answers are added
       const { result } = renderHook(() => useQuiz())
-      expect(result.current.progress.total).toBe(1) // only description slot always exists
+      expect(result.current.progress.total).toBe(14)
     })
   })
 
@@ -175,7 +175,7 @@ describe('useQuiz', () => {
 
     it('passes answers from the store to the service', async () => {
       useQuizStore.getState().setFavoriteAnswer('singer', 'Taylor Swift')
-      useQuizStore.getState().setPreferenceAnswer('coffee_tea', 'Café')
+      useQuizStore.getState().setPreferenceAnswer('coffee', 'Café')
       useQuizStore.getState().setDescription('Genial')
 
       vi.mocked(quizService.submitAnswers).mockResolvedValueOnce({ score: 8, message: 'OK' })
@@ -185,7 +185,7 @@ describe('useQuiz', () => {
 
       expect(quizService.submitAnswers).toHaveBeenCalledWith({
         favorites: { singer: 'Taylor Swift' },
-        preferences: { coffee_tea: 'Café' },
+        preferences: { coffee: 'Café' },
         description: 'Genial',
       })
     })
