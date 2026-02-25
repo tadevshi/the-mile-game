@@ -43,7 +43,7 @@ export const usePostcardStore = create<PostcardState>()((set, get) => ({
     // Merge: add only those not already in the board (dedup by id)
     const newOnes = incoming.filter((p) => !existing.some((e) => e.id === p.id));
     set({
-      postcards: [...existing, ...newOnes],
+      postcards: [...newOnes, ...existing],
       revealedPostcards: incoming,
       isRevealing: false,
     });

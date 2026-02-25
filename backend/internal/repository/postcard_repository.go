@@ -123,7 +123,9 @@ func (r *PostcardRepository) GetByID(id uuid.UUID) (*models.Postcard, error) {
 func (r *PostcardRepository) List() ([]models.Postcard, error) {
 	query := `SELECT` + publicPostcardCols + `
 		WHERE p.is_secret = FALSE OR p.revealed_at IS NOT NULL
-		ORDER BY p.created_at DESC`
+		ORDER BY
+			CASE WHEN p.is_secret = TRUE AND p.revealed_at IS NOT NULL THEN 0 ELSE 1 END ASC,
+			p.created_at DESC`
 
 	rows, err := r.db.Query(query)
 	if err != nil {
