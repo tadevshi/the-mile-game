@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { usePostcards } from '../hooks/usePostcards';
@@ -7,6 +7,7 @@ import { PostcardCard } from '../components/PostcardCard';
 import { PostcardModal } from '../components/PostcardModal';
 import { AddPostcardSheet } from '../components/AddPostcardSheet';
 import { StampLayer } from '../components/StampLayer';
+import { GiftBox } from '../components/GiftBox';
 import { Button } from '@/shared';
 import type { Postcard } from '../types/postcards.types';
 
@@ -17,7 +18,15 @@ export function CorkboardPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const hasCompleted = useQuizStore((s) => s.hasCompleted);
-  const { postcards, isLoading, error, createPostcard } = usePostcards();
+  const {
+    postcards,
+    isLoading,
+    error,
+    isRevealing,
+    revealedPostcards,
+    createPostcard,
+    addRevealedPostcards,
+  } = usePostcards();
 
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -29,9 +38,18 @@ export function CorkboardPage() {
     }
   }, [searchParams, hasCompleted]);
 
-  const handleAddPostcard = async (image: File, message: string) => {
-    await createPostcard(image, message);
+  const handleAddPostcard = async (image: File, message: string, senderName?: string) => {
+    await createPostcard(image, message, senderName);
   };
+
+  // When gift box animation finishes, merge revealed postcards into board
+  const handleRevealComplete = useCallback((revealed: Postcard[]) => {
+    addRevealedPostcards(revealed);
+    // Auto-open first revealed postcard in modal after a short delay
+    if (revealed.length > 0) {
+      setTimeout(() => setSelectedPostcard(revealed[0]), 1000);
+    }
+  }, [addRevealedPostcards]);
 
   return (
     <div className="min-h-screen relative">
@@ -196,6 +214,14 @@ export function CorkboardPage() {
         onClose={() => setIsAddOpen(false)}
         onSubmit={handleAddPostcard}
       />
+
+      {/* 🎁 Secret Box reveal animation overlay */}
+      {isRevealing && revealedPostcards.length > 0 && (
+        <GiftBox
+          postcards={revealedPostcards}
+          onRevealComplete={handleRevealComplete}
+        />
+      )}
     </div>
   );
 }
