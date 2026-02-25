@@ -206,8 +206,8 @@ La **Secret Box** permite que familiares o amigos que no pueden asistir envíen 
 Editá el `.env` con valores seguros (no usar los defaults en producción):
 
 ```env
-SECRET_BOX_TOKEN=cumple-mile-2026-secreto   # Lo que va en el link compartible
-ADMIN_PASSPHRASE=solo-yo-lo-se-123          # Para acceder al panel de admin
+SECRET_BOX_TOKEN=TmG_2026_x4Qp!9zBf7L       # Lo que va en el link compartible
+ADMIN_PASSPHRASE=Adm!n_Secr3t_9vL2#         # Para acceder al panel de admin
 VITE_ENABLE_SECRET_BOX=true                 # Habilitar la feature
 ```
 
