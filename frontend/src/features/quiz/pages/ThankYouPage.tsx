@@ -5,6 +5,7 @@ import { Button, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollSt
 import { useQuizStore } from '../store/quizStore';
 import { ConfettiEffect } from '@/shared/components/Confetti';
 import { rankingService } from '../../ranking/services/rankingApi';
+import { MAX_SCORE } from '../types/quiz.constants';
 import type { Player } from '@/shared/lib/api';
 
 // Variantes de animación
@@ -147,7 +148,7 @@ export function ThankYouPage() {
                 >
                   {score}
                 </motion.span>
-                <span className="text-xl text-slate-500"> /13</span>
+                <span className="text-xl text-slate-500"> /{MAX_SCORE}</span>
               </motion.div>
               
               <motion.p 

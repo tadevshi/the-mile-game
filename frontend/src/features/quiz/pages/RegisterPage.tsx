@@ -91,8 +91,6 @@ export function RegisterPage() {
       // Guardar en store local
       setStorePlayerName(player.name);
       
-      console.log('Player created:', player);
-      
       navigate('/quiz');
     } catch (err) {
       console.error('Error creating player:', err);
@@ -184,6 +182,9 @@ export function RegisterPage() {
                     onChange={(e) => {
                       setPlayerName(e.target.value);
                       setError('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !isLoading) handleStart();
                     }}
                     error={error}
                     disabled={isLoading}
