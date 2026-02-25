@@ -62,7 +62,7 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
               <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">
                 mensaje:
               </p>
-              <p className="text-xs text-gray-700 leading-relaxed line-clamp-4 font-serif italic">
+              <p className="text-xs text-gray-700 leading-relaxed line-clamp-4 font-serif italic whitespace-pre-wrap">
                 {postcard.message || '...'}
               </p>
             </div>
