@@ -4,6 +4,7 @@ export interface WebSocketMessage {
   type: string;
   data?: unknown;
   postcard?: unknown;
+  postcards?: unknown;
   ranking?: unknown;
 }
 
