@@ -40,7 +40,7 @@
 ✅ **Real-time Updates** - WebSockets para ranking y postcards en vivo  
 ✅ **3D Medals** - Monedas giratorias React Three Fiber en el podio  
 ✅ **Error Boundaries** - Manejo de errores global e inline  
-🔜 **Secret Box** - Postcards sorpresa de familiares que se revelan con animación de caja de regalos  
+✅ **Secret Box** - Postcards sorpresa de familiares reveladas con animación de caja de regalos  
 
 ---
 
@@ -161,6 +161,14 @@ DB_NAME=milegame
 
 # CORS (agregar dominios de producción aquí)
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081
+
+# Secret Box (generar tokens seguros antes de la fiesta)
+SECRET_BOX_TOKEN=token-secreto-para-el-link   # Token del link compartible
+ADMIN_PASSPHRASE=passphrase-del-admin          # Contraseña del panel admin
+
+# Feature flags (habilitar funcionalidades)
+VITE_ENABLE_CORKBOARD=true
+VITE_ENABLE_SECRET_BOX=true
 ```
 
 ### **3. Levantar los servicios**
@@ -186,6 +194,97 @@ milegame-web   nginx                            Up (healthy)   0.0.0.0:8081->80/
 ### **4. Acceder a la aplicación**
 
 🌐 **Frontend**: [http://localhost:8081](http://localhost:8081)
+
+---
+
+## 🎁 Secret Box — Guía Operacional
+
+La **Secret Box** permite que familiares o amigos que no pueden asistir envíen fotos y mensajes secretos a Mile. Se guardan ocultos y se revelan con una animación durante la fiesta.
+
+### **Paso 1 — Configurar tokens antes de la fiesta**
+
+Editá el `.env` con valores seguros (no usar los defaults en producción):
+
+```env
+SECRET_BOX_TOKEN=cumple-mile-2026-secreto   # Lo que va en el link compartible
+ADMIN_PASSPHRASE=solo-yo-lo-se-123          # Para acceder al panel de admin
+VITE_ENABLE_SECRET_BOX=true                 # Habilitar la feature
+```
+
+Rebuild necesario si cambiás `VITE_ENABLE_SECRET_BOX` (está bakeado en el bundle):
+
+```bash
+docker-compose up -d --build
+```
+
+### **Paso 2 — Construir el link a compartir**
+
+La URL tiene el siguiente formato:
+
+```
+http://<HOST>/secret-box?token=<SECRET_BOX_TOKEN>
+```
+
+**Ejemplos:**
+
+| Entorno | URL |
+|---------|-----|
+| Local | `http://localhost:8081/secret-box?token=cumple-mile-2026-secreto` |
+| Red local (fiesta) | `http://192.168.100.82:8081/secret-box?token=cumple-mile-2026-secreto` |
+| Producción | `https://milejuego.com/secret-box?token=cumple-mile-2026-secreto` |
+
+> ⚠️ **El token en la URL debe coincidir exactamente con `SECRET_BOX_TOKEN` en el `.env`.**
+
+### **Paso 3 — Compartir el link**
+
+Enviá el link por **WhatsApp, email o cualquier canal** a las personas que no pueden asistir. Cada persona:
+
+1. Abre el link en su celular
+2. Sube una foto y escribe un mensaje para Mile
+3. Ve una confirmación de envío exitoso
+
+No necesitan registrarse ni haber jugado el quiz.
+
+### **Paso 4 — Revisar las postales desde el admin**
+
+El panel de admin te muestra cuántas postales secretas fueron enviadas y un preview de cada una:
+
+```
+http://<HOST>/admin?key=<ADMIN_PASSPHRASE>
+```
+
+**Ejemplo:**
+
+```
+http://192.168.100.82:8081/admin?key=solo-yo-lo-se-123
+```
+
+### **Paso 5 — Revelar la Secret Box durante la fiesta**
+
+Cuando llegue el momento emotivo, desde el panel admin:
+
+1. Verificá el contador: **"N postales secretas listas"**
+2. Presioná **"REVELAR SECRET BOX"**
+3. Confirmá la acción (es **irreversible** — one-shot)
+4. En **todos los dispositivos** conectados al corkboard aparece la animación:
+   - 🎁 Caja de regalos aparece al centro
+   - La caja se abre y las postales "vuelan" hacia el corcho
+   - Confetti al final
+   - La primera postal se abre automáticamente en modal
+
+> **💡 Tip**: Antes de revelar, asegurate de que la pantalla principal (TV o proyector de la fiesta) esté mostrando el Corkboard (`/corkboard`).
+
+### **Troubleshooting — Secret Box**
+
+**El link dice "Token inválido":**
+- Verificá que `VITE_ENABLE_SECRET_BOX=true` en el `.env` y que hiciste rebuild
+- Verificá que el token en la URL coincide exactamente con `SECRET_BOX_TOKEN` (case-sensitive, sin espacios)
+
+**La ruta `/secret-box` no existe (404):**
+- La feature está deshabilitada. Verificá `VITE_ENABLE_SECRET_BOX=true` y rebuild del frontend
+
+**El admin dice "No autorizado":**
+- El valor del query param `key` debe coincidir exactamente con `ADMIN_PASSPHRASE` en el `.env`
 
 ---
 
