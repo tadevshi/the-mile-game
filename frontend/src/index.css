@@ -1,11 +1,12 @@
 @import "tailwindcss";
 
-/* Tailwind v4: dark mode activado por clase .dark en <html>, NO por media query.
-   Sin esto, Tailwind v4 usa prefers-color-scheme por defecto. */
-@custom-variant dark (&:where(.dark, .dark *));
-
-/* Google Fonts */
+/* Google Fonts — DEBE ir antes de cualquier regla que no sea @import */
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+/* Tailwind v4: dark mode activado por clase .dark en <html>, NO por media query.
+   Sin esto, Tailwind v4 usa prefers-color-scheme por defecto.
+   IMPORTANTE: debe ir después de todos los @import, o el browser ignora los siguientes. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* Theme configuration */
 @theme {
