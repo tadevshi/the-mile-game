@@ -1,5 +1,23 @@
-import { motion } from 'framer-motion';
-import { useEffect, useState, useRef } from 'react';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
+import { memo, useEffect, useState, useRef } from 'react';
+
+// Trayectoria de vuelo en serpentina (módulo-level: no cambia entre renders)
+const BUTTERFLY_PATH_X = [0, 60, 120, 80, 40, 0, -40, -80, -40, 0];
+const BUTTERFLY_PATH_Y = [0, -40, -20, -60, -30, -50, -30, -10, -40, 0];
+
+/**
+ * Devuelve el delta angular mínimo entre dos ángulos en grados.
+ * Garantiza que la rotación siempre tome el arco más corto (≤ 180°),
+ * evitando que la mariposa dé una vuelta completa cuando cruza 0°/360°.
+ *
+ * Ejemplo: from=350°, to=10° → delta = +20° (no -340°)
+ */
+function shortestAngleDelta(from: number, to: number): number {
+  let diff = (to - from) % 360;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+  return diff;
+}
 
 // Componente Mariposa con orientación realista
 function Butterfly({ 
@@ -18,11 +36,22 @@ function Butterfly({
   color?: string;
 }) {
   const prevPos = useRef({ x: 0, y: 0 });
-  const [rotation, setRotation] = useState(0);
 
-  // Trayectoria suave en forma de "8" o serpentina
-  const pathX = [0, 60, 120, 80, 40, 0, -40, -80, -40, 0];
-  const pathY = [0, -40, -20, -60, -30, -50, -30, -10, -40, 0];
+  // rawAngle acumula el ángulo sin wrapping para que el spring siempre
+  // tenga un target correcto (p. ej. puede llegar a 720° sin problemas).
+  // useMotionValue no dispara re-renders de React — se actualiza directo en el DOM.
+  const rawAngle = useMotionValue(0);
+
+  // Spring de rotación: simula inercia angular.
+  // stiffness bajo + damping moderado = giro suave que "sigue" la trayectoria
+  // en lugar de snapear. Ajustá estos valores para más/menos lag visual:
+  //   stiffness más alto → más reactivo / stiffness más bajo → más "flotante"
+  //   damping más alto → sin rebote / damping más bajo → ligero overshoot
+  const smoothAngle = useSpring(rawAngle, {
+    stiffness: 20,
+    damping: 7,
+    mass: 0.6,
+  });
 
   return (
     <motion.div
@@ -39,8 +68,8 @@ function Butterfly({
     >
       <motion.div
         animate={{
-          x: pathX,
-          y: pathY,
+          x: BUTTERFLY_PATH_X,
+          y: BUTTERFLY_PATH_Y,
         }}
         transition={{
           duration,
@@ -55,13 +84,18 @@ function Butterfly({
           const dy = currentY - prevPos.current.y;
           
           if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
-            // Calcular ángulo de movimiento y sumar 90° (la mariposa mira hacia arriba)
-            const angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
-            setRotation(angle);
+            // Ángulo "instantáneo" hacia donde apunta el vector de movimiento
+            const targetAngle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+
+            // Acumulamos el delta mínimo sobre el valor actual del MotionValue
+            // para que el spring interpole siempre por el arco corto
+            const delta = shortestAngleDelta(rawAngle.get(), targetAngle);
+            rawAngle.set(rawAngle.get() + delta);
+
             prevPos.current = { x: currentX, y: currentY };
           }
         }}
-        style={{ rotate: rotation }}
+        style={{ rotate: smoothAngle }}
       >
         <svg
           viewBox="0 0 64 64"
@@ -150,12 +184,14 @@ function Sparkle({
   size,
   startX,
   startY,
+  repeatDelay,
 }: {
   delay: number;
   duration: number;
   size: number;
   startX: string;
   startY: string;
+  repeatDelay: number;
 }) {
   return (
     <motion.div
@@ -175,7 +211,7 @@ function Sparkle({
         duration,
         delay,
         repeat: Infinity,
-        repeatDelay: Math.random() * 4,
+        repeatDelay,
         ease: "easeInOut",
       }}
     >
@@ -190,8 +226,43 @@ function Sparkle({
   );
 }
 
-// Background animado completo
-export function ButterflyBackground() {
+// --- Datos estáticos generados una única vez al cargar el módulo ---
+// Si estuvieran dentro del componente sin useMemo, se regenerarían en cada
+// re-render (p. ej. cuando el usuario tipea), causando que Framer Motion
+// detecte nuevos valores y haga un jump abrupto en las animaciones.
+
+const BUTTERFLIES = Array.from({ length: 8 }, (_, i) => ({
+  id: i,
+  delay: i * 0.8,
+  duration: 12 + Math.random() * 8,
+  size: 24 + Math.random() * 16,
+  startX: `${10 + Math.random() * 80}%`,
+  startY: `${60 + Math.random() * 30}%`,
+  color: (['#FBCFE8', '#F9A8D4', '#F48FB1', '#FBBF24'] as const)[Math.floor(Math.random() * 4)],
+}));
+
+const PARTICLES = Array.from({ length: 15 }, (_, i) => ({
+  id: i,
+  delay: Math.random() * 5,
+  duration: 8 + Math.random() * 6,
+  size: 4 + Math.random() * 8,
+  startX: `${Math.random() * 100}%`,
+  startY: `${Math.random() * 100}%`,
+}));
+
+const SPARKLES = Array.from({ length: 6 }, (_, i) => ({
+  id: i,
+  delay: Math.random() * 3,
+  duration: 2 + Math.random() * 2,
+  repeatDelay: Math.random() * 4,
+  size: 8 + Math.random() * 8,
+  startX: `${20 + Math.random() * 60}%`,
+  startY: `${20 + Math.random() * 60}%`,
+}));
+
+// Background animado completo — memo evita re-renders cuando el padre cambia
+// estado (p. ej. inputs del quiz), ya que este componente no recibe props.
+export const ButterflyBackground = memo(function ButterflyBackground() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -200,54 +271,23 @@ export function ButterflyBackground() {
 
   if (!mounted) return null;
 
-  // Generar mariposas con posiciones aleatorias
-  const butterflies = Array.from({ length: 8 }, (_, i) => ({
-    id: i,
-    delay: i * 0.8,
-    duration: 12 + Math.random() * 8,
-    size: 24 + Math.random() * 16,
-    startX: `${10 + Math.random() * 80}%`,
-    startY: `${60 + Math.random() * 30}%`,
-    color: ['#FBCFE8', '#F9A8D4', '#F48FB1', '#FBBF24'][Math.floor(Math.random() * 4)],
-  }));
-
-  // Generar partículas
-  const particles = Array.from({ length: 15 }, (_, i) => ({
-    id: i,
-    delay: Math.random() * 5,
-    duration: 8 + Math.random() * 6,
-    size: 4 + Math.random() * 8,
-    startX: `${Math.random() * 100}%`,
-    startY: `${Math.random() * 100}%`,
-  }));
-
-  // Generar sparkles
-  const sparkles = Array.from({ length: 6 }, (_, i) => ({
-    id: i,
-    delay: Math.random() * 3,
-    duration: 2 + Math.random() * 2,
-    size: 8 + Math.random() * 8,
-    startX: `${20 + Math.random() * 60}%`,
-    startY: `${20 + Math.random() * 60}%`,
-  }));
-
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
       {/* Capa de gradiente suave */}
       <div className="absolute inset-0 bg-gradient-to-br from-pink-50/50 via-white/30 to-pink-100/40 dark:from-slate-900/50 dark:via-slate-800/30 dark:to-slate-900/40" />
 
       {/* Mariposas animadas */}
-      {butterflies.map((b) => (
+      {BUTTERFLIES.map((b) => (
         <Butterfly key={b.id} {...b} />
       ))}
 
       {/* Partículas flotantes */}
-      {particles.map((p) => (
+      {PARTICLES.map((p) => (
         <FloatingParticle key={p.id} {...p} />
       ))}
 
       {/* Sparkles brillantes */}
-      {sparkles.map((s) => (
+      {SPARKLES.map((s) => (
         <Sparkle key={s.id} {...s} />
       ))}
 
@@ -278,4 +318,4 @@ export function ButterflyBackground() {
       />
     </div>
   );
-}
+});

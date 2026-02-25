@@ -9,6 +9,10 @@ export { PageTransition, fadeInUp, staggerContainer } from './components/PageTra
 export { ConfettiEffect, fireConfetti } from './components/Confetti';
 export { ButterflyBackground } from './components/ButterflyBackground';
 export { ErrorBoundary } from './components/ErrorBoundary';
+export { ThemeToggle } from './components/ThemeToggle';
+
+// Stores
+export { useThemeStore } from './store/themeStore';
 
 // 3D Components
 export { MedalCanvas } from './3d';
