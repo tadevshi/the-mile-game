@@ -113,7 +113,8 @@ func (r *PostcardRepository) CreateSecret(senderName, imagePath, message string,
 
 // GetByID obtiene una postal por su ID con info del jugador
 func (r *PostcardRepository) GetByID(id uuid.UUID) (*models.Postcard, error) {
-	query := `SELECT` + publicPostcardCols + `WHERE p.id = $1`
+	query := `SELECT` + publicPostcardCols + `
+		WHERE p.id = $1`
 	row := r.db.QueryRow(query, id)
 	return scanPostcard(row)
 }

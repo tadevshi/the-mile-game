@@ -339,6 +339,7 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	postcard, err := h.postcardRepo.Create(playerID, publicPath, message, rotation, senderName)
 	if err != nil {
 		os.Remove(diskPath)
+		fmt.Printf("[ERROR] CreatePostcard repo.Create failed: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create postcard"})
 		return
 	}
