@@ -68,6 +68,12 @@ type PostcardNewMessage struct {
 	Postcard models.Postcard `json:"postcard"`
 }
 
+// SecretRevealMessage mensaje para revelar la Secret Box a todos los clientes
+type SecretRevealMessage struct {
+	Type      string            `json:"type"`
+	Postcards []models.Postcard `json:"postcards"`
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -190,6 +196,24 @@ func (h *Hub) BroadcastPostcard(postcard models.Postcard) {
 
 	h.broadcast <- data
 	log.Printf("WebSocket: Postal broadcasteada a %d clientes", len(h.clients))
+}
+
+// BroadcastSecretReveal envía el evento de reveal de la Secret Box a todos los clientes.
+// Este mensaje dispara la animación de caja de regalos en todos los corkboards conectados.
+func (h *Hub) BroadcastSecretReveal(postcards []models.Postcard) {
+	msg := SecretRevealMessage{
+		Type:      "secret_box_reveal",
+		Postcards: postcards,
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Error marshaling secret reveal: %v", err)
+		return
+	}
+
+	h.broadcast <- data
+	log.Printf("WebSocket: Secret Box revelada — %d postales broadcasteadas a %d clientes", len(postcards), len(h.clients))
 }
 
 // GetClientCount devuelve el número de clientes conectados

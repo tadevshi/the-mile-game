@@ -46,14 +46,17 @@ type SubmitQuizRequest struct {
 
 // Postcard representa una postal en la cartelera de corcho
 type Postcard struct {
-	ID           uuid.UUID `json:"id" db:"id"`
-	PlayerID     uuid.UUID `json:"player_id" db:"player_id"`
-	PlayerName   string    `json:"player_name" db:"player_name"`     // JOIN con players
-	PlayerAvatar string    `json:"player_avatar" db:"player_avatar"` // JOIN con players
-	ImagePath    string    `json:"image_path" db:"image_path"`
-	Message      string    `json:"message" db:"message"`
-	Rotation     float64   `json:"rotation" db:"rotation"`
-	CreatedAt    time.Time `json:"created_at" db:"created_at"`
+	ID           uuid.UUID  `json:"id" db:"id"`
+	PlayerID     *uuid.UUID `json:"player_id,omitempty" db:"player_id"`     // nullable para secretas
+	SenderName   *string    `json:"sender_name,omitempty" db:"sender_name"` // sobreescribe player name
+	PlayerName   string     `json:"player_name" db:"player_name"`           // computado via JOIN/COALESCE
+	PlayerAvatar string     `json:"player_avatar" db:"player_avatar"`       // computado via JOIN/COALESCE
+	ImagePath    string     `json:"image_path" db:"image_path"`
+	Message      string     `json:"message" db:"message"`
+	Rotation     float64    `json:"rotation" db:"rotation"`
+	IsSecret     bool       `json:"is_secret" db:"is_secret"`
+	RevealedAt   *time.Time `json:"revealed_at,omitempty" db:"revealed_at"`
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
 }
 
 // CreatePostcardResponse respuesta al crear una postal
@@ -62,4 +65,11 @@ type CreatePostcardResponse struct {
 	ImagePath string    `json:"image_path"`
 	Rotation  float64   `json:"rotation"`
 	Message   string    `json:"message"`
+}
+
+// SecretBoxStatus estado de la Secret Box para el panel admin
+type SecretBoxStatus struct {
+	Total      int        `json:"total"`
+	Revealed   bool       `json:"revealed"`
+	RevealedAt *time.Time `json:"revealed_at,omitempty"`
 }

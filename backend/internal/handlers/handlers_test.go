@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -184,6 +185,155 @@ func TestSubmitQuizValidation(t *testing.T) {
 	}
 }
 
+// ==========================================
+// Secret Box — Tests de validación
+// ==========================================
+
+func TestCreateSecretPostcardMissingToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	// Setear el token esperado en el entorno
+	os.Setenv("SECRET_BOX_TOKEN", "test-secret-token")
+	defer os.Unsetenv("SECRET_BOX_TOKEN")
+
+	r := gin.New()
+	r.POST("/api/postcards/secret", func(c *gin.Context) {
+		token := c.GetHeader("X-Secret-Token")
+		expected := os.Getenv("SECRET_BOX_TOKEN")
+		if expected == "" || token != expected {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing secret token"})
+			return
+		}
+		c.JSON(http.StatusCreated, gin.H{"id": uuid.New().String()})
+	})
+
+	tests := []struct {
+		name       string
+		token      string
+		wantStatus int
+	}{
+		{"no token", "", http.StatusUnauthorized},
+		{"wrong token", "wrong-token", http.StatusUnauthorized},
+		{"correct token", "test-secret-token", http.StatusCreated},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("POST", "/api/postcards/secret", nil)
+			if tt.token != "" {
+				req.Header.Set("X-Secret-Token", tt.token)
+			}
+
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.wantStatus {
+				t.Errorf("Expected status %d, got %d", tt.wantStatus, w.Code)
+			}
+		})
+	}
+}
+
+func TestAdminHandlersMissingKey(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	os.Setenv("ADMIN_PASSPHRASE", "test-admin-key")
+	defer os.Unsetenv("ADMIN_PASSPHRASE")
+
+	r := gin.New()
+
+	// Simular el helper validateAdminKey inline
+	adminMiddleware := func(c *gin.Context) {
+		key := c.GetHeader("X-Admin-Key")
+		expected := os.Getenv("ADMIN_PASSPHRASE")
+		if expected == "" || key != expected {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing admin key"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+
+	r.GET("/api/admin/status", adminMiddleware, func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"total": 0, "revealed": false})
+	})
+	r.GET("/api/admin/secret-box", adminMiddleware, func(c *gin.Context) {
+		c.JSON(http.StatusOK, []interface{}{})
+	})
+	r.POST("/api/admin/reveal", adminMiddleware, func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "Secret Box revealed"})
+	})
+
+	routes := []struct {
+		method string
+		path   string
+	}{
+		{"GET", "/api/admin/status"},
+		{"GET", "/api/admin/secret-box"},
+		{"POST", "/api/admin/reveal"},
+	}
+
+	for _, route := range routes {
+		t.Run(route.method+" "+route.path+" no key", func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(route.method, route.path, nil)
+			r.ServeHTTP(w, req)
+			if w.Code != http.StatusUnauthorized {
+				t.Errorf("Expected 401 without admin key, got %d", w.Code)
+			}
+		})
+
+		t.Run(route.method+" "+route.path+" wrong key", func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(route.method, route.path, nil)
+			req.Header.Set("X-Admin-Key", "wrong-key")
+			r.ServeHTTP(w, req)
+			if w.Code != http.StatusUnauthorized {
+				t.Errorf("Expected 401 with wrong admin key, got %d", w.Code)
+			}
+		})
+
+		t.Run(route.method+" "+route.path+" correct key", func(t *testing.T) {
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(route.method, route.path, bytes.NewBuffer([]byte{}))
+			req.Header.Set("X-Admin-Key", "test-admin-key")
+			r.ServeHTTP(w, req)
+			if w.Code != http.StatusOK {
+				t.Errorf("Expected 200 with correct admin key, got %d", w.Code)
+			}
+		})
+	}
+}
+
+func TestSecretBoxStatusStructure(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.GET("/api/admin/status", func(c *gin.Context) {
+		c.JSON(http.StatusOK, models.SecretBoxStatus{
+			Total:    5,
+			Revealed: false,
+		})
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/admin/status", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Code)
+	}
+
+	var status models.SecretBoxStatus
+	json.Unmarshal(w.Body.Bytes(), &status)
+
+	if status.Total != 5 {
+		t.Errorf("Expected total 5, got %d", status.Total)
+	}
+	if status.Revealed {
+		t.Error("Expected revealed to be false")
+	}
+}
 func TestGetPlayerValidation(t *testing.T) {
 	tests := []struct {
 		name       string
