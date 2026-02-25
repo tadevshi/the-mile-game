@@ -32,19 +32,25 @@ export function GiftBox({ postcards, onRevealComplete }: GiftBoxProps) {
   useEffect(() => {
     if (phase !== 'fly') return;
     let count = 0;
+    let completionTimeout: ReturnType<typeof setTimeout> | null = null;
     const interval = setInterval(() => {
       count++;
       setVisibleCount(count);
       if (count >= postcards.length) {
         clearInterval(interval);
         // After last postcard lands, wait then complete
-        setTimeout(() => {
+        completionTimeout = setTimeout(() => {
           setPhase('done');
           onRevealComplete(postcards);
         }, 1200);
       }
     }, 700);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (completionTimeout !== null) {
+        clearTimeout(completionTimeout);
+      }
+    };
   }, [phase, postcards, onRevealComplete]);
 
   const isBoxVisible = phase !== 'done';
