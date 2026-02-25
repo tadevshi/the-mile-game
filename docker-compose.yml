@@ -65,11 +65,6 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 networks:
   milegame-network:
