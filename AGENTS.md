@@ -323,15 +323,15 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
 ### Deuda Técnica (No bloqueante)
 - [ ] `app/` directory vacío (se documentó como conteniendo router/providers)
 
-### Pendiente — Secret Box (Feature Nueva)
+### Completado — Secret Box (Feature Nueva)
 
 > Ver sección [Secret Box — Plan de Implementación](#secret-box--plan-de-implementación) para detalles completos.
 
-- [ ] **Fase 1**: Backend — Migration, models, repository, handlers
-- [ ] **Fase 2**: Frontend — Ruta `/secret-box`, form de carga, feature flag
-- [ ] **Fase 3**: Admin — Ruta `/admin`, preview, botón reveal
-- [ ] **Fase 4**: Animación — GiftBox reveal en CorkboardPage
-- [ ] **Fase 5**: Integración — WebSocket, merge en corkboard, testing
+- [x] **Fase 1**: Backend — Migration, models, repository, handlers
+- [x] **Fase 2**: Frontend — Ruta `/secret-box`, form de carga, feature flag
+- [x] **Fase 3**: Admin — Ruta `/admin`, preview, botón reveal
+- [x] **Fase 4**: Animación — GiftBox reveal en CorkboardPage
+- [x] **Fase 5**: Integración — WebSocket, merge en corkboard, testing
 
 ### Pendiente — Otros
 
