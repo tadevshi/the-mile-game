@@ -41,27 +41,24 @@ describe('useRanking', () => {
     
     mockSubscribe = vi.fn().mockReturnValue(vi.fn()); // Returns unsubscribe function
     mockConnect = vi.fn();
-    
-    // Setup default store mock implementation
-    // Handle both getState and direct call (for selectors)
-    const mockStore = Object.assign(
-      vi.fn((selector) => {
-        if (typeof selector === 'function') {
-          return selector({ isConnected: true });
-        }
-        return { isConnected: true };
-      }),
-      {
-        getState: () => ({
-          isConnected: false,
-          isConnecting: false,
-          connect: mockConnect,
-          subscribe: mockSubscribe,
-        }),
+
+    // Mock as React hook: called with a selector (state => state.isConnected)
+    vi.mocked(useWebSocketStore).mockImplementation((selector?: any) => {
+      if (typeof selector === 'function') {
+        return selector({ isConnected: true });
       }
-    );
-    
-    vi.mocked(useWebSocketStore).mockImplementation(mockStore as any);
+      return { isConnected: true };
+    });
+
+    // Zustand stores expose static methods directly on the hook function.
+    // vi.fn() is a plain function — we must assign getState manually so that
+    // `useWebSocketStore.getState()` works when called inside the hook's useEffect.
+    (useWebSocketStore as any).getState = vi.fn(() => ({
+      isConnected: false,
+      isConnecting: false,
+      connect: mockConnect,
+      subscribe: mockSubscribe,
+    }));
   })
 
   // ─── loadRanking ─────────────────────────────────────────────────────────────
