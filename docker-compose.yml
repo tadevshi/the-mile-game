@@ -33,6 +33,8 @@ services:
       GIN_MODE: ${GIN_MODE:-release}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000,http://localhost:8081,http://localhost,http://192.168.100.82:8081}
       UPLOADS_DIR: /app/uploads/postcards
+      SECRET_BOX_TOKEN: ${SECRET_BOX_TOKEN:-changeme-secret-token}
+      ADMIN_PASSPHRASE: ${ADMIN_PASSPHRASE:-changeme-admin-key}
     volumes:
       - uploads_data:/app/uploads
     networks:
@@ -54,6 +56,7 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_ENABLE_CORKBOARD: ${VITE_ENABLE_CORKBOARD:-false}
+        VITE_ENABLE_SECRET_BOX: ${VITE_ENABLE_SECRET_BOX:-false}
     container_name: milegame-web
     ports:
       - "${FRONTEND_PORT:-8081}:80"

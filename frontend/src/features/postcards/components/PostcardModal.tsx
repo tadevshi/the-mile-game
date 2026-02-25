@@ -97,7 +97,7 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
                     <p className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-2">
                       mensaje:
                     </p>
-                    <p className="text-sm md:text-base text-gray-700 leading-relaxed font-serif italic">
+                    <p className="text-sm md:text-base text-gray-700 leading-relaxed font-serif italic whitespace-pre-wrap">
                       {postcard.message || '...'}
                     </p>
                   </div>

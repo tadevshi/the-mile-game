@@ -33,12 +33,14 @@
 
 ✅ **Quiz Interactivo** - 13 preguntas (favoritos + preferencias + descripción)  
 ✅ **Ranking en Vivo** - Leaderboard con podio para los top 3  
+✅ **Cartelera de Corcho** - Postcards con fotos y mensajes pineados en un corcho  
 ✅ **Animaciones** - Framer Motion para transiciones suaves  
 ✅ **Confetti** - Celebraciones visuales según el puntaje  
 ✅ **Responsive Design** - Mobile-first, optimizado para smartphones  
-✅ **Real-time Updates** - WebSockets para ranking en vivo  
+✅ **Real-time Updates** - WebSockets para ranking y postcards en vivo  
 ✅ **3D Medals** - Monedas giratorias React Three Fiber en el podio  
 ✅ **Error Boundaries** - Manejo de errores global e inline  
+✅ **Secret Box** - Postcards sorpresa de familiares reveladas con animación de caja de regalos  
 
 ---
 
@@ -74,8 +76,8 @@
 ### **Testing**
 
 - ✅ **Go testing** - `normalizer_test.go` + `scorer_test.go` (100% coverage)
-- ✅ **Playwright** - 38 test cases documentados en `TEST_PLAN.md` (specs en `testsprite_tests/`, requiere `npm install`)
-- [ ] **Vitest** - Unit tests frontend (pendiente)
+- ✅ **Playwright** - 35/38 passing (3 correctly skipped), config in `playwright.config.ts`
+- ✅ **Vitest** - Unit tests frontend implementados
 
 ---
 
@@ -159,6 +161,14 @@ DB_NAME=milegame
 
 # CORS (agregar dominios de producción aquí)
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081
+
+# Secret Box (generar tokens seguros antes de la fiesta)
+SECRET_BOX_TOKEN=token-secreto-para-el-link   # Token del link compartible
+ADMIN_PASSPHRASE=passphrase-del-admin          # Contraseña del panel admin
+
+# Feature flags (habilitar funcionalidades)
+VITE_ENABLE_CORKBOARD=true
+VITE_ENABLE_SECRET_BOX=true
 ```
 
 ### **3. Levantar los servicios**
@@ -184,6 +194,97 @@ milegame-web   nginx                            Up (healthy)   0.0.0.0:8081->80/
 ### **4. Acceder a la aplicación**
 
 🌐 **Frontend**: [http://localhost:8081](http://localhost:8081)
+
+---
+
+## 🎁 Secret Box — Guía Operacional
+
+La **Secret Box** permite que familiares o amigos que no pueden asistir envíen fotos y mensajes secretos a Mile. Se guardan ocultos y se revelan con una animación durante la fiesta.
+
+### **Paso 1 — Configurar tokens antes de la fiesta**
+
+Editá el `.env` con valores seguros (no usar los defaults en producción):
+
+```env
+SECRET_BOX_TOKEN=TmG_2026_x4Qp!9zBf7L       # Lo que va en el link compartible
+ADMIN_PASSPHRASE=Adm!n_Secr3t_9vL2#         # Para acceder al panel de admin
+VITE_ENABLE_SECRET_BOX=true                 # Habilitar la feature
+```
+
+Rebuild necesario si cambiás `VITE_ENABLE_SECRET_BOX` (está bakeado en el bundle):
+
+```bash
+docker-compose up -d --build
+```
+
+### **Paso 2 — Construir el link a compartir**
+
+La URL tiene el siguiente formato:
+
+```
+http://<HOST>/secret-box?token=<SECRET_BOX_TOKEN>
+```
+
+**Ejemplos:**
+
+| Entorno | URL |
+|---------|-----|
+| Local | `http://localhost:8081/secret-box?token=cumple-mile-2026-secreto` |
+| Red local (fiesta) | `http://192.168.100.82:8081/secret-box?token=cumple-mile-2026-secreto` |
+| Producción | `https://milejuego.com/secret-box?token=cumple-mile-2026-secreto` |
+
+> ⚠️ **El token en la URL debe coincidir exactamente con `SECRET_BOX_TOKEN` en el `.env`.**
+
+### **Paso 3 — Compartir el link**
+
+Enviá el link por **WhatsApp, email o cualquier canal** a las personas que no pueden asistir. Cada persona:
+
+1. Abre el link en su celular
+2. Sube una foto y escribe un mensaje para Mile
+3. Ve una confirmación de envío exitoso
+
+No necesitan registrarse ni haber jugado el quiz.
+
+### **Paso 4 — Revisar las postales desde el admin**
+
+El panel de admin te muestra cuántas postales secretas fueron enviadas y un preview de cada una:
+
+```
+http://<HOST>/admin?key=<ADMIN_PASSPHRASE>
+```
+
+**Ejemplo:**
+
+```
+http://192.168.100.82:8081/admin?key=solo-yo-lo-se-123
+```
+
+### **Paso 5 — Revelar la Secret Box durante la fiesta**
+
+Cuando llegue el momento emotivo, desde el panel admin:
+
+1. Verificá el contador: **"N postales secretas listas"**
+2. Presioná **"REVELAR SECRET BOX"**
+3. Confirmá la acción (es **irreversible** — one-shot)
+4. En **todos los dispositivos** conectados al corkboard aparece la animación:
+   - 🎁 Caja de regalos aparece al centro
+   - La caja se abre y las postales "vuelan" hacia el corcho
+   - Confetti al final
+   - La primera postal se abre automáticamente en modal
+
+> **💡 Tip**: Antes de revelar, asegurate de que la pantalla principal (TV o proyector de la fiesta) esté mostrando el Corkboard (`/corkboard`).
+
+### **Troubleshooting — Secret Box**
+
+**El link dice "Token inválido":**
+- Verificá que `VITE_ENABLE_SECRET_BOX=true` en el `.env` y que hiciste rebuild
+- Verificá que el token en la URL coincide exactamente con `SECRET_BOX_TOKEN` (case-sensitive, sin espacios)
+
+**La ruta `/secret-box` no existe (404):**
+- La feature está deshabilitada. Verificá `VITE_ENABLE_SECRET_BOX=true` y rebuild del frontend
+
+**El admin dice "No autorizado":**
+- El valor del query param `key` debe coincidir exactamente con `ADMIN_PASSPHRASE` en el `.env`
 
 ---
 
@@ -286,11 +387,11 @@ go tool cover -html=coverage.out
 ```bash
 cd frontend
 
-# Unit tests
+# Unit tests (Vitest)
 npm run test
 
-# E2E tests
-npm run test:e2e
+# E2E tests (Playwright)
+npx playwright test
 
 # Coverage
 npm run test:coverage
@@ -354,27 +455,39 @@ the-mile-game/
 ├── frontend/                 # React Application
 │   ├── src/
 │   │   ├── app/              # (vacío — router/providers en App.tsx)
-│   │   ├── features/         # Features (quiz, ranking)
+│   │   ├── features/         # Features (quiz, ranking, postcards, admin)
 │   │   │   ├── quiz/
-│   │   │   │   ├── hooks/        # useQuiz.ts (stub, sin implementar)
+│   │   │   │   ├── hooks/        # useQuiz.ts (lógica completa)
 │   │   │   │   ├── pages/        # WelcomePage, RegisterPage, QuizPage, ThankYouPage
-│   │   │   │   ├── services/     # quizApi.ts (stub, sin implementar)
+│   │   │   │   ├── services/     # quizApi.ts (submit, fetch answers)
 │   │   │   │   ├── store/        # quizStore.ts (Zustand, persistido)
 │   │   │   │   └── types/
-│   │   │   └── ranking/
-│   │   │       ├── hooks/        # useRanking.ts (stub, sin implementar)
-│   │   │       ├── pages/        # RankingPage.tsx (WebSocket + 3D medals)
-│   │   │       ├── services/     # rankingApi.ts (stub, sin implementar)
-│   │   │       └── store/        # rankingStore.ts (solo currentPlayerId)
+│   │   │   ├── ranking/
+│   │   │   │   ├── hooks/        # useRanking.ts (WebSocket + fetch)
+│   │   │   │   ├── pages/        # RankingPage.tsx (WebSocket + 3D medals)
+│   │   │   │   ├── services/     # rankingApi.ts (fetch ranking)
+│   │   │   │   └── store/        # rankingStore.ts (solo currentPlayerId)
+│   │   │   ├── postcards/
+│   │   │   │   ├── hooks/        # usePostcards.ts (WebSocket real-time)
+│   │   │   │   ├── pages/        # CorkboardPage.tsx, SecretBoxPage.tsx (pendiente)
+│   │   │   │   ├── services/     # postcardApi.ts (upload + resize)
+│   │   │   │   ├── store/        # postcardStore.ts (Zustand)
+│   │   │   │   ├── components/   # PostcardCard, PostcardModal, AddPostcardSheet,
+│   │   │   │   │                 # PushPin, StampLayer, GiftBox (pendiente)
+│   │   │   │   └── types/
+│   │   │   └── admin/            # (pendiente - Secret Box)
+│   │   │       └── pages/        # AdminPage.tsx (pendiente)
 │   │   ├── shared/           # Shared code
 │   │   │   ├── components/   # Button, Header, PageLayout, ButterflyBackground,
 │   │   │   │                 # Confetti, ErrorBoundary, Skeleton
 │   │   │   ├── 3d/           # MedalCanvas, Coin3D (React Three Fiber)
-│   │   │   ├── hooks/        # useWebSocket, useScrollAnimation, usePullToRefresh
-│   │   │   └── lib/          # ApiClient (Axios singleton)
+│   │   │   ├── hooks/        # useScrollAnimation, usePullToRefresh
+│   │   │   ├── store/        # websocketStore.ts (Zustand, singleton global)
+│   │   │   └── lib/          # ApiClient (Axios singleton), featureFlags.ts
 │   │   └── styles/
-│   ├── testsprite_tests/     # Playwright specs (38 tests, Playwright no instalado)
+│   ├── testsprite_tests/     # Playwright specs (35/38 passing)
 │   ├── TEST_PLAN.md          # Plan de tests E2E
+│   ├── playwright.config.ts
 │   ├── Dockerfile
 │   ├── nginx.conf
 │   └── package.json
@@ -382,12 +495,13 @@ the-mile-game/
 ├── backend/                  # Go API
 │   ├── cmd/api/main.go       # Entry point
 │   ├── internal/
-│   │   ├── handlers/         # HTTP handlers (5 endpoints)
+│   │   ├── handlers/         # HTTP handlers
 │   │   ├── models/           # Data models
-│   │   ├── repository/       # player_repository, quiz_repository, db
+│   │   ├── repository/       # player_repository, quiz_repository,
+│   │   │                     # postcard_repository, db
 │   │   ├── services/         # normalizer, scorer (+tests 100% cov)
 │   │   └── websocket/        # hub.go (gorilla, ping/pong, broadcast)
-│   ├── migrations/           # 001_initial_schema.sql
+│   ├── migrations/           # 001_initial_schema.sql, 002_postcards.sql
 │   ├── Dockerfile
 │   ├── go.mod
 │   └── go.sum
@@ -508,13 +622,29 @@ curl http://localhost:8081/api/ranking
 ]
 ```
 
+#### **Postcards**
+
+```http
+POST   /api/postcards          # Crear postal (multipart: image + message, header: X-Player-ID)
+GET    /api/postcards          # Listar todas las postales (filtra secretas no reveladas)
+```
+
+#### **Secret Box** *(pendiente)*
+
+```http
+POST   /api/postcards/secret   # Crear postal secreta (multipart, header: X-Secret-Token)
+GET    /api/admin/secret-box   # Listar postcards secretas (header: X-Admin-Key)
+POST   /api/admin/reveal       # Revelar Secret Box (header: X-Admin-Key)
+GET    /api/admin/status       # Estado de la Secret Box (header: X-Admin-Key)
+```
+
 #### **WebSocket**
 
 ```http
-GET    /ws                   # WebSocket para ranking real-time
+GET    /ws                   # WebSocket para ranking, postcards y secret box real-time
 ```
 
-El servidor emite mensajes `ranking_update` con el ranking completo cada vez que alguien envía sus respuestas. Incluye ping/pong keepalive (54s period, 60s timeout).
+El servidor emite mensajes `ranking_update`, `postcard_new` y `secret_box_reveal` (pendiente). Incluye ping/pong keepalive (54s period, 60s timeout).
 
 #### **Health Check**
 
@@ -570,13 +700,24 @@ chore: tareas de mantenimiento
 - ✅ Despliegue en servidor local (192.168.100.82:8081)
 - ✅ Implementados `useQuiz.ts` y `quizApi.ts`
 - ✅ Implementados `useRanking.ts` y `rankingApi.ts`
+- ✅ Cartelera de Corcho (postcards real-time + stamps decorativos)
+- ✅ Playwright E2E (35/38 passing) + Vitest unit tests
+- ✅ Feature flags para corkboard
+
+#### **En Desarrollo**
+
+- 🔜 **Secret Box** — Postcards sorpresa reveladas con animación de caja de regalos
+  - Fase 1: Backend (migration, handlers, WebSocket)
+  - Fase 2: Frontend Secret Box (ruta de carga con link compartible)
+  - Fase 3: Admin panel (preview + botón reveal)
+  - Fase 4: Animación GiftBox (Framer Motion)
+  - Fase 5: Integración y testing
 
 #### **Pendiente**
-- [ ] Instalar y ejecutar tests Playwright (`testsprite_tests/`)
 - [ ] Video de celebración para el ganador
 - [ ] Lottie animations decorativas
+- [ ] Soporte de video en postcards (V2)
 - [ ] Sistema de juegos múltiples (no solo quiz)
-- [ ] Admin panel para gestionar respuestas correctas
 
 ---
 

@@ -15,8 +15,10 @@ COPY . .
 # Build args para feature flags (Vite hornea estos valores en el bundle)
 ARG VITE_API_URL=/api
 ARG VITE_ENABLE_CORKBOARD=false
+ARG VITE_ENABLE_SECRET_BOX=false
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_ENABLE_CORKBOARD=$VITE_ENABLE_CORKBOARD
+ENV VITE_ENABLE_SECRET_BOX=$VITE_ENABLE_SECRET_BOX
 
 # Build de producción
 RUN npm run build

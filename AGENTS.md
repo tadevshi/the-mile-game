@@ -1,7 +1,7 @@
 # AGENTS.md - The Mile Game
 
 > Documento de contexto para agentes de IA y colaboradores humanos.
-> Última actualización: 2026-02-22
+> Última actualización: 2026-02-25
 
 ---
 
@@ -53,8 +53,8 @@
 | Tecnología | Estado | Propósito |
 |------------|--------|-----------|
 | Go testing | ✅ Implementado | Unit tests backend (100% coverage) |
-| Playwright | Specs escritas, no instalado | E2E tests (38 casos en `testsprite_tests/`) |
-| Vitest | Pendiente | Unit tests frontend |
+| Playwright | ✅ Configurado, 35/38 passing | E2E tests (3 skipped correctamente) |
+| Vitest | ✅ Implementado | Unit tests frontend |
 
 ---
 
@@ -70,38 +70,42 @@ src/
 │
 ├── features/               # Módulos por funcionalidad
 │   ├── quiz/               # Feature: Quiz de Mile
-│   │   ├── hooks/          # useQuiz.ts — STUB: retorna {} (sin implementar)
-│   │   ├── services/       # quizApi.ts — STUB: retorna {} (sin implementar)
+│   │   ├── hooks/          # useQuiz.ts (lógica del quiz completa)
+│   │   ├── services/       # quizApi.ts (submit, fetch answers)
 │   │   ├── store/          # quizStore.ts (Zustand, persistido en localStorage)
 │   │   ├── types/          # quiz.types.ts
 │   │   ├── pages/          # WelcomePage, RegisterPage, QuizPage, ThankYouPage
-│   │   │                   # ThankYou.tsx — ARCHIVO VACÍO (no usar)
 │   │   └── index.ts        # Public API del feature
 │   │
 │   ├── ranking/            # Feature: Sistema de ranking
-│   │   ├── hooks/          # useRanking.ts — STUB: retorna {} (sin implementar)
-│   │   ├── services/       # rankingApi.ts — STUB: retorna {} (sin implementar)
+│   │   ├── hooks/          # useRanking.ts (WebSocket + fetch)
+│   │   ├── services/       # rankingApi.ts (fetch ranking)
 │   │   ├── store/          # rankingStore.ts (solo currentPlayerId)
 │   │   ├── types/          # ranking.types.ts
 │   │   ├── pages/          # RankingPage.tsx (WebSocket live + 3D medals)
 │   │   └── index.ts
 │   │
-│   └── postcards/          # Feature: Cartelera de Corcho
-│       ├── hooks/          # usePostcards.ts (WebSocket real-time)
-│       ├── services/       # postcardApi.ts (image upload + resize)
-│       ├── store/          # postcardStore.ts (Zustand)
-│       ├── types/          # postcards.types.ts
-│       ├── pages/          # CorkboardPage.tsx
-│       ├── components/     # PostcardCard, PostcardModal, AddPostcardSheet, PushPin
-│       └── index.ts
+│   ├── postcards/          # Feature: Cartelera de Corcho
+│   │   ├── hooks/          # usePostcards.ts (WebSocket real-time)
+│   │   ├── services/       # postcardApi.ts (image upload + resize)
+│   │   ├── store/          # postcardStore.ts (Zustand)
+│   │   ├── types/          # postcards.types.ts
+│   │   ├── pages/          # CorkboardPage.tsx
+│   │   ├── components/     # PostcardCard, PostcardModal, AddPostcardSheet,
+│   │   │                   # PushPin, StampLayer, StampItem, GiftBox (pendiente)
+│   │   └── index.ts
+│   │
+│   └── admin/              # Feature: Panel Admin (pendiente - Secret Box)
+│       ├── pages/          # AdminPage.tsx (pendiente)
+│       └── index.ts        # (pendiente)
 │
 ├── shared/                 # Código compartido
 │   ├── components/         # Button, Header, PageLayout, ButterflyBackground,
 │   │                       # Confetti, ErrorBoundary, Skeleton
 │   ├── 3d/                 # MedalCanvas.tsx, Coin3D.tsx (React Three Fiber)
-│   ├── hooks/              # useWebSocket.ts, useScrollAnimation.tsx,
-│   │                       # usePullToRefresh.ts (no exportado aún)
-│   ├── lib/                # api.ts (ApiClient singleton Axios)
+│   ├── hooks/              # useScrollAnimation.tsx, usePullToRefresh.ts
+│   ├── store/              # websocketStore.ts (Zustand, singleton global)
+│   ├── lib/                # api.ts (ApiClient singleton Axios), featureFlags.ts
 │   └── index.ts            # Public API
 │
 ├── assets/                 # Recursos estáticos (imágenes, videos, lottie)
@@ -271,6 +275,8 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
 | Confetti al ganar | canvas-confetti | ✅ Implementado |
 | Elementos flotantes (mariposas) | CSS keyframes + Framer | ✅ Implementado |
 | Monedas 3D girando | React Three Fiber | ✅ Implementado |
+| Gift Box reveal (Secret Box) | Framer Motion | Pendiente |
+| Postcards fly-out del Gift Box | Framer Motion (stagger) | Pendiente |
 | Video de celebración ganador | HTML5 Video | Pendiente |
 | Animaciones Lottie decorativas | Lottie React | Pendiente |
 
@@ -307,16 +313,31 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
   - [x] Frontend: CorkboardPage, componentes, WebSocket real-time
   - [x] Botones de acceso en Welcome, ThankYou, Ranking
   - [x] Descarga de postales como PNG
+  - [x] StampLayer decorativo (desktop) con descripciones del quiz
+  - [x] Feature flag `VITE_ENABLE_CORKBOARD`
+- [x] **Testing**:
+  - [x] Playwright E2E configurado (35/38 passing, 3 skipped)
+  - [x] Vitest unit tests frontend implementados
+  - [x] Go tests backend 100% coverage
 
 ### Deuda Técnica (No bloqueante)
 - [ ] `app/` directory vacío (se documentó como conteniendo router/providers)
 
-### Pendiente - Features Nuevas
+### Completado — Secret Box (Feature Nueva)
 
-- [ ] Instalar Playwright y ejecutar los 38 tests en `testsprite_tests/`
+> Ver sección [Secret Box — Plan de Implementación](#secret-box--plan-de-implementación) para detalles completos.
+
+- [x] **Fase 1**: Backend — Migration, models, repository, handlers
+- [x] **Fase 2**: Frontend — Ruta `/secret-box`, form de carga, feature flag
+- [x] **Fase 3**: Admin — Ruta `/admin`, preview, botón reveal
+- [x] **Fase 4**: Animación — GiftBox reveal en CorkboardPage
+- [x] **Fase 5**: Integración — WebSocket, merge en corkboard, testing
+
+### Pendiente — Otros
+
 - [ ] Video de celebración para el ganador (HTML5 Video)
 - [ ] Lottie animations decorativas
-- [ ] Vitest unit tests para frontend
+- [ ] Soporte de video en postcards (V2)
 - [ ] Sistema de múltiples juegos (arquitectura ya preparada)
 
 ---
@@ -369,6 +390,21 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
    - Descarga de postales como PNG
    - Actualización en tiempo real vía WebSocket
 
+7. **Secret Box — Carga** (`/secret-box?token=TOKEN`)
+   - Acceso vía link compartible con token de autorización
+   - No requiere registro como jugador ni haber jugado el quiz
+   - Formulario: Nombre del remitente + Foto + Mensaje
+   - Avatar fijo: 🎁 para todas las postcards secretas
+   - Preview de cómo quedará la postal "clavada en el corcho"
+   - Confirmación de envío exitoso
+
+8. **Admin** (`/admin?key=PASSPHRASE`)
+   - Acceso protegido con passphrase (env var `ADMIN_PASSPHRASE`)
+   - Lista de postcards secretas cargadas con preview
+   - Contador: "N postcards secretas listas"
+   - Botón "REVELAR SECRET BOX" con confirmación (acción irreversible)
+   - Estado: muestra si ya fue revelada o no
+
 ### Preguntas (Basado en Diseño)
 
 **Sección Favoritos (Texto libre o Multiple Choice a definir):**
@@ -415,6 +451,10 @@ GET  /api/quiz/answers/:id    # Obtener respuestas de un jugador
 GET  /api/ranking             # Obtener ranking completo
 POST /api/postcards           # Crear postal (multipart: image + message, header: X-Player-ID)
 GET  /api/postcards           # Listar todas las postales
+POST /api/postcards/secret    # Crear postal secreta (multipart: image + message + sender_name, header: X-Secret-Token)
+GET  /api/admin/secret-box    # Listar postcards secretas (header: X-Admin-Key)
+POST /api/admin/reveal        # Revelar Secret Box (header: X-Admin-Key)
+GET  /api/admin/status        # Estado de la Secret Box (header: X-Admin-Key)
 WS   /ws                      # WebSocket para ranking y postcards real-time
 GET  /health                  # Health check
 ```
@@ -422,6 +462,251 @@ GET  /health                  # Health check
 El flujo de submit: recibe respuestas → normaliza texto → guarda en DB → calcula score → actualiza player → broadcast ranking vía WebSocket.
 
 El flujo de postcards: recibe imagen → valida tipo/tamaño → guarda en disco → genera rotación aleatoria → guarda en DB → broadcast nueva postal vía WebSocket.
+
+El flujo de secret postcards: valida token → recibe imagen + mensaje + sender_name → guarda con `is_secret=true` → NO broadcast (se guarda oculta hasta reveal).
+
+El flujo de reveal: valida admin key → `UPDATE postcards SET revealed_at = NOW() WHERE is_secret = TRUE AND revealed_at IS NULL` → broadcast WebSocket `secret_box_reveal` con las postcards reveladas → todos los corkboards conectados reproducen la animación.
+
+---
+
+## Secret Box — Plan de Implementación
+
+> Sorpresa para Mile: postcards de familiares/amigos que no pueden asistir a la fiesta.
+> Se cargan en secreto vía link compartible y se revelan con una animación de caja de regalos.
+
+### Concepto
+
+Las personas que no pueden asistir a la fiesta reciben un link (WhatsApp, etc.) donde suben una foto y un mensaje para Mile. Estas postales se guardan ocultas. En un momento emotivo de la fiesta, el admin presiona un botón y una caja de regalos animada aparece en el corkboard de todos los dispositivos conectados. La caja se abre y las postales "vuelan" una por una, pineándose en el corcho junto con las demás.
+
+### Decisiones de Diseño
+
+| Decisión | Opción Elegida | Alternativa Descartada | Motivo |
+|----------|---------------|----------------------|--------|
+| Almacenamiento | Misma tabla `postcards` con campos extra | Tabla separada `secret_postcards` | Merge trivial con `COALESCE`, sin UNION |
+| `player_id` | Nullable para secrets | Crear players fantasma | No contamina tabla players ni ranking |
+| Nombre del remitente | Campo `sender_name` en la postal | Siempre del JOIN con players | Permite editar nombre por postal (préstamo de cel) |
+| Avatar secreto | Emoji fijo 🎁 | Emoji picker | KISS, identidad visual "sorpresa" |
+| Auth del link | Token simple (env var) | JWT / auth compleja | Es un link de WhatsApp, no un bank |
+| Auth admin | Passphrase (env var) | Login / roles | Un solo admin, una sola acción |
+| Video | V2 (no en primera implementación) | V1 con video | Foco en la animación de la caja |
+| Reveal | One-shot irreversible | Múltiples reveals | Momento único, más impacto emocional |
+| Nombre en form | Siempre visible, editable, pre-filled para registered | Solo para secrets | Resuelve préstamo de celular |
+
+### Modelo de Datos — Cambios
+
+```sql
+-- Migration: 003_secret_box.sql
+ALTER TABLE postcards ADD COLUMN sender_name VARCHAR(255);
+ALTER TABLE postcards ADD COLUMN is_secret BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE postcards ADD COLUMN revealed_at TIMESTAMP;
+ALTER TABLE postcards ALTER COLUMN player_id DROP NOT NULL;
+
+-- Índice para queries de admin
+CREATE INDEX idx_postcards_is_secret ON postcards(is_secret) WHERE is_secret = TRUE;
+```
+
+**Query de listado público (reemplaza al actual):**
+```sql
+SELECT p.*, 
+  COALESCE(p.sender_name, pl.name) AS player_name,
+  COALESCE(CASE WHEN p.is_secret THEN '🎁' END, pl.avatar) AS player_avatar
+FROM postcards p
+LEFT JOIN players pl ON p.player_id = pl.id
+WHERE p.is_secret = FALSE OR p.revealed_at IS NOT NULL
+ORDER BY p.created_at DESC;
+```
+
+### Endpoints Nuevos
+
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| `POST` | `/api/postcards/secret` | `X-Secret-Token` header | Crear postal secreta (multipart: image + message + sender_name) |
+| `GET` | `/api/admin/secret-box` | `X-Admin-Key` header | Listar postcards secretas con preview |
+| `POST` | `/api/admin/reveal` | `X-Admin-Key` header | Revelar Secret Box (one-shot, broadcast WS) |
+| `GET` | `/api/admin/status` | `X-Admin-Key` header | Estado: `{ total: N, revealed: bool, revealed_at: timestamp }` |
+
+### Env Vars Nuevas
+
+```env
+# Secret Box
+SECRET_BOX_TOKEN=un-token-seguro-compartido-por-whatsapp
+ADMIN_PASSPHRASE=passphrase-del-admin
+
+# Feature flag (build-time)
+VITE_ENABLE_SECRET_BOX=false
+```
+
+### WebSocket — Evento Nuevo
+
+```json
+{
+  "type": "secret_box_reveal",
+  "postcards": [
+    {
+      "id": "uuid",
+      "sender_name": "Abuela Rosa",
+      "player_avatar": "🎁",
+      "image_path": "/uploads/postcards/uuid.jpg",
+      "message": "¡Feliz cumple mi nieta!",
+      "rotation": 12.5,
+      "created_at": "2026-03-15T20:00:00Z"
+    }
+  ]
+}
+```
+
+### Frontend — Componentes
+
+```
+features/postcards/
+├── components/
+│   ├── AddPostcardSheet.tsx  # MODIFICAR: agregar campo nombre, prop mode
+│   ├── GiftBox.tsx           # NUEVO: animación caja de regalos
+│   ├── PostcardCard.tsx      # MODIFICAR: usar sender_name, avatar 🎁
+│   ├── PostcardModal.tsx     # (sin cambios)
+│   └── PushPin.tsx           # (sin cambios)
+├── pages/
+│   ├── CorkboardPage.tsx     # MODIFICAR: integrar GiftBox reveal
+│   └── SecretBoxPage.tsx     # NUEVO: form de carga para link compartible
+└── hooks/
+    └── usePostcards.ts       # MODIFICAR: suscribir a secret_box_reveal
+
+features/admin/
+├── pages/
+│   └── AdminPage.tsx         # NUEVO: preview + botón reveal
+└── index.ts
+```
+
+### Secuencia de Animación del Reveal
+
+1. WebSocket recibe `secret_box_reveal` → CorkboardPage entra en "modo reveal"
+2. **Gift Box aparece** — center viewport, `scale: 0 → 1` con spring (400ms)
+3. **Wobble** — la caja se sacude 2-3 veces (rotate ±5°, 1.5 seg)
+4. **Apertura** — tapa vuela hacia arriba con spring, fade out (600ms)
+5. **Postcards fly-out** — stagger ~800ms entre cada una:
+   - Cada postal escala desde 0 en el centro
+   - Vuela hacia su posición en el grid con curva bezier
+   - Al aterrizar: bounce + PushPin aparece
+6. **Confetti** — canvas-confetti al pinear la última postal
+7. **Gift Box desaparece** — fade out (300ms)
+8. **Auto-open primera postal** — la primera se abre en modal automáticamente (delay 1s post-confetti)
+
+### Fases de Implementación
+
+#### Fase 1: Backend — Base de datos y endpoints (1 sesión)
+
+**Archivos a crear/modificar:**
+- `backend/migrations/003_secret_box.sql` — Migration
+- `backend/internal/models/models.go` — Agregar campos al modelo `Postcard`
+- `backend/internal/repository/postcard_repository.go` — Nuevos queries
+- `backend/internal/handlers/handlers.go` — 4 handlers nuevos
+- `backend/internal/websocket/hub.go` — Evento `secret_box_reveal`
+- `backend/cmd/api/main.go` — Registrar rutas nuevas
+
+**Tareas:**
+1. Crear migration `003_secret_box.sql`
+2. Actualizar modelo Go: `SenderName *string`, `IsSecret bool`, `RevealedAt *time.Time`
+3. Modificar `ListPostcards` query: filtrar `WHERE is_secret = FALSE OR revealed_at IS NOT NULL`
+4. Nuevo: `CreateSecretPostcard(senderName, imagePath, message, rotation)` — sin player_id
+5. Nuevo: `ListSecretPostcards()` — solo las secretas (para admin)
+6. Nuevo: `RevealSecretBox()` — UPDATE revealed_at, retorna postcards reveladas
+7. Nuevo: `GetSecretBoxStatus()` — count + revealed state
+8. Handler `CreateSecretPostcard`: validar `X-Secret-Token`, multipart upload
+9. Handler `ListSecretPostcards`: validar `X-Admin-Key`
+10. Handler `RevealSecretBox`: validar `X-Admin-Key`, broadcast WS, idempotente si ya revelado
+11. Handler `GetSecretBoxStatus`: validar `X-Admin-Key`
+12. Actualizar `CreatePostcard` handler: aceptar `sender_name` opcional en form data
+13. Tests para todos los handlers y repository nuevos
+
+#### Fase 2: Frontend — Ruta Secret Box + Form de carga (1 sesión)
+
+**Archivos a crear/modificar:**
+- `frontend/src/features/postcards/pages/SecretBoxPage.tsx` — NUEVO
+- `frontend/src/features/postcards/components/AddPostcardSheet.tsx` — MODIFICAR
+- `frontend/src/features/postcards/types/postcards.types.ts` — MODIFICAR
+- `frontend/src/features/postcards/services/postcardApi.ts` — MODIFICAR
+- `frontend/src/shared/lib/api.ts` — Agregar métodos API
+- `frontend/src/shared/lib/featureFlags.ts` — Agregar `SECRET_BOX`
+- `frontend/src/App.tsx` — Agregar ruta `/secret-box`
+- `.env`, `docker-compose.yml`, `Dockerfile` — Env vars nuevas
+
+**Tareas:**
+1. Agregar tipo `SecretPostcard` o extender `Postcard` con campos opcionales
+2. Agregar `createSecretPostcard(image, message, senderName, token)` al API client
+3. Agregar feature flag `VITE_ENABLE_SECRET_BOX`
+4. Modificar `AddPostcardSheet`:
+   - Agregar prop `mode: 'regular' | 'secret'`
+   - Agregar campo nombre (pre-filled si regular, vacío si secret)
+   - Enviar `sender_name` en el form data
+   - Para `mode: 'secret'`: no requerir player_id
+5. Crear `SecretBoxPage.tsx`:
+   - Leer `token` de query params
+   - Validar token (o mostrar error)
+   - Renderizar `AddPostcardSheet` en modo `'secret'`
+   - Feedback: "¡Tu postal secreta fue enviada!" con preview
+6. Registrar ruta `/secret-box` en App.tsx (condicional por feature flag)
+7. Agregar env vars a Docker pipeline
+
+#### Fase 3: Frontend — Admin Panel (1 sesión)
+
+**Archivos a crear/modificar:**
+- `frontend/src/features/admin/pages/AdminPage.tsx` — NUEVO
+- `frontend/src/features/admin/index.ts` — NUEVO
+- `frontend/src/shared/lib/api.ts` — Agregar métodos admin
+- `frontend/src/App.tsx` — Agregar ruta `/admin`
+
+**Tareas:**
+1. Agregar métodos al API client:
+   - `getSecretBoxStatus(adminKey)` → `{ total, revealed, revealed_at }`
+   - `listSecretPostcards(adminKey)` → `Postcard[]`
+   - `revealSecretBox(adminKey)` → `{ postcards: Postcard[] }`
+2. Crear `AdminPage.tsx`:
+   - Leer `key` de query params, validar contra backend
+   - Mostrar contador: "N postcards secretas listas"
+   - Grid de preview de postcards secretas (reusar PostcardCard)
+   - Botón "REVELAR SECRET BOX" con modal de confirmación
+   - Estado post-reveal: "Secret Box revelada a las HH:MM"
+3. Registrar ruta `/admin` en App.tsx
+
+#### Fase 4: Frontend — Animación GiftBox Reveal (1-2 sesiones)
+
+**Archivos a crear/modificar:**
+- `frontend/src/features/postcards/components/GiftBox.tsx` — NUEVO
+- `frontend/src/features/postcards/pages/CorkboardPage.tsx` — MODIFICAR
+- `frontend/src/features/postcards/hooks/usePostcards.ts` — MODIFICAR
+- `frontend/src/features/postcards/store/postcardStore.ts` — MODIFICAR
+
+**Tareas:**
+1. Agregar al store: `revealedPostcards: Postcard[]`, `isRevealing: boolean`
+2. Modificar `usePostcards`: suscribir a evento WS `secret_box_reveal`
+3. Crear componente `GiftBox.tsx`:
+   - Box con tapa (frame divs con gradientes/sombras)
+   - Animación wobble (Framer Motion keyframes)
+   - Animación apertura (tapa spring up + fade)
+   - Animación fade out del box
+4. Modificar `CorkboardPage.tsx`:
+   - Cuando `isRevealing = true`, renderizar `GiftBox` overlay
+   - Stagger de postcards volando desde el centro
+   - Cada postal aparece con spring + bounce al aterrizar
+   - Confetti al finalizar la última postal
+   - Auto-open primera postal en modal (delay 1s post-animación)
+5. Manejar scroll durante la animación (lock scroll, o scroll to top)
+6. Fallback: si llegan postcards sin haber visto la animación (recarga de página), simplemente aparecen en el grid
+
+#### Fase 5: Integración y Testing (1 sesión)
+
+**Tareas:**
+1. Modificar `AddPostcardSheet` para postcards normales:
+   - Agregar campo nombre pre-filled con player name
+   - Enviar `sender_name` en form data
+2. Test E2E: flujo completo secret box (carga → admin → reveal)
+3. Test E2E: verificar que postcards secretas NO aparecen antes del reveal
+4. Test E2E: verificar animación del reveal (at least que el GiftBox aparece)
+5. Test unitario: nuevos handlers backend
+6. Test unitario: componentes frontend nuevos
+7. Verificar en mobile: animación, scroll, form de carga
+8. Verificar en desktop: grid con postales secretas mergeadas
+9. Docker rebuild completo y test en 192.168.100.82
 
 ---
 

@@ -1,17 +1,21 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/shared';
+import { useQuizStore } from '@features/quiz/store/quizStore';
 
 interface AddPostcardSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (image: File, message: string) => Promise<void>;
+  onSubmit: (image: File, message: string, senderName?: string) => Promise<void>;
 }
 
 export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheetProps) {
+  const playerName = useQuizStore((s) => s.playerName);
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [senderName, setSenderName] = useState(playerName);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +52,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
     setError(null);
 
     try {
-      await onSubmit(imageFile, message.trim());
+      await onSubmit(imageFile, message.trim(), senderName.trim() || undefined);
       // Limpiar y cerrar
       resetForm();
       onClose();
@@ -64,6 +68,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(null);
     setMessage('');
+    setSenderName(playerName);
     setError(null);
   };
 
@@ -105,7 +110,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
               <div className="w-10 h-1 rounded-full bg-gray-300" />
             </div>
 
-            <div className="p-5 space-y-5">
+            <div className="p-5 space-y-4">
               {/* Título */}
               <div className="text-center">
                 <h2 className="text-xl font-display text-accent">
@@ -114,6 +119,25 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                 <p className="text-xs text-gray-500 mt-1">
                   Tomá una foto con la cumpleañera y dejá un mensaje
                 </p>
+              </div>
+
+              {/* Nombre del remitente */}
+              <div className="space-y-1">
+                <label
+                  htmlFor="postcard-sender"
+                  className="text-xs text-gray-500 uppercase tracking-wider font-medium"
+                >
+                  Tu nombre:
+                </label>
+                <input
+                  id="postcard-sender"
+                  type="text"
+                  value={senderName}
+                  onChange={(e) => setSenderName(e.target.value)}
+                  placeholder="¿Cómo te llamás?"
+                  maxLength={100}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 text-gray-700"
+                />
               </div>
 
               {/* Zona de foto */}

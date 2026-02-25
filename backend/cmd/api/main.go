@@ -60,7 +60,7 @@ func main() {
 	config.AllowOrigins = strings.Split(allowedOrigins, ",")
 
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "X-Player-ID"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "X-Player-ID", "X-Secret-Token", "X-Admin-Key"}
 	config.AllowCredentials = true
 	r.Use(cors.New(config))
 
@@ -85,6 +85,14 @@ func main() {
 		// Postcards (Cartelera de Corcho)
 		api.POST("/postcards", handler.CreatePostcard)
 		api.GET("/postcards", handler.ListPostcards)
+
+		// Secret Box
+		api.POST("/postcards/secret", handler.CreateSecretPostcard)
+
+		// Admin
+		api.GET("/admin/status", handler.GetSecretBoxStatus)
+		api.GET("/admin/secret-box", handler.ListSecretPostcards)
+		api.POST("/admin/reveal", handler.RevealSecretBox)
 	}
 
 	// WebSocket endpoint (sin /api prefix, igual que health)

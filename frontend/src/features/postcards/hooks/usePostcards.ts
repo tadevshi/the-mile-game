@@ -15,10 +15,14 @@ export function usePostcards() {
     postcards,
     isLoading,
     error,
+    isRevealing,
+    revealedPostcards,
     setPostcards,
     addPostcard,
     setLoading,
     setError,
+    setRevealing,
+    addRevealedPostcards,
   } = usePostcardStore();
 
   const hasFetchedRef = useRef(false);
@@ -38,12 +42,20 @@ export function usePostcards() {
       if (message.type === 'postcard_new' && message.postcard) {
         addPostcard(message.postcard as Postcard);
       }
+      if (message.type === 'secret_box_reveal' && Array.isArray(message.postcards)) {
+        // Trigger gift box animation: set isRevealing=true, then after animation
+        // addRevealedPostcards merges them into the board
+        setRevealing(true);
+        // Store the incoming postcards temporarily in revealedPostcards
+        // The GiftBox component will call addRevealedPostcards when animation finishes
+        usePostcardStore.setState({ revealedPostcards: message.postcards as Postcard[] });
+      }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [addPostcard]);
+  }, [addPostcard, setRevealing]);
 
   // Fetch inicial de postales
   const fetchPostcards = useCallback(async () => {
@@ -72,14 +84,14 @@ export function usePostcards() {
 
   // Crear una postal nueva
   const createPostcard = useCallback(
-    async (imageFile: File, message: string) => {
+    async (imageFile: File, message: string, senderName?: string) => {
       setLoading(true);
       setError(null);
 
       try {
         // Redimensionar antes de subir
         const resized = await postcardService.resizeImage(imageFile);
-        const newPostcard = await postcardService.create(resized, message);
+        const newPostcard = await postcardService.create(resized, message, senderName);
 
         // Agregar localmente (el WebSocket también la enviará,
         // pero addPostcard deduplica por ID)
@@ -101,7 +113,10 @@ export function usePostcards() {
     postcards,
     isLoading,
     error,
+    isRevealing,
+    revealedPostcards,
     fetchPostcards,
     createPostcard,
+    addRevealedPostcards,
   };
 }

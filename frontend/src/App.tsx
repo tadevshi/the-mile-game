@@ -2,7 +2,8 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { WelcomePage, RegisterPage, QuizPage, ThankYouPage } from '@features/quiz';
 import { RankingPage } from '@features/ranking';
-import { CorkboardPage } from '@features/postcards';
+import { CorkboardPage, SecretBoxPage } from '@features/postcards';
+import { AdminPage } from '@features/admin';
 import { ErrorBoundary, FEATURES } from '@/shared';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import type { ReactNode } from 'react';
@@ -177,6 +178,30 @@ function AnimatedRoutes() {
                 <CorkboardPage />
               </AnimatedPage>
             } 
+          />
+        )}
+
+        {/* SECRET BOX: Link compartible para postales de invitados remotos */}
+        {FEATURES.SECRET_BOX && (
+          <Route
+            path="/secret-box"
+            element={
+              <AnimatedPage variants={fadeVariants}>
+                <SecretBoxPage />
+              </AnimatedPage>
+            }
+          />
+        )}
+
+        {/* ADMIN: Panel de control para revelar Secret Box */}
+        {FEATURES.SECRET_BOX && (
+          <Route
+            path="/admin"
+            element={
+              <AnimatedPage variants={fadeVariants}>
+                <AdminPage />
+              </AnimatedPage>
+            }
           />
         )}
         
