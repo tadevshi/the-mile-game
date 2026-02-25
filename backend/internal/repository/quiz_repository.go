@@ -49,6 +49,36 @@ func (r *QuizRepository) SaveAnswers(playerID uuid.UUID, favorites, preferences 
 	return err
 }
 
+// ListDescriptions devuelve todas las descripciones no vacías (anónimas)
+func (r *QuizRepository) ListDescriptions() ([]string, error) {
+	query := `
+		SELECT description
+		FROM quiz_answers
+		WHERE TRIM(description) != ''
+		ORDER BY created_at ASC
+	`
+
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var descriptions []string
+	for rows.Next() {
+		var d string
+		if err := rows.Scan(&d); err != nil {
+			return nil, err
+		}
+		descriptions = append(descriptions, d)
+	}
+
+	if descriptions == nil {
+		descriptions = []string{}
+	}
+	return descriptions, nil
+}
+
 // GetAnswersByPlayerID obtiene las respuestas de un jugador
 func (r *QuizRepository) GetAnswersByPlayerID(playerID uuid.UUID) (*models.QuizAnswers, error) {
 	query := `

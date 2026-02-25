@@ -6,6 +6,7 @@ import { useQuizStore } from '@features/quiz/store/quizStore';
 import { PostcardCard } from '../components/PostcardCard';
 import { PostcardModal } from '../components/PostcardModal';
 import { AddPostcardSheet } from '../components/AddPostcardSheet';
+import { StampLayer } from '../components/StampLayer';
 import { Button } from '@/shared';
 import type { Postcard } from '../types/postcards.types';
 
@@ -47,8 +48,15 @@ export function CorkboardPage() {
       {/* Viñeta sutil sobre el corcho — también fija */}
       <div className="fixed inset-0 -z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]" />
 
+      {/* ── Estampillas decorativas (desktop / proyección) ──────────────────
+          z-[2]: detrás de postcards (z-10) y el header, delante del fondo.
+          Solo visible en pantallas medianas+. Se ocultan en mobile.          ── */}
+      <div className="hidden md:block">
+        <StampLayer />
+      </div>
+
       {/* Header */}
-      <div className="relative z-10 pt-6 pb-4 px-4 text-center">
+      <div className="relative z-10 pt-6 pb-4 px-4 text-center pointer-events-none">
         <motion.h1
           className="text-4xl md:text-5xl font-display text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
           initial={{ opacity: 0, y: -20 }}
@@ -68,7 +76,7 @@ export function CorkboardPage() {
       </div>
 
       {/* Contenido principal */}
-      <div className="relative z-10 px-4 pb-28">
+      <div className="relative z-10 px-4 pb-28 pointer-events-none">
         {/* Estado: cargando */}
         {isLoading && postcards.length === 0 && (
           <div className="flex justify-center items-center py-20">
@@ -122,7 +130,7 @@ export function CorkboardPage() {
               <motion.div
                 key={postcard.id}
                 // Offset vertical aleatorio en desktop para dar efecto desordenado
-                className="md:first:mt-0"
+                className="md:first:mt-0 pointer-events-auto"
                 style={{
                   marginTop: typeof window !== 'undefined' && window.innerWidth >= 768
                     ? `${((index * 37) % 40) - 10}px`

@@ -77,6 +77,7 @@ func main() {
 		// Quiz
 		api.POST("/quiz/submit", handler.SubmitQuiz)
 		api.GET("/quiz/answers/:playerId", handler.GetQuizAnswers)
+		api.GET("/quiz/descriptions", handler.GetDescriptions)
 
 		// Ranking
 		api.GET("/ranking", handler.GetRanking)

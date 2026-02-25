@@ -330,3 +330,18 @@ func (h *Handler) ListPostcards(c *gin.Context) {
 
 	c.JSON(http.StatusOK, postcards)
 }
+
+// ==========================================
+// Descriptions (Estampillas del Corkboard)
+// ==========================================
+
+// GetDescriptions devuelve todas las descripciones de Mile de forma anónima
+func (h *Handler) GetDescriptions(c *gin.Context) {
+	descriptions, err := h.quizRepo.ListDescriptions()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get descriptions"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"descriptions": descriptions})
+}
