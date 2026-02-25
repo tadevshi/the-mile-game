@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { WelcomePage, RegisterPage, QuizPage, ThankYouPage } from '@features/quiz';
 import { RankingPage } from '@features/ranking';
 import { CorkboardPage, SecretBoxPage } from '@features/postcards';
+import { AdminPage } from '@features/admin';
 import { ErrorBoundary, FEATURES } from '@/shared';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import type { ReactNode } from 'react';
@@ -187,6 +188,18 @@ function AnimatedRoutes() {
             element={
               <AnimatedPage variants={fadeVariants}>
                 <SecretBoxPage />
+              </AnimatedPage>
+            }
+          />
+        )}
+
+        {/* ADMIN: Panel de control para revelar Secret Box */}
+        {FEATURES.SECRET_BOX && (
+          <Route
+            path="/admin"
+            element={
+              <AnimatedPage variants={fadeVariants}>
+                <AdminPage />
               </AnimatedPage>
             }
           />
