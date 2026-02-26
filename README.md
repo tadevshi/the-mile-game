@@ -286,6 +286,15 @@ Cuando llegue el momento emotivo, desde el panel admin:
 **El admin dice "No autorizado":**
 - El valor del query param `key` debe coincidir exactamente con `ADMIN_PASSPHRASE` en el `.env`
 
+**Resetear estado del reveal (para volver a ejecutar la animación):**
+
+```bash
+docker exec -it milegame-db psql -U user -d milegame -c \
+  "UPDATE postcards SET revealed_at = NULL WHERE is_secret = TRUE;"
+```
+
+Marca todas las postales secretas como "no reveladas". El admin puede volver a presionar "REVELAR SECRET BOX" desde el panel y la animación se dispara de nuevo en todos los dispositivos conectados.
+
 ---
 
 ## 💻 Uso
@@ -774,6 +783,29 @@ docker-compose logs postgres
 # Recrear volumen si es necesario (ESTO BORRA DATOS)
 docker-compose down -v
 docker-compose up -d
+```
+
+### **Limpiar base de datos (reset de datos)**
+
+#### Opción A — TRUNCATE (recomendada): borra datos, mantiene schema
+
+```bash
+# 1. Encontrar el nombre del container de postgres
+docker ps | grep postgres
+
+# 2. Borrar todos los datos (jugadores, quiz y postcards)
+docker exec -it <nombre-container> psql -U user -d milegame -c \
+  "TRUNCATE TABLE quiz_answers, postcards, players RESTART IDENTITY CASCADE;"
+```
+
+> Útil en Dokploy u otros entornos donde no tenés acceso directo al `docker-compose.yml`.
+> El schema queda intacto — no necesitás re-aplicar migraciones.
+
+#### Opción B — Nuclear: borra schema + datos (re-ejecuta migraciones)
+
+```bash
+docker-compose down -v   # detiene servicios y elimina volúmenes
+docker-compose up -d     # recrea todo desde cero (las migraciones corren solas)
 ```
 
 ### **Frontend no actualiza cambios**
