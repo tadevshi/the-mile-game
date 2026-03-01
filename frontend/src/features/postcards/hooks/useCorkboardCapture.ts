@@ -78,14 +78,8 @@ export function useCorkboardCapture() {
 
       // Capturar el documento completo excluyendo el overlay del flash
       const fullCanvas = await toCanvas(document.documentElement, {
-        useCORS: true,
         pixelRatio,
-        filter: (node: Node) => {
-          if (node instanceof Element) {
-            return !node.classList.contains('camera-flash-overlay');
-          }
-          return true;
-        },
+        filter: (node: HTMLElement) => !node.classList?.contains('camera-flash-overlay'),
       });
 
       // Recortar al viewport actual (lo que el usuario ve en pantalla)
