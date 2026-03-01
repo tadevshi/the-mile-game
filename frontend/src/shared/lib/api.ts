@@ -151,8 +151,22 @@ class ApiClient {
   // ==========================================
 
   async createPostcard(image: File, message: string, senderName?: string): Promise<Postcard> {
-    if (!this.playerId) {
-      throw new Error('No player ID set. Call createPlayer first.');
+    let effectivePlayerId = this.playerId;
+
+    // Auto-registro: si no hay jugador y se provee nombre, registrar como invitado
+    // antes de crear la postal. Mismo flujo que Secret Box pero desde el cliente.
+    if (!effectivePlayerId) {
+      const name = senderName?.trim();
+      if (!name) {
+        throw new Error('Se requiere un nombre para agregar una postal sin estar registrado.');
+      }
+      // Registrar como invitado con avatar de cámara
+      await this.createPlayer({ name, avatar: '📸' });
+      effectivePlayerId = this.playerId; // createPlayer ya lo setea vía setPlayerId
+    }
+
+    if (!effectivePlayerId) {
+      throw new Error('No se pudo obtener un player ID.');
     }
 
     const formData = new FormData();
@@ -168,7 +182,7 @@ class ApiClient {
       {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'X-Player-ID': this.playerId,
+          'X-Player-ID': effectivePlayerId,
         },
         timeout: 30000, // 30s para uploads
       }
