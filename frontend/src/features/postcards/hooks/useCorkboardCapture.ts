@@ -19,7 +19,6 @@ function playShutterSound() {
 
       for (let i = 0; i < bufLen; i++) {
         const t = i / bufLen;
-        // Decaimiento exponencial rápido — el obturador es mecánico, no resuena
         const envelope = Math.exp(-t * 35);
         data[i] = (Math.random() * 2 - 1) * envelope;
       }
@@ -27,7 +26,6 @@ function playShutterSound() {
       const source = ctx.createBufferSource();
       source.buffer = buf;
 
-      // Highpass para sacar los graves — el obturador es agudo
       const filter = ctx.createBiquadFilter();
       filter.type = 'highpass';
       filter.frequency.value = highpassFreq;
@@ -43,36 +41,47 @@ function playShutterSound() {
     }
 
     const now = ctx.currentTime;
-    createClick(now,        0.028, 1800, 0.55); // Apertura: click inicial (más fuerte)
-    createClick(now + 0.09, 0.022, 2200, 0.40); // Cierre: click secundario (más suave)
+    createClick(now,        0.028, 1800, 0.55);
+    createClick(now + 0.09, 0.022, 2200, 0.40);
 
-    // Cerrar el contexto después de que el sonido termine
     setTimeout(() => ctx.close().catch(() => {}), 600);
   } catch {
-    // Si el browser no soporta Web Audio API, silenciosamente ignorar
+    // Web Audio API no soportada — silencio
   }
+}
+
+/** Convierte un data URL a Blob sin pasar por fetch (más confiable). */
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, base64] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)?.[1] ?? 'image/png';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mime });
 }
 
 /**
  * Hook para capturar el corkboard como imagen PNG y descargarlo.
  *
- * Recibe un ref al contenedor del corkboard para capturarlo directamente
- * (html-to-image no funciona bien sobre document.documentElement).
+ * Estrategia de descarga:
+ * 1. Mobile → navigator.share() (share sheet nativo: guardar en fotos, WhatsApp, etc.)
+ * 2. Desktop → blob URL + <a download> click
+ * 3. Fallback → window.open con la imagen
  *
- * - Toca el sonido del obturador
- * - Captura el nodo referenciado excluyendo el overlay del flash
- * - Descarga el resultado como PNG via blob URL (más confiable que dataURL)
- * - Retorna `isFlashing` para que el componente renderice el efecto visual
+ * Los errores se muestran al usuario (no se tragan silenciosamente).
  */
 export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | null>) {
   const [isFlashing, setIsFlashing] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
 
   const downloadCorkboard = useCallback(async () => {
     if (isCapturing || !containerRef.current) return;
     setIsCapturing(true);
+    setCaptureError(null);
 
-    // Sonido y flash arrancan juntos
     playShutterSound();
     setIsFlashing(true);
 
@@ -80,29 +89,35 @@ export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | nul
       const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
 
       const dataUrl = await toPng(containerRef.current, {
+        cacheBust: true,
         pixelRatio,
         filter: (node: HTMLElement) => !node.classList?.contains('camera-flash-overlay'),
       });
 
-      // Descarga via blob URL — más confiable que link.href = dataUrl directamente
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      const blob = dataUrlToBlob(dataUrl);
+      const file = new File([blob], 'cartelera-de-mile.png', { type: 'image/png' });
 
+      // Mobile: share sheet nativo (guardar en fotos, mandar por WA, etc.)
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file] });
+        return;
+      }
+
+      // Desktop: blob URL + <a download>
+      const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.download = 'cartelera-de-mile.png';
       link.href = blobUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
-      // Liberar la URL del blob después de que el browser la consuma
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
 
     } catch (err) {
-      console.error('[CorkboardCapture] Error al capturar:', err);
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      console.error('[CorkboardCapture] Error:', msg);
+      setCaptureError(msg);
     } finally {
-      // El flash dura 600ms — reseteamos justo después
       setTimeout(() => {
         setIsFlashing(false);
         setIsCapturing(false);
@@ -110,5 +125,5 @@ export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | nul
     }
   }, [isCapturing, containerRef]);
 
-  return { isFlashing, isCapturing, downloadCorkboard };
+  return { isFlashing, isCapturing, captureError, downloadCorkboard };
 }

@@ -30,7 +30,7 @@ export function CorkboardPage() {
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const corkboardRef = useRef<HTMLDivElement>(null);
-  const { isFlashing, isCapturing, downloadCorkboard } = useCorkboardCapture(corkboardRef);
+  const { isFlashing, isCapturing, captureError, downloadCorkboard } = useCorkboardCapture(corkboardRef);
 
   // Auto-abrir el sheet si viene de "Dejar tu Foto para Mile" (WelcomePage)
   // Funciona tanto para jugadores registrados como para invitados
@@ -90,6 +90,20 @@ export function CorkboardPage() {
         >
           📷 Guardar recuerdo
         </motion.button>
+
+        {/* Error toast visible */}
+        <AnimatePresence>
+          {captureError && (
+            <motion.p
+              className="mt-2 px-3 py-2 rounded-lg bg-red-500/90 text-white text-xs text-center shadow-lg max-w-[200px]"
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              No se pudo capturar 😕
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Header */}
