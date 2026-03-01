@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePostcards } from '../hooks/usePostcards';
@@ -29,7 +29,8 @@ export function CorkboardPage() {
 
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const { isFlashing, isCapturing, downloadCorkboard } = useCorkboardCapture();
+  const corkboardRef = useRef<HTMLDivElement>(null);
+  const { isFlashing, isCapturing, downloadCorkboard } = useCorkboardCapture(corkboardRef);
 
   // Auto-abrir el sheet si viene de "Dejar tu Foto para Mile" (WelcomePage)
   // Funciona tanto para jugadores registrados como para invitados
@@ -53,7 +54,7 @@ export function CorkboardPage() {
   }, [addRevealedPostcards]);
 
   return (
-    <div className="min-h-screen relative">
+    <div ref={corkboardRef} className="min-h-screen relative">
       {/* Fondo de corcho — fixed para que no scrollee con el contenido */}
       <div
         className="fixed inset-0 -z-10"

@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { toCanvas } from 'html-to-image';
+import { useState, useCallback, type RefObject } from 'react';
+import { toPng } from 'html-to-image';
 
 /**
  * Sintetiza el sonido característico de un obturador de cámara usando Web Audio API.
@@ -56,17 +56,20 @@ function playShutterSound() {
 /**
  * Hook para capturar el corkboard como imagen PNG y descargarlo.
  *
+ * Recibe un ref al contenedor del corkboard para capturarlo directamente
+ * (html-to-image no funciona bien sobre document.documentElement).
+ *
  * - Toca el sonido del obturador
- * - Captura el viewport actual (no toda la página — solo lo visible)
- * - Excluye el overlay del flash del capture
+ * - Captura el nodo referenciado excluyendo el overlay del flash
+ * - Descarga el resultado como PNG via blob URL (más confiable que dataURL)
  * - Retorna `isFlashing` para que el componente renderice el efecto visual
  */
-export function useCorkboardCapture() {
+export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | null>) {
   const [isFlashing, setIsFlashing] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
 
   const downloadCorkboard = useCallback(async () => {
-    if (isCapturing) return;
+    if (isCapturing || !containerRef.current) return;
     setIsCapturing(true);
 
     // Sonido y flash arrancan juntos
@@ -76,51 +79,36 @@ export function useCorkboardCapture() {
     try {
       const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
 
-      // Capturar el documento completo excluyendo el overlay del flash
-      const fullCanvas = await toCanvas(document.documentElement, {
+      const dataUrl = await toPng(containerRef.current, {
         pixelRatio,
         filter: (node: HTMLElement) => !node.classList?.contains('camera-flash-overlay'),
       });
 
-      // Recortar al viewport actual (lo que el usuario ve en pantalla)
-      const viewportCanvas = document.createElement('canvas');
-      viewportCanvas.width = window.innerWidth * pixelRatio;
-      viewportCanvas.height = window.innerHeight * pixelRatio;
+      // Descarga via blob URL — más confiable que link.href = dataUrl directamente
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
 
-      const ctx2d = viewportCanvas.getContext('2d');
-      if (ctx2d) {
-        ctx2d.drawImage(
-          fullCanvas,
-          window.scrollX * pixelRatio,   // fuente: desplazamiento X del scroll
-          window.scrollY * pixelRatio,   // fuente: desplazamiento Y del scroll
-          window.innerWidth * pixelRatio,
-          window.innerHeight * pixelRatio,
-          0, 0,
-          window.innerWidth * pixelRatio,
-          window.innerHeight * pixelRatio,
-        );
-      }
+      const link = document.createElement('a');
+      link.download = 'cartelera-de-mile.png';
+      link.href = blobUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-      const dataUrl = viewportCanvas.toDataURL('image/png');
-
-      // Disparar la descarga luego de 350ms — en el pico del flash
-      setTimeout(() => {
-        const link = document.createElement('a');
-        link.download = 'cartelera-de-mile.png';
-        link.href = dataUrl;
-        link.click();
-      }, 350);
+      // Liberar la URL del blob después de que el browser la consuma
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
     } catch (err) {
       console.error('[CorkboardCapture] Error al capturar:', err);
     } finally {
-      // El flash dura 700ms — reseteamos después de eso
+      // El flash dura 600ms — reseteamos justo después
       setTimeout(() => {
         setIsFlashing(false);
         setIsCapturing(false);
-      }, 750);
+      }, 700);
     }
-  }, [isCapturing]);
+  }, [isCapturing, containerRef]);
 
   return { isFlashing, isCapturing, downloadCorkboard };
 }
