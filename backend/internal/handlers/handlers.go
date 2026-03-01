@@ -385,7 +385,20 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 		return
 	}
 
-	// NO broadcast: es una sorpresa 🎁
+	// Si la Secret Box ya fue revelada, auto-revelar esta postal y broadcastearla
+	// como postal regular (el momento de sorpresa ya pasó, que aparezca nomás)
+	status, statusErr := h.postcardRepo.GetSecretBoxStatus()
+	if statusErr == nil && status.Revealed {
+		if revealed, revealErr := h.postcardRepo.RevealPostcard(postcard.ID); revealErr == nil {
+			postcard = revealed
+			if h.hub != nil {
+				h.hub.BroadcastPostcard(*postcard)
+			}
+		}
+		// Si falla el reveal, la postal igual se creó — no es catastrófico
+	}
+	// Si aún no fue revelada: NO broadcast — sigue siendo una sorpresa 🎁
+
 	c.JSON(http.StatusCreated, postcard)
 }
 

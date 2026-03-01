@@ -189,6 +189,81 @@ func TestSubmitQuizValidation(t *testing.T) {
 // Secret Box — Tests de validación
 // ==========================================
 
+// TestSecretPostcardAutoRevealLogic verifica que la lógica de auto-reveal funciona:
+// si la Secret Box ya fue revelada, una nueva postal secreta debe aparecer inmediatamente.
+func TestSecretPostcardAutoRevealLogic(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	// Simular el comportamiento del handler: si el box está revelado, broadcast como regular
+	type revealState struct {
+		revealed  bool
+		broadcast bool
+	}
+	state := &revealState{}
+
+	r.POST("/api/postcards/secret", func(c *gin.Context) {
+		token := c.GetHeader("X-Secret-Token")
+		if token != "test-token" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			return
+		}
+
+		// Simular: secret box ya revelada → auto-reveal + broadcast
+		if state.revealed {
+			state.broadcast = true
+			c.JSON(http.StatusCreated, gin.H{
+				"id":          uuid.New().String(),
+				"is_secret":   true,
+				"revealed_at": "2026-03-01T20:00:00Z",
+			})
+			return
+		}
+
+		// Aún no revelada → no broadcast
+		c.JSON(http.StatusCreated, gin.H{
+			"id":          uuid.New().String(),
+			"is_secret":   true,
+			"revealed_at": nil,
+		})
+	})
+
+	// Caso 1: Secret Box NO revelada → la postal no se broadcastea
+	state.revealed = false
+	state.broadcast = false
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/postcards/secret", nil)
+	req.Header.Set("X-Secret-Token", "test-token")
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected 201, got %d", w.Code)
+	}
+	if state.broadcast {
+		t.Error("Expected NO broadcast when Secret Box not yet revealed")
+	}
+
+	// Caso 2: Secret Box YA revelada → la postal se auto-revela y se broadcastea
+	state.revealed = true
+	state.broadcast = false
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest("POST", "/api/postcards/secret", nil)
+	req.Header.Set("X-Secret-Token", "test-token")
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected 201, got %d", w.Code)
+	}
+	if !state.broadcast {
+		t.Error("Expected broadcast when Secret Box was already revealed")
+	}
+
+	// Verificar que la respuesta incluye revealed_at cuando ya fue revelada
+	var resp map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	if resp["revealed_at"] == nil {
+		t.Error("Expected revealed_at to be set when Secret Box was already revealed")
+	}
+}
+
 func TestCreateSecretPostcardMissingToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

@@ -186,6 +186,19 @@ func (r *PostcardRepository) RevealSecretBox() ([]models.Postcard, error) {
 	return r.ListSecret()
 }
 
+// RevealPostcard marca una postal específica como revelada (para auto-reveal post-secret-box)
+func (r *PostcardRepository) RevealPostcard(id uuid.UUID) (*models.Postcard, error) {
+	_, err := r.db.Exec(`
+		UPDATE postcards
+		SET revealed_at = NOW()
+		WHERE id = $1
+	`, id)
+	if err != nil {
+		return nil, err
+	}
+	return r.GetByID(id)
+}
+
 // GetSecretBoxStatus devuelve el estado actual de la Secret Box
 func (r *PostcardRepository) GetSecretBoxStatus() (*models.SecretBoxStatus, error) {
 	var status models.SecretBoxStatus
