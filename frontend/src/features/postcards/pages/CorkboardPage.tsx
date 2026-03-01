@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePostcards } from '../hooks/usePostcards';
 import { PostcardCard } from '../components/PostcardCard';
 import { PostcardModal } from '../components/PostcardModal';
@@ -8,6 +8,7 @@ import { AddPostcardSheet } from '../components/AddPostcardSheet';
 import { StampLayer } from '../components/StampLayer';
 import { GiftBox } from '../components/GiftBox';
 import { Button } from '@/shared';
+import { useCorkboardCapture } from '../hooks/useCorkboardCapture';
 import type { Postcard } from '../types/postcards.types';
 
 // Importar textura de corcho como asset estático
@@ -28,6 +29,7 @@ export function CorkboardPage() {
 
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const { isFlashing, isCapturing, downloadCorkboard } = useCorkboardCapture();
 
   // Auto-abrir el sheet si viene de "Dejar tu Foto para Mile" (WelcomePage)
   // Funciona tanto para jugadores registrados como para invitados
@@ -70,6 +72,23 @@ export function CorkboardPage() {
           Solo visible en pantallas medianas+. Se ocultan en mobile.          ── */}
       <div className="hidden md:block">
         <StampLayer />
+      </div>
+
+      {/* Botón guardar recuerdo — arriba a la derecha */}
+      <div className="fixed top-4 right-4 z-40">
+        <motion.button
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 text-sm font-medium shadow-lg border border-gray-200 cursor-pointer disabled:opacity-50"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={downloadCorkboard}
+          disabled={isCapturing}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          aria-label="Guardar recuerdo"
+        >
+          📷 Guardar recuerdo
+        </motion.button>
       </div>
 
       {/* Header */}
@@ -219,6 +238,19 @@ export function CorkboardPage() {
           onRevealComplete={handleRevealComplete}
         />
       )}
+
+      {/* 📷 Flash overlay — efecto cámara al guardar recuerdo */}
+      <AnimatePresence>
+        {isFlashing && (
+          <motion.div
+            className="camera-flash-overlay fixed inset-0 z-[100] pointer-events-none bg-white"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0] }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            exit={{ opacity: 0 }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
