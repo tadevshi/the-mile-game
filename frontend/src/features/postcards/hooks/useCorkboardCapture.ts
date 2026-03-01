@@ -91,6 +91,9 @@ export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | nul
       const dataUrl = await toPng(containerRef.current, {
         cacheBust: true,
         pixelRatio,
+        // Al pasar string vacío, html-to-image simplemente dibuja un rectángulo transparente 
+        // cuando una imagen falla, en lugar de crashear el proceso entero con error
+        imagePlaceholder: '',
         filter: (node: HTMLElement) => !node.classList?.contains('camera-flash-overlay'),
       });
 
