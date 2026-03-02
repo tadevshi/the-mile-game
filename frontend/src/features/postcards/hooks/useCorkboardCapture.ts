@@ -98,22 +98,18 @@ export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | nul
       });
 
       const blob = dataUrlToBlob(dataUrl);
-      const file = new File([blob], 'cartelera-de-mile.png', { type: 'image/png' });
-
-      // Mobile: share sheet nativo (guardar en fotos, mandar por WA, etc.)
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file] });
-        return;
-      }
-
-      // Desktop: blob URL + <a download>
       const blobUrl = URL.createObjectURL(blob);
+
+      // Descargamos directamente via anchor click (funciona en mobile y desktop)
+      // Evitamos navigator.share porque el proceso asíncrono de toPng es muy largo
+      // y rompe el "user gesture requirement" de la Web Share API
       const link = document.createElement('a');
       link.download = 'cartelera-de-mile.png';
       link.href = blobUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
       setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
 
     } catch (err) {
