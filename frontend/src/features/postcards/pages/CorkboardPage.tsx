@@ -57,6 +57,7 @@ export function CorkboardPage() {
     <div ref={corkboardRef} className="min-h-screen relative">
       {/* Fondo de corcho — fixed para que no scrollee con el contenido */}
       <div
+        data-cork-bg="true"
         className="fixed inset-0 -z-10"
         style={{
           backgroundImage: `url(${corkTexture})`,
@@ -66,7 +67,10 @@ export function CorkboardPage() {
         }}
       />
       {/* Viñeta sutil sobre el corcho — también fija */}
-      <div className="fixed inset-0 -z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]" />
+      <div
+        data-cork-vignette="true"
+        className="fixed inset-0 -z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]"
+      />
 
       {/* ── Estampillas decorativas (desktop / proyección) ──────────────────
           z-[2]: detrás de postcards (z-10) y el header, delante del fondo.
@@ -76,7 +80,7 @@ export function CorkboardPage() {
       </div>
 
       {/* Botón guardar recuerdo — arriba a la derecha */}
-      <div className="fixed top-4 right-4 z-40">
+      <div data-export-hide="true" className="fixed top-4 right-4 z-40">
         <motion.button
           className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 text-sm font-medium shadow-lg border border-gray-200 cursor-pointer disabled:opacity-50"
           whileHover={{ scale: 1.05 }}
@@ -203,6 +207,7 @@ export function CorkboardPage() {
 
       {/* FAB — Agregar postal (visible para todos, con o sin quiz) */}
       <motion.button
+        data-export-hide="true"
         className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-accent text-white shadow-xl shadow-accent/30 flex items-center justify-center text-2xl cursor-pointer border-2 border-white/20"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
@@ -216,7 +221,7 @@ export function CorkboardPage() {
       </motion.button>
 
       {/* Botón volver — abajo izquierda */}
-      <div className="fixed bottom-6 left-6 z-40">
+      <div data-export-hide="true" className="fixed bottom-6 left-6 z-40">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}

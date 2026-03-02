@@ -71,6 +71,12 @@ function dataUrlToBlob(dataUrl: string): Blob {
  * 3. Fallback → window.open con la imagen
  *
  * Los errores se muestran al usuario (no se tragan silenciosamente).
+ *
+ * Para el export:
+ * - Los elementos marcados con `data-export-hide="true"` son excluidos (botones de UI).
+ * - Los elementos marcados con `data-cork-bg` y `data-cork-vignette` se cambian
+ *   temporalmente de `fixed` a `absolute` con altura = scrollHeight, para que el
+ *   fondo de corcho cubra todo el contenido aunque las postales excedan el viewport.
  */
 export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | null>) {
   const [isFlashing, setIsFlashing] = useState(false);
@@ -85,16 +91,58 @@ export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | nul
     playShutterSound();
     setIsFlashing(true);
 
+    const container = containerRef.current;
+
+    // ── Preparar background para el export ────────────────────────────────
+    // El fondo usa `position: fixed`, así que html-to-image solo lo captura
+    // con altura = viewport. Lo cambiamos temporalmente a `absolute` con la
+    // altura total del contenido para que el corcho cubra todas las postales.
+    const bgDiv = container.querySelector('[data-cork-bg]') as HTMLElement | null;
+    const vignetteDiv = container.querySelector('[data-cork-vignette]') as HTMLElement | null;
+
+    // Guardamos el string completo del atributo style para restaurarlo exactamente
+    const bgStyleBefore = bgDiv?.getAttribute('style') ?? null;
+    const vignetteStyleBefore = vignetteDiv?.getAttribute('style') ?? null;
+
+    const fullHeight = container.scrollHeight;
+
+    if (bgDiv) {
+      bgDiv.style.position = 'absolute';
+      bgDiv.style.top = '0';
+      bgDiv.style.left = '0';
+      bgDiv.style.right = '0';
+      bgDiv.style.bottom = 'auto';
+      bgDiv.style.height = `${fullHeight}px`;
+      bgDiv.style.backgroundSize = 'cover';
+      bgDiv.style.backgroundPosition = 'top center';
+    }
+
+    if (vignetteDiv) {
+      vignetteDiv.style.position = 'absolute';
+      vignetteDiv.style.top = '0';
+      vignetteDiv.style.left = '0';
+      vignetteDiv.style.right = '0';
+      vignetteDiv.style.bottom = 'auto';
+      vignetteDiv.style.height = `${fullHeight}px`;
+    }
+    // ──────────────────────────────────────────────────────────────────────
+
     try {
       const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
 
-      const dataUrl = await toPng(containerRef.current, {
+      const dataUrl = await toPng(container, {
         cacheBust: true,
         pixelRatio,
-        // Al pasar string vacío, html-to-image simplemente dibuja un rectángulo transparente 
+        // Al pasar string vacío, html-to-image simplemente dibuja un rectángulo transparente
         // cuando una imagen falla, en lugar de crashear el proceso entero con error
         imagePlaceholder: '',
-        filter: (node: HTMLElement) => !node.classList?.contains('camera-flash-overlay'),
+        filter: (node: HTMLElement) => {
+          // Excluir el flash de cámara
+          if (node.classList?.contains('camera-flash-overlay')) return false;
+          // Excluir los botones de UI marcados para el export
+          if (typeof node.getAttribute === 'function' && node.getAttribute('data-export-hide') === 'true') return false;
+          return true;
+        },
       });
 
       const blob = dataUrlToBlob(dataUrl);
@@ -117,6 +165,23 @@ export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | nul
       console.error('[CorkboardCapture] Error:', msg);
       setCaptureError(msg);
     } finally {
+      // ── Restaurar estilos originales ───────────────────────────────────
+      if (bgDiv) {
+        if (bgStyleBefore !== null) {
+          bgDiv.setAttribute('style', bgStyleBefore);
+        } else {
+          bgDiv.removeAttribute('style');
+        }
+      }
+      if (vignetteDiv) {
+        if (vignetteStyleBefore !== null) {
+          vignetteDiv.setAttribute('style', vignetteStyleBefore);
+        } else {
+          vignetteDiv.removeAttribute('style');
+        }
+      }
+      // ──────────────────────────────────────────────────────────────────
+
       setTimeout(() => {
         setIsFlashing(false);
         setIsCapturing(false);
