@@ -16,13 +16,34 @@ import (
 	"github.com/the-mile-game/backend/internal/websocket"
 )
 
+// PostcardRepo define las operaciones de repositorio usadas por los handlers.
+// Permite inyectar mocks en tests sin necesidad de una base de datos real.
+type PostcardRepo interface {
+	Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error)
+	CreateSecret(senderName, imagePath, message string, rotation float64) (*models.Postcard, error)
+	GetByID(id uuid.UUID) (*models.Postcard, error)
+	List() ([]models.Postcard, error)
+	ListSecret() ([]models.Postcard, error)
+	RevealSecretBox() ([]models.Postcard, error)
+	RevealPostcard(id uuid.UUID) (*models.Postcard, error)
+	GetSecretBoxStatus() (*models.SecretBoxStatus, error)
+}
+
+// BroadcastHub define las operaciones de broadcast usadas por los handlers.
+// Permite inyectar mocks en tests sin necesidad de un Hub WebSocket real.
+type BroadcastHub interface {
+	BroadcastRanking(ranking []models.RankingEntry)
+	BroadcastPostcard(postcard models.Postcard)
+	BroadcastSecretReveal(postcards []models.Postcard)
+}
+
 // Handler maneja las peticiones HTTP
 type Handler struct {
 	playerRepo   *repository.PlayerRepository
 	quizRepo     *repository.QuizRepository
-	postcardRepo *repository.PostcardRepository
+	postcardRepo PostcardRepo
 	scorer       *services.Scorer
-	hub          *websocket.Hub
+	hub          BroadcastHub
 }
 
 // NewHandler crea un nuevo handler
@@ -385,7 +406,20 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 		return
 	}
 
-	// NO broadcast: es una sorpresa 🎁
+	// Si la Secret Box ya fue revelada, auto-revelar esta postal y broadcastearla
+	// como postal regular (el momento de sorpresa ya pasó, que aparezca nomás)
+	status, statusErr := h.postcardRepo.GetSecretBoxStatus()
+	if statusErr == nil && status.Revealed {
+		if revealed, revealErr := h.postcardRepo.RevealPostcard(postcard.ID); revealErr == nil {
+			postcard = revealed
+			if h.hub != nil {
+				h.hub.BroadcastPostcard(*postcard)
+			}
+		}
+		// Si falla el reveal, la postal igual se creó — no es catastrófico
+	}
+	// Si aún no fue revelada: NO broadcast — sigue siendo una sorpresa 🎁
+
 	c.JSON(http.StatusCreated, postcard)
 }
 

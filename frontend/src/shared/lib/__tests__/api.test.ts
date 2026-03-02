@@ -243,6 +243,89 @@ describe('ApiClient', () => {
     })
   })
 
+  // ─── createPostcard ──────────────────────────────────────────────────────────
+
+  describe('createPostcard', () => {
+    it('throws if no player id and no senderName provided', async () => {
+      // No player registered, no name given
+      await expect(
+        api.createPostcard(new File(['img'], 'photo.jpg', { type: 'image/jpeg' }), 'Hola!')
+      ).rejects.toThrow('Se requiere un nombre')
+    })
+
+    it('auto-registers as guest with 📸 avatar when no playerId but senderName given', async () => {
+      const player = { id: 'guest-uuid', name: 'Laura', avatar: '📸', score: 0, created_at: '' }
+      const postcard = { id: 'pc-uuid', message: 'Hola!', sender_name: 'Laura', is_secret: false }
+
+      // First call: createPlayer, second: createPostcard
+      mockPost
+        .mockResolvedValueOnce({ data: player })
+        .mockResolvedValueOnce({ data: postcard })
+
+      const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' })
+      const result = await api.createPostcard(file, 'Hola!', 'Laura')
+
+      // Should have auto-registered with 📸 avatar
+      expect(mockPost).toHaveBeenNthCalledWith(1, '/players', { name: 'Laura', avatar: '📸' })
+      // Should have stored the new player id
+      expect(api.getPlayerId()).toBe('guest-uuid')
+      // Should then POST to /postcards with the player id header
+      expect(mockPost).toHaveBeenNthCalledWith(
+        2,
+        '/postcards',
+        expect.any(FormData),
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'X-Player-ID': 'guest-uuid' }),
+        })
+      )
+      expect(result).toEqual(postcard)
+    })
+
+    it('skips auto-registration when playerId is already set', async () => {
+      api.setPlayerId('existing-player-uuid')
+      const postcard = { id: 'pc-uuid', message: 'Chau!', sender_name: 'Ana', is_secret: false }
+      mockPost.mockResolvedValueOnce({ data: postcard })
+
+      const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' })
+      await api.createPostcard(file, 'Chau!', 'Ana')
+
+      // Only ONE post call — no auto-register
+      expect(mockPost).toHaveBeenCalledTimes(1)
+      expect(mockPost).toHaveBeenCalledWith(
+        '/postcards',
+        expect.any(FormData),
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'X-Player-ID': 'existing-player-uuid' }),
+        })
+      )
+    })
+
+    it('includes sender_name in the form data when provided', async () => {
+      api.setPlayerId('player-uuid')
+      const postcard = { id: 'pc-uuid', message: 'Hola!', sender_name: 'Titi', is_secret: false }
+      mockPost.mockResolvedValueOnce({ data: postcard })
+
+      const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' })
+      await api.createPostcard(file, 'Hola!', 'Titi')
+
+      const formDataArg = mockPost.mock.calls[0][1] as FormData
+      expect(formDataArg.get('sender_name')).toBe('Titi')
+      expect(formDataArg.get('message')).toBe('Hola!')
+    })
+
+    it('omits sender_name from form data when not provided', async () => {
+      api.setPlayerId('player-uuid')
+      const postcard = { id: 'pc-uuid', message: 'Test', sender_name: null, is_secret: false }
+      mockPost.mockResolvedValueOnce({ data: postcard })
+
+      const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' })
+      await api.createPostcard(file, 'Test')
+
+      const formDataArg = mockPost.mock.calls[0][1] as FormData
+      expect(formDataArg.get('sender_name')).toBeNull()
+    })
+  })
+
   // ─── revealSecretBox ─────────────────────────────────────────────────────────
 
   describe('revealSecretBox', () => {

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { toPng } from 'html-to-image';
 import { PushPin } from './PushPin';
@@ -11,6 +11,7 @@ interface PostcardCardProps {
 
 export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const [imageError, setImageError] = useState(false);
 
   return (
     <div className="relative pt-4">
@@ -36,12 +37,13 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
         {/* Usamos aspect ratio fijo para que siempre mantenga proporción de postal */}
         <div className="flex w-full aspect-[2/1] max-h-[220px]">
           {/* Foto — lado izquierdo */}
-          <div className="w-1/2 relative overflow-hidden bg-gray-100">
+          <div className="w-1/2 relative overflow-hidden bg-pink-50 flex items-center justify-center">
             <img
-              src={postcard.image_path}
+              src={imageError ? '/princess_logo.png' : postcard.image_path}
               alt={`Postal de ${postcard.player_name}`}
-              className="absolute inset-0 w-full h-full object-cover"
+              className={`absolute inset-0 w-full h-full ${imageError ? 'object-contain p-4 opacity-50' : 'object-cover'}`}
               loading="lazy"
+              onError={() => setImageError(true)}
             />
           </div>
 

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/shared';
 import { useQuizStore } from '@features/quiz/store/quizStore';
+import { api } from '@/shared/lib/api';
 
 interface AddPostcardSheetProps {
   isOpen: boolean;
@@ -11,6 +12,11 @@ interface AddPostcardSheetProps {
 
 export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheetProps) {
   const playerName = useQuizStore((s) => s.playerName);
+
+  // Guest mode: el usuario llegó a la cartelera sin haber hecho el quiz.
+  // Usamos estado reactivo para que el componente se re-renderice si el playerId
+  // cambia durante el ciclo de vida (por ejemplo, tras el auto-registro).
+  const [isGuest, setIsGuest] = useState(!api.getPlayerId());
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -47,12 +53,21 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
       setError('Escribí un mensaje');
       return;
     }
+    // En guest mode el nombre es obligatorio — lo necesitamos para el auto-registro
+    if (isGuest && !senderName.trim()) {
+      setError('Escribí tu nombre para poder publicar la postal');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
 
     try {
       await onSubmit(imageFile, message.trim(), senderName.trim() || undefined);
+      // Si era guest, el onSubmit habrá disparado el auto-registro — actualizar estado
+      if (isGuest && api.getPlayerId()) {
+        setIsGuest(false);
+      }
       // Limpiar y cerrar
       resetForm();
       onClose();
@@ -127,7 +142,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                   htmlFor="postcard-sender"
                   className="text-xs text-gray-500 uppercase tracking-wider font-medium"
                 >
-                  Tu nombre:
+                  Tu nombre:{isGuest && <span className="text-accent ml-1">*</span>}
                 </label>
                 <input
                   id="postcard-sender"
@@ -138,6 +153,12 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                   maxLength={100}
                   className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 text-gray-700"
                 />
+                {isGuest && (
+                  <p className="text-[10px] text-pink-400 font-medium flex items-center gap-1">
+                    <span>📌</span>
+                    <span>Vas a quedar registrado/a en la cartelera automáticamente</span>
+                  </p>
+                )}
               </div>
 
               {/* Zona de foto */}
@@ -232,7 +253,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                   fullWidth
                   onClick={handleSubmit}
                   isLoading={isSubmitting}
-                  disabled={!imageFile || !message.trim()}
+                  disabled={!imageFile || !message.trim() || (isGuest && !senderName.trim())}
                 >
                   Enviar Postal
                 </Button>

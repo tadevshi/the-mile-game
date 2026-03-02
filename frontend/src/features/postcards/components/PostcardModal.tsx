@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toPng } from 'html-to-image';
 import { PushPin } from './PushPin';
@@ -11,6 +11,7 @@ interface PostcardModalProps {
 
 export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
   const postcardRef = useRef<HTMLDivElement>(null);
+  const [imageError, setImageError] = useState(false);
 
   const handleDownload = async () => {
     if (!postcardRef.current || !postcard) return;
@@ -72,11 +73,12 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
               {/* Desktop: horizontal (foto izquierda, mensaje derecha) — mismo formato que la card */}
               <div className="flex flex-col md:flex-row">
                 {/* Foto — sin absolute, sin object-cover: la imagen se muestra completa */}
-                <div className="md:w-1/2 overflow-hidden bg-gray-100">
+                <div className="md:w-1/2 overflow-hidden bg-pink-50 flex items-center justify-center">
                   <img
-                    src={postcard.image_path}
+                    src={imageError ? '/princess_logo.png' : postcard.image_path}
                     alt={`Postal de ${postcard.player_name}`}
-                    className="w-full h-auto max-h-[60vh] object-contain"
+                    className={`w-full h-auto max-h-[60vh] ${imageError ? 'object-contain p-8 opacity-50' : 'object-contain'}`}
+                    onError={() => setImageError(true)}
                   />
                 </div>
 

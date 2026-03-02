@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePostcards } from '../hooks/usePostcards';
-import { useQuizStore } from '@features/quiz/store/quizStore';
 import { PostcardCard } from '../components/PostcardCard';
 import { PostcardModal } from '../components/PostcardModal';
 import { AddPostcardSheet } from '../components/AddPostcardSheet';
 import { StampLayer } from '../components/StampLayer';
 import { GiftBox } from '../components/GiftBox';
 import { Button } from '@/shared';
+import { useCorkboardCapture } from '../hooks/useCorkboardCapture';
 import type { Postcard } from '../types/postcards.types';
 
 // Importar textura de corcho como asset estático
@@ -17,7 +17,6 @@ import corkTexture from '@/assets/cartelera.png';
 export function CorkboardPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const hasCompleted = useQuizStore((s) => s.hasCompleted);
   const {
     postcards,
     isLoading,
@@ -30,13 +29,16 @@ export function CorkboardPage() {
 
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const corkboardRef = useRef<HTMLDivElement>(null);
+  const { isFlashing, isCapturing, captureError, downloadCorkboard } = useCorkboardCapture(corkboardRef);
 
   // Auto-abrir el sheet si viene de "Dejar tu Foto para Mile" (WelcomePage)
+  // Funciona tanto para jugadores registrados como para invitados
   useEffect(() => {
-    if (searchParams.get('add') === 'true' && hasCompleted) {
+    if (searchParams.get('add') === 'true') {
       setIsAddOpen(true);
     }
-  }, [searchParams, hasCompleted]);
+  }, [searchParams]);
 
   const handleAddPostcard = async (image: File, message: string, senderName?: string) => {
     await createPostcard(image, message, senderName);
@@ -52,9 +54,10 @@ export function CorkboardPage() {
   }, [addRevealedPostcards]);
 
   return (
-    <div className="min-h-screen relative">
+    <div ref={corkboardRef} className="min-h-screen relative">
       {/* Fondo de corcho — fixed para que no scrollee con el contenido */}
       <div
+        data-cork-bg="true"
         className="fixed inset-0 -z-10"
         style={{
           backgroundImage: `url(${corkTexture})`,
@@ -64,13 +67,47 @@ export function CorkboardPage() {
         }}
       />
       {/* Viñeta sutil sobre el corcho — también fija */}
-      <div className="fixed inset-0 -z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]" />
+      <div
+        data-cork-vignette="true"
+        className="fixed inset-0 -z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]"
+      />
 
       {/* ── Estampillas decorativas (desktop / proyección) ──────────────────
           z-[2]: detrás de postcards (z-10) y el header, delante del fondo.
           Solo visible en pantallas medianas+. Se ocultan en mobile.          ── */}
       <div className="hidden md:block">
         <StampLayer />
+      </div>
+
+      {/* Botón guardar recuerdo — arriba a la derecha */}
+      <div data-export-hide="true" className="fixed top-4 right-4 z-40">
+        <motion.button
+          className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 text-sm font-medium shadow-lg border border-gray-200 cursor-pointer disabled:opacity-50"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={downloadCorkboard}
+          disabled={isCapturing}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          aria-label="Guardar recuerdo"
+        >
+          📷 Guardar recuerdo
+        </motion.button>
+
+        {/* Error toast visible */}
+        <AnimatePresence>
+          {captureError && (
+            <motion.p
+              className="mt-2 px-3 py-2 rounded-lg bg-red-500/90 text-white text-xs text-center shadow-lg max-w-[200px]"
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              No se pudo capturar 😕
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Header */}
@@ -168,24 +205,23 @@ export function CorkboardPage() {
         )}
       </div>
 
-      {/* FAB — Agregar postal (solo si completó el quiz) */}
-      {hasCompleted && (
-        <motion.button
-          className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-accent text-white shadow-xl shadow-accent/30 flex items-center justify-center text-2xl cursor-pointer border-2 border-white/20"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setIsAddOpen(true)}
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.5 }}
-          aria-label="Agregar postal"
-        >
-          📸
-        </motion.button>
-      )}
+      {/* FAB — Agregar postal (visible para todos, con o sin quiz) */}
+      <motion.button
+        data-export-hide="true"
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-accent text-white shadow-xl shadow-accent/30 flex items-center justify-center text-2xl cursor-pointer border-2 border-white/20"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setIsAddOpen(true)}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.5 }}
+        aria-label="Agregar postal"
+      >
+        📸
+      </motion.button>
 
       {/* Botón volver — abajo izquierda */}
-      <div className="fixed bottom-6 left-6 z-40">
+      <div data-export-hide="true" className="fixed bottom-6 left-6 z-40">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -222,6 +258,19 @@ export function CorkboardPage() {
           onRevealComplete={handleRevealComplete}
         />
       )}
+
+      {/* 📷 Flash overlay — efecto cámara al guardar recuerdo */}
+      <AnimatePresence>
+        {isFlashing && (
+          <motion.div
+            className="camera-flash-overlay fixed inset-0 z-[100] pointer-events-none bg-white"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0] }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            exit={{ opacity: 0 }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
