@@ -13,8 +13,10 @@ interface AddPostcardSheetProps {
 export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheetProps) {
   const playerName = useQuizStore((s) => s.playerName);
 
-  // Guest mode: el usuario llegó a la cartelera sin haber hecho el quiz
-  const isGuest = !api.getPlayerId();
+  // Guest mode: el usuario llegó a la cartelera sin haber hecho el quiz.
+  // Usamos estado reactivo para que el componente se re-renderice si el playerId
+  // cambia durante el ciclo de vida (por ejemplo, tras el auto-registro).
+  const [isGuest, setIsGuest] = useState(!api.getPlayerId());
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -62,6 +64,10 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
 
     try {
       await onSubmit(imageFile, message.trim(), senderName.trim() || undefined);
+      // Si era guest, el onSubmit habrá disparado el auto-registro — actualizar estado
+      if (isGuest && api.getPlayerId()) {
+        setIsGuest(false);
+      }
       // Limpiar y cerrar
       resetForm();
       onClose();

@@ -3,10 +3,12 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -189,78 +191,153 @@ func TestSubmitQuizValidation(t *testing.T) {
 // Secret Box — Tests de validación
 // ==========================================
 
-// TestSecretPostcardAutoRevealLogic verifica que la lógica de auto-reveal funciona:
-// si la Secret Box ya fue revelada, una nueva postal secreta debe aparecer inmediatamente.
+// ── Mock implementations for handler tests ────────────────────────────────
+// These satisfy the PostcardRepo and BroadcastHub interfaces defined in handlers.go.
+
+type mockState struct {
+	secretBoxRevealed bool
+	broadcastCalled   bool
+}
+
+type mockPostcardRepo struct {
+	state           *mockState
+	createdPostcard *models.Postcard
+}
+
+func (r *mockPostcardRepo) CreateSecret(senderName, imagePath, message string, rotation float64) (*models.Postcard, error) {
+	return r.createdPostcard, nil
+}
+
+func (r *mockPostcardRepo) GetSecretBoxStatus() (*models.SecretBoxStatus, error) {
+	return &models.SecretBoxStatus{
+		Total:    1,
+		Revealed: r.state.secretBoxRevealed,
+	}, nil
+}
+
+func (r *mockPostcardRepo) RevealPostcard(id uuid.UUID) (*models.Postcard, error) {
+	t := time.Now()
+	r.createdPostcard.RevealedAt = &t
+	return r.createdPostcard, nil
+}
+
+func (r *mockPostcardRepo) Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error) {
+	return r.createdPostcard, nil
+}
+func (r *mockPostcardRepo) GetByID(id uuid.UUID) (*models.Postcard, error) { return nil, nil }
+func (r *mockPostcardRepo) List() ([]models.Postcard, error)               { return nil, nil }
+func (r *mockPostcardRepo) ListSecret() ([]models.Postcard, error)         { return nil, nil }
+func (r *mockPostcardRepo) RevealSecretBox() ([]models.Postcard, error)    { return nil, nil }
+
+type mockHub struct {
+	state *mockState
+}
+
+func (h *mockHub) BroadcastRanking(ranking []models.RankingEntry)    {}
+func (h *mockHub) BroadcastPostcard(postcard models.Postcard)        { h.state.broadcastCalled = true }
+func (h *mockHub) BroadcastSecretReveal(postcards []models.Postcard) {}
+
+// ──────────────────────────────────────────────────────────────────────────
+
+// TestSecretPostcardAutoRevealLogic verifica que la lógica de auto-reveal funciona
+// usando el handler real con mocks de PostcardRepo y BroadcastHub.
+// Si la Secret Box ya fue revelada, la nueva postal secreta debe auto-revelarse y
+// broadcastearse; si aún no fue revelada, debe guardarse en silencio.
 func TestSecretPostcardAutoRevealLogic(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	r := gin.New()
 
-	// Simular el comportamiento del handler: si el box está revelado, broadcast como regular
-	type revealState struct {
-		revealed  bool
-		broadcast bool
+	// Create minimal JPEG bytes for image validation (SOI marker + APP0 marker)
+	jpegHeader := []byte{
+		0xFF, 0xD8, // SOI
+		0xFF, 0xE0, // APP0 marker
+		0x00, 0x10, // length
+		0x4A, 0x46, 0x49, 0x46, 0x00, // "JFIF\0"
+		0x01, 0x01, // version 1.1
+		0x00,                   // aspect ratio units
+		0x00, 0x01, 0x00, 0x01, // X/Y density
+		0x00, 0x00, // thumbnail size
 	}
-	state := &revealState{}
+	// Pad to 512 bytes so http.DetectContentType has enough data
+	imageData := make([]byte, 512)
+	copy(imageData, jpegHeader)
 
-	r.POST("/api/postcards/secret", func(c *gin.Context) {
-		token := c.GetHeader("X-Secret-Token")
-		if token != "test-token" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			return
-		}
+	tests := []struct {
+		name              string
+		secretBoxRevealed bool
+		wantBroadcast     bool
+		wantRevealedAt    bool
+	}{
+		{
+			name:              "Secret Box NOT yet revealed — no broadcast",
+			secretBoxRevealed: false,
+			wantBroadcast:     false,
+			wantRevealedAt:    false,
+		},
+		{
+			name:              "Secret Box already revealed — auto-reveal and broadcast",
+			secretBoxRevealed: true,
+			wantBroadcast:     true,
+			wantRevealedAt:    true,
+		},
+	}
 
-		// Simular: secret box ya revelada → auto-reveal + broadcast
-		if state.revealed {
-			state.broadcast = true
-			c.JSON(http.StatusCreated, gin.H{
-				"id":          uuid.New().String(),
-				"is_secret":   true,
-				"revealed_at": "2026-03-01T20:00:00Z",
-			})
-			return
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			state := &mockState{secretBoxRevealed: tt.secretBoxRevealed}
 
-		// Aún no revelada → no broadcast
-		c.JSON(http.StatusCreated, gin.H{
-			"id":          uuid.New().String(),
-			"is_secret":   true,
-			"revealed_at": nil,
+			postcard := &models.Postcard{
+				ID:       uuid.New(),
+				Message:  "Feliz cumple!",
+				IsSecret: true,
+			}
+
+			repo := &mockPostcardRepo{state: state, createdPostcard: postcard}
+			hub := &mockHub{state: state}
+
+			h := &Handler{postcardRepo: repo, hub: hub}
+
+			os.Setenv("SECRET_BOX_TOKEN", "test-token")
+			defer os.Unsetenv("SECRET_BOX_TOKEN")
+
+			tmpDir := t.TempDir()
+			os.Setenv("UPLOADS_DIR", tmpDir)
+			defer os.Unsetenv("UPLOADS_DIR")
+
+			r := gin.New()
+			r.POST("/api/postcards/secret", h.CreateSecretPostcard)
+
+			var body bytes.Buffer
+			mw := multipart.NewWriter(&body)
+			mw.WriteField("sender_name", "Abuela Rosa")
+			mw.WriteField("message", "Feliz cumple!")
+			fw, _ := mw.CreateFormFile("image", "photo.jpg")
+			fw.Write(imageData)
+			mw.Close()
+
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("POST", "/api/postcards/secret", &body)
+			req.Header.Set("Content-Type", mw.FormDataContentType())
+			req.Header.Set("X-Secret-Token", "test-token")
+
+			r.ServeHTTP(w, req)
+
+			if w.Code != http.StatusCreated {
+				t.Errorf("Expected 201, got %d — body: %s", w.Code, w.Body.String())
+			}
+
+			if state.broadcastCalled != tt.wantBroadcast {
+				t.Errorf("broadcastCalled = %v, want %v", state.broadcastCalled, tt.wantBroadcast)
+			}
+
+			var resp map[string]interface{}
+			json.Unmarshal(w.Body.Bytes(), &resp)
+			if tt.wantRevealedAt && resp["revealed_at"] == nil {
+				t.Error("Expected revealed_at to be set when Secret Box already revealed")
+			}
+			if !tt.wantRevealedAt && resp["revealed_at"] != nil {
+				t.Error("Expected revealed_at to be nil when Secret Box not yet revealed")
+			}
 		})
-	})
-
-	// Caso 1: Secret Box NO revelada → la postal no se broadcastea
-	state.revealed = false
-	state.broadcast = false
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/api/postcards/secret", nil)
-	req.Header.Set("X-Secret-Token", "test-token")
-	r.ServeHTTP(w, req)
-	if w.Code != http.StatusCreated {
-		t.Errorf("Expected 201, got %d", w.Code)
-	}
-	if state.broadcast {
-		t.Error("Expected NO broadcast when Secret Box not yet revealed")
-	}
-
-	// Caso 2: Secret Box YA revelada → la postal se auto-revela y se broadcastea
-	state.revealed = true
-	state.broadcast = false
-	w = httptest.NewRecorder()
-	req, _ = http.NewRequest("POST", "/api/postcards/secret", nil)
-	req.Header.Set("X-Secret-Token", "test-token")
-	r.ServeHTTP(w, req)
-	if w.Code != http.StatusCreated {
-		t.Errorf("Expected 201, got %d", w.Code)
-	}
-	if !state.broadcast {
-		t.Error("Expected broadcast when Secret Box was already revealed")
-	}
-
-	// Verificar que la respuesta incluye revealed_at cuando ya fue revelada
-	var resp map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &resp)
-	if resp["revealed_at"] == nil {
-		t.Error("Expected revealed_at to be set when Secret Box was already revealed")
 	}
 }
 

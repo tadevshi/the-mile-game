@@ -16,13 +16,34 @@ import (
 	"github.com/the-mile-game/backend/internal/websocket"
 )
 
+// PostcardRepo define las operaciones de repositorio usadas por los handlers.
+// Permite inyectar mocks en tests sin necesidad de una base de datos real.
+type PostcardRepo interface {
+	Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error)
+	CreateSecret(senderName, imagePath, message string, rotation float64) (*models.Postcard, error)
+	GetByID(id uuid.UUID) (*models.Postcard, error)
+	List() ([]models.Postcard, error)
+	ListSecret() ([]models.Postcard, error)
+	RevealSecretBox() ([]models.Postcard, error)
+	RevealPostcard(id uuid.UUID) (*models.Postcard, error)
+	GetSecretBoxStatus() (*models.SecretBoxStatus, error)
+}
+
+// BroadcastHub define las operaciones de broadcast usadas por los handlers.
+// Permite inyectar mocks en tests sin necesidad de un Hub WebSocket real.
+type BroadcastHub interface {
+	BroadcastRanking(ranking []models.RankingEntry)
+	BroadcastPostcard(postcard models.Postcard)
+	BroadcastSecretReveal(postcards []models.Postcard)
+}
+
 // Handler maneja las peticiones HTTP
 type Handler struct {
 	playerRepo   *repository.PlayerRepository
 	quizRepo     *repository.QuizRepository
-	postcardRepo *repository.PostcardRepository
+	postcardRepo PostcardRepo
 	scorer       *services.Scorer
-	hub          *websocket.Hub
+	hub          BroadcastHub
 }
 
 // NewHandler crea un nuevo handler

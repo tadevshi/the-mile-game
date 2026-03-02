@@ -1,4 +1,4 @@
-import { useState, useCallback, type RefObject } from 'react';
+import { useState, useCallback, useRef, type RefObject } from 'react';
 import { toPng } from 'html-to-image';
 
 /**
@@ -83,8 +83,13 @@ export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | nul
   const [isCapturing, setIsCapturing] = useState(false);
   const [captureError, setCaptureError] = useState<string | null>(null);
 
+  // Ref para el guard de "en progreso" — evita que `isCapturing` en los deps
+  // de useCallback genere una nueva referencia de función en cada render.
+  const isCapturingRef = useRef(false);
+
   const downloadCorkboard = useCallback(async () => {
-    if (isCapturing || !containerRef.current) return;
+    if (isCapturingRef.current || !containerRef.current) return;
+    isCapturingRef.current = true;
     setIsCapturing(true);
     setCaptureError(null);
 
@@ -164,6 +169,8 @@ export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | nul
       const msg = err instanceof Error ? err.message : 'Error desconocido';
       console.error('[CorkboardCapture] Error:', msg);
       setCaptureError(msg);
+      // Auto-dismiss del error toast después de 4 segundos
+      setTimeout(() => setCaptureError(null), 4000);
     } finally {
       // ── Restaurar estilos originales ───────────────────────────────────
       if (bgDiv) {
@@ -185,9 +192,10 @@ export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | nul
       setTimeout(() => {
         setIsFlashing(false);
         setIsCapturing(false);
+        isCapturingRef.current = false;
       }, 700);
     }
-  }, [isCapturing, containerRef]);
+  }, [containerRef]);
 
   return { isFlashing, isCapturing, captureError, downloadCorkboard };
 }
