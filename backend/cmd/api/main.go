@@ -36,7 +36,11 @@ func main() {
 	// Crear repositorios
 	playerRepo := repository.NewPlayerRepository(db)
 	quizRepo := repository.NewQuizRepository(db)
-	postcardRepo := repository.NewPostcardRepository(db)
+	uploadPath := os.Getenv("UPLOAD_PATH")
+	if uploadPath == "" {
+		uploadPath = "./uploads"
+	}
+	postcardRepo := repository.NewPostcardRepository(db, uploadPath)
 
 	// Crear WebSocket Hub
 	hub := websocket.NewHub()
