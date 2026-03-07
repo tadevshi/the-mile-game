@@ -243,6 +243,13 @@ func (h *mockHub) BroadcastRanking(ranking []models.RankingEntry)    {}
 func (h *mockHub) BroadcastPostcard(postcard models.Postcard)        { h.state.broadcastCalled = true }
 func (h *mockHub) BroadcastSecretReveal(postcards []models.Postcard) {}
 
+// Room-specific broadcast mocks
+func (h *mockHub) BroadcastRankingToRoom(eventSlug string, ranking []models.RankingEntry) {}
+func (h *mockHub) BroadcastPostcardToRoom(eventSlug string, postcard models.Postcard) {
+	h.state.broadcastCalled = true
+}
+func (h *mockHub) BroadcastSecretRevealToRoom(eventSlug string, postcards []models.Postcard) {}
+
 // ──────────────────────────────────────────────────────────────────────────
 
 // TestSecretPostcardAutoRevealLogic verifica que la lógica de auto-reveal funciona

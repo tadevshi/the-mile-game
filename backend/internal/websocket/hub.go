@@ -26,9 +26,13 @@ const (
 )
 
 // Hub mantiene el registro de clientes conectados y broadcastea mensajes
+// Soporta rooms por evento para mensajes filtrados
 type Hub struct {
-	// Clientes registrados
+	// Clientes registrados (todos los clientes, sin importar el evento)
 	clients map[*Client]bool
+
+	// Rooms: mapea eventSlug -> clientes en ese evento
+	rooms map[string]map[*Client]bool
 
 	// Canal para registrar nuevos clientes
 	register chan *Client
@@ -39,15 +43,25 @@ type Hub struct {
 	// Canal para broadcastear mensajes a todos los clientes
 	broadcast chan []byte
 
+	// Canal para broadcastear a un evento específico
+	broadcastToRoom chan *RoomMessage
+
 	// Mutex para acceso seguro concurrente
 	mu sync.RWMutex
 }
 
+// RoomMessage mensaje dirigido a un room específico
+type RoomMessage struct {
+	EventSlug string
+	Message   []byte
+}
+
 // Client representa una conexión WebSocket
 type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
+	hub       *Hub
+	conn      *websocket.Conn
+	send      chan []byte
+	EventSlug string // El evento al que está suscrito este cliente
 }
 
 // Message representa un mensaje enviado por WebSocket
@@ -87,10 +101,12 @@ var upgrader = websocket.Upgrader{
 // NewHub crea un nuevo Hub
 func NewHub() *Hub {
 	return &Hub{
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		broadcast:  make(chan []byte),
-		clients:    make(map[*Client]bool),
+		register:        make(chan *Client),
+		unregister:      make(chan *Client),
+		broadcast:       make(chan []byte),
+		broadcastToRoom: make(chan *RoomMessage, 256), // Buffered para no bloquear
+		clients:         make(map[*Client]bool),
+		rooms:           make(map[string]map[*Client]bool),
 	}
 }
 
@@ -101,6 +117,14 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			h.mu.Lock()
 			h.clients[client] = true
+			// Si el cliente tiene un eventSlug, agregarlo al room
+			if client.EventSlug != "" {
+				if h.rooms[client.EventSlug] == nil {
+					h.rooms[client.EventSlug] = make(map[*Client]bool)
+				}
+				h.rooms[client.EventSlug][client] = true
+				log.Printf("WebSocket: Cliente conectado al room '%s'. Clientes en room: %d", client.EventSlug, len(h.rooms[client.EventSlug]))
+			}
 			h.mu.Unlock()
 			log.Printf("WebSocket: Cliente conectado. Total: %d", len(h.clients))
 
@@ -109,9 +133,45 @@ func (h *Hub) Run() {
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
+				// Remover del room si tenía uno
+				if client.EventSlug != "" && h.rooms[client.EventSlug] != nil {
+					delete(h.rooms[client.EventSlug], client)
+					log.Printf("WebSocket: Cliente removido del room '%s'. Clientes restantes: %d", client.EventSlug, len(h.rooms[client.EventSlug]))
+				}
 			}
 			h.mu.Unlock()
 			log.Printf("WebSocket: Cliente desconectado. Total: %d", len(h.clients))
+
+		case roomMsg := <-h.broadcastToRoom:
+			// Broadcast a un room específico (evento)
+			h.mu.RLock()
+			room := h.rooms[roomMsg.EventSlug]
+			if room == nil {
+				h.mu.RUnlock()
+				log.Printf("WebSocket: Room '%s' no existe, mensaje descartado", roomMsg.EventSlug)
+				continue
+			}
+
+			var deadClients []*Client
+			for client := range room {
+				select {
+				case client.send <- roomMsg.Message:
+				default:
+					deadClients = append(deadClients, client)
+				}
+			}
+			h.mu.RUnlock()
+
+			// Limpiar clientes muertos
+			if len(deadClients) > 0 {
+				h.mu.Lock()
+				for _, client := range deadClients {
+					delete(h.clients, client)
+					delete(h.rooms[roomMsg.EventSlug], client)
+					close(client.send)
+				}
+				h.mu.Unlock()
+			}
 
 		case message := <-h.broadcast:
 			h.mu.RLock()
@@ -134,6 +194,9 @@ func (h *Hub) Run() {
 				for _, client := range deadClients {
 					if _, ok := h.clients[client]; ok {
 						delete(h.clients, client)
+						if client.EventSlug != "" && h.rooms[client.EventSlug] != nil {
+							delete(h.rooms[client.EventSlug], client)
+						}
 						close(client.send)
 					}
 				}
@@ -145,7 +208,15 @@ func (h *Hub) Run() {
 }
 
 // ServeHTTP maneja las conexiones WebSocket
+// El query param "event" es requerido para determinar el room
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Extraer event slug del query param
+	eventSlug := r.URL.Query().Get("event")
+	if eventSlug == "" {
+		// Sin event, el cliente no recibe mensajes específicos
+		log.Printf("WebSocket: Conexión sin event slug - recibirá broadcasts globales nomás")
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade error: %v", err)
@@ -153,9 +224,10 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{
-		hub:  h,
-		conn: conn,
-		send: make(chan []byte, 256),
+		hub:       h,
+		conn:      conn,
+		send:      make(chan []byte, 256),
+		EventSlug: eventSlug,
 	}
 	client.hub.register <- client
 
@@ -221,6 +293,95 @@ func (h *Hub) GetClientCount() int {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return len(h.clients)
+}
+
+// BroadcastRankingToRoom envía el ranking actualizado solo a clientes de un evento específico
+func (h *Hub) BroadcastRankingToRoom(eventSlug string, ranking []models.RankingEntry) {
+	if eventSlug == "" {
+		// Si no hay eventSlug, usar broadcast global
+		h.BroadcastRanking(ranking)
+		return
+	}
+
+	msg := RankingUpdateMessage{
+		Type:    "ranking_update",
+		Ranking: ranking,
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Error marshaling ranking: %v", err)
+		return
+	}
+
+	h.broadcastToRoom <- &RoomMessage{
+		EventSlug: eventSlug,
+		Message:   data,
+	}
+
+	h.mu.RLock()
+	roomCount := len(h.rooms[eventSlug])
+	h.mu.RUnlock()
+	log.Printf("WebSocket: Ranking broadcasteado al room '%s' (%d clientes)", eventSlug, roomCount)
+}
+
+// BroadcastPostcardToRoom envía una nueva postal solo a clientes de un evento específico
+func (h *Hub) BroadcastPostcardToRoom(eventSlug string, postcard models.Postcard) {
+	if eventSlug == "" {
+		// Si no hay eventSlug, usar broadcast global
+		h.BroadcastPostcard(postcard)
+		return
+	}
+
+	msg := PostcardNewMessage{
+		Type:     "postcard_new",
+		Postcard: postcard,
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Error marshaling postcard: %v", err)
+		return
+	}
+
+	h.broadcastToRoom <- &RoomMessage{
+		EventSlug: eventSlug,
+		Message:   data,
+	}
+
+	h.mu.RLock()
+	roomCount := len(h.rooms[eventSlug])
+	h.mu.RUnlock()
+	log.Printf("WebSocket: Postal broadcasteada al room '%s' (%d clientes)", eventSlug, roomCount)
+}
+
+// BroadcastSecretRevealToRoom envía el evento de reveal solo a clientes de un evento específico
+func (h *Hub) BroadcastSecretRevealToRoom(eventSlug string, postcards []models.Postcard) {
+	if eventSlug == "" {
+		h.BroadcastSecretReveal(postcards)
+		return
+	}
+
+	msg := SecretRevealMessage{
+		Type:      "secret_box_reveal",
+		Postcards: postcards,
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Error marshaling secret reveal: %v", err)
+		return
+	}
+
+	h.broadcastToRoom <- &RoomMessage{
+		EventSlug: eventSlug,
+		Message:   data,
+	}
+
+	h.mu.RLock()
+	roomCount := len(h.rooms[eventSlug])
+	h.mu.RUnlock()
+	log.Printf("WebSocket: Secret Box revelada al room '%s' — %d postales broadcasteadas (%d clientes)", eventSlug, len(postcards), roomCount)
 }
 
 // readPump bombea mensajes desde el WebSocket al hub

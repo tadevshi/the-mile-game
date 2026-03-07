@@ -37,6 +37,10 @@ type BroadcastHub interface {
 	BroadcastRanking(ranking []models.RankingEntry)
 	BroadcastPostcard(postcard models.Postcard)
 	BroadcastSecretReveal(postcards []models.Postcard)
+	// Room-specific broadcasts
+	BroadcastRankingToRoom(eventSlug string, ranking []models.RankingEntry)
+	BroadcastPostcardToRoom(eventSlug string, postcard models.Postcard)
+	BroadcastSecretRevealToRoom(eventSlug string, postcards []models.Postcard)
 }
 
 // Handler maneja las peticiones HTTP
@@ -222,7 +226,12 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 				Player:   player,
 			}
 		}
-		h.hub.BroadcastRanking(ranking)
+		// Usar broadcast por room si hay event_slug, si no broadcast global
+		if eventSlug, exists := c.Get("event_slug"); exists {
+			h.hub.BroadcastRankingToRoom(eventSlug.(string), ranking)
+		} else {
+			h.hub.BroadcastRanking(ranking)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -382,26 +391,65 @@ func truncateMessage(msg string, maxLen int) string {
 // Postcards (Cartelera de Corcho)
 // ==========================================
 
-// CreatePostcard crea una nueva postal regular (requiere jugador registrado)
+// CreatePostcard crea una nueva postal regular.
+// Soporta dos modos:
+//  1. Con X-Player-ID header: usa el jugador existente
+//  2. Sin player_id: crea un jugador inline desde name+avatar en form data
+//     (permite usar el corkboard sin haber jugado el quiz)
 func (h *Handler) CreatePostcard(c *gin.Context) {
-	// Obtener playerID del header
+	// Obtener playerID del header (opcional)
 	playerIDStr := c.GetHeader("X-Player-ID")
-	if playerIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Player ID required"})
-		return
-	}
 
-	playerID, err := uuid.Parse(playerIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid player ID"})
-		return
-	}
+	var playerID *uuid.UUID
+	var err error
 
-	// Verificar que el jugador existe
-	_, err = h.playerRepo.GetByID(playerID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
-		return
+	if playerIDStr != "" {
+		// Modo 1: jugador existente
+		id, parseErr := uuid.Parse(playerIDStr)
+		if parseErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid player ID"})
+			return
+		}
+		playerID = &id
+
+		// Verificar que el jugador existe
+		_, err = h.playerRepo.GetByID(id)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
+			return
+		}
+	} else {
+		// Modo 2: inline player registration
+		// Necesitamos name y avatar del form data
+		rawName := truncateMessage(c.Request.FormValue("name"), 255)
+		rawAvatar := truncateMessage(c.Request.FormValue("avatar"), 10)
+
+		if rawName == "" || rawAvatar == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Player ID or name+avatar required"})
+			return
+		}
+
+		// Avatar por defecto
+		if rawAvatar == "" {
+			rawAvatar = "👤"
+		}
+
+		// Crear jugador inline
+		var player *models.Player
+
+		if eventID, exists := c.Get("event_id"); exists {
+			player, err = h.playerRepo.CreateWithEvent(eventID.(uuid.UUID), rawName, rawAvatar)
+		} else {
+			player, err = h.playerRepo.Create(rawName, rawAvatar)
+		}
+
+		if err != nil {
+			fmt.Printf("[ERROR] CreatePostcard inline player creation failed: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create player"})
+			return
+		}
+
+		playerID = &player.ID
 	}
 
 	publicPath, diskPath, httpErr := validateAndSaveImage(c)
@@ -424,9 +472,9 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	// Si hay event_id en el contexto, usar CreateWithEvent
 	var postcard *models.Postcard
 	if eventID, exists := c.Get("event_id"); exists {
-		postcard, err = h.postcardRepo.CreateWithEvent(eventID.(uuid.UUID), &playerID, publicPath, message, rotation, senderName)
+		postcard, err = h.postcardRepo.CreateWithEvent(eventID.(uuid.UUID), playerID, publicPath, message, rotation, senderName)
 	} else {
-		postcard, err = h.postcardRepo.Create(playerID, publicPath, message, rotation, senderName)
+		postcard, err = h.postcardRepo.Create(*playerID, publicPath, message, rotation, senderName)
 	}
 
 	if err != nil {
@@ -437,7 +485,12 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	}
 
 	if h.hub != nil {
-		h.hub.BroadcastPostcard(*postcard)
+		// Usar broadcast por room si hay event_slug
+		if eventSlug, exists := c.Get("event_slug"); exists {
+			h.hub.BroadcastPostcardToRoom(eventSlug.(string), *postcard)
+		} else {
+			h.hub.BroadcastPostcard(*postcard)
+		}
 	}
 
 	c.JSON(http.StatusCreated, postcard)
@@ -484,7 +537,12 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 		if revealed, revealErr := h.postcardRepo.RevealPostcard(postcard.ID); revealErr == nil {
 			postcard = revealed
 			if h.hub != nil {
-				h.hub.BroadcastPostcard(*postcard)
+				// Secret postcards get broadcast to the room if available
+				if eventSlug, exists := c.Get("event_slug"); exists {
+					h.hub.BroadcastPostcardToRoom(eventSlug.(string), *postcard)
+				} else {
+					h.hub.BroadcastPostcard(*postcard)
+				}
 			}
 		}
 		// Si falla el reveal, la postal igual se creó — no es catastrófico
@@ -563,7 +621,12 @@ func (h *Handler) RevealSecretBox(c *gin.Context) {
 
 	// Broadcast a todos los clientes conectados — dispara la animación
 	if h.hub != nil && len(postcards) > 0 {
-		h.hub.BroadcastSecretReveal(postcards)
+		// Usar broadcast por room si hay event_slug
+		if eventSlug, exists := c.Get("event_slug"); exists {
+			h.hub.BroadcastSecretRevealToRoom(eventSlug.(string), postcards)
+		} else {
+			h.hub.BroadcastSecretReveal(postcards)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

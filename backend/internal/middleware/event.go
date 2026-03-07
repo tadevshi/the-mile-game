@@ -41,6 +41,7 @@ func EventMiddleware(eventRepo *repository.EventRepository) gin.HandlerFunc {
 		// Agregar evento al contexto
 		c.Set("event", event)
 		c.Set("event_id", event.ID)
+		c.Set("event_slug", event.Slug)
 
 		c.Next()
 	}
