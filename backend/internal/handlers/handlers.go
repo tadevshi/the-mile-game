@@ -20,9 +20,11 @@ import (
 // Permite inyectar mocks en tests sin necesidad de una base de datos real.
 type PostcardRepo interface {
 	Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error)
+	CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error)
 	CreateSecret(senderName, imagePath, message string, rotation float64) (*models.Postcard, error)
 	GetByID(id uuid.UUID) (*models.Postcard, error)
 	List() ([]models.Postcard, error)
+	ListByEvent(eventID uuid.UUID) ([]models.Postcard, error)
 	ListSecret() ([]models.Postcard, error)
 	RevealSecretBox() ([]models.Postcard, error)
 	RevealPostcard(id uuid.UUID) (*models.Postcard, error)
@@ -57,7 +59,7 @@ func NewHandler(playerRepo *repository.PlayerRepository, quizRepo *repository.Qu
 	}
 }
 
-// CreatePlayer crea un nuevo jugador
+// CreatePlayer crea un nuevo jugador (legacy - sin evento)
 func (h *Handler) CreatePlayer(c *gin.Context) {
 	var req models.CreatePlayerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -72,6 +74,36 @@ func (h *Handler) CreatePlayer(c *gin.Context) {
 	}
 
 	player, err := h.playerRepo.Create(req.Name, avatar)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create player"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, player)
+}
+
+// CreatePlayerScoped crea un jugador scopado al evento actual
+func (h *Handler) CreatePlayerScoped(c *gin.Context) {
+	var req models.CreatePlayerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Obtener event_id del contexto
+	eventID, exists := c.Get("event_id")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Event not in context"})
+		return
+	}
+
+	// Avatar por defecto si no se proporciona
+	avatar := req.Avatar
+	if avatar == "" {
+		avatar = "👤"
+	}
+
+	player, err := h.playerRepo.CreateWithEvent(eventID.(uuid.UUID), req.Name, avatar)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create player"})
 		return
@@ -97,9 +129,26 @@ func (h *Handler) GetPlayer(c *gin.Context) {
 	c.JSON(http.StatusOK, player)
 }
 
-// ListPlayers lista todos los jugadores
+// ListPlayers lista todos los jugadores (legacy - sin filtro de evento)
 func (h *Handler) ListPlayers(c *gin.Context) {
 	players, err := h.playerRepo.List()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list players"})
+		return
+	}
+
+	c.JSON(http.StatusOK, players)
+}
+
+// ListPlayersScoped lista jugadores del evento actual
+func (h *Handler) ListPlayersScoped(c *gin.Context) {
+	eventID, exists := c.Get("event_id")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Event not in context"})
+		return
+	}
+
+	players, err := h.playerRepo.ListByEvent(eventID.(uuid.UUID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list players"})
 		return
@@ -157,7 +206,14 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 	}
 
 	// Obtener ranking actualizado y broadcastear por WebSocket
-	players, err := h.playerRepo.List()
+	// Si hay event_id en el contexto, usar ListByEvent, sino List
+	var players []models.Player
+	if eventID, exists := c.Get("event_id"); exists {
+		players, err = h.playerRepo.ListByEvent(eventID.(uuid.UUID))
+	} else {
+		players, err = h.playerRepo.List()
+	}
+
 	if err == nil && h.hub != nil {
 		ranking := make([]models.RankingEntry, len(players))
 		for i, player := range players {
@@ -194,7 +250,15 @@ func (h *Handler) GetQuizAnswers(c *gin.Context) {
 
 // GetRanking obtiene el ranking de jugadores
 func (h *Handler) GetRanking(c *gin.Context) {
-	players, err := h.playerRepo.List()
+	// Si hay event_id en el contexto, usar ListByEvent, sino List
+	var players []models.Player
+	var err error
+	if eventID, exists := c.Get("event_id"); exists {
+		players, err = h.playerRepo.ListByEvent(eventID.(uuid.UUID))
+	} else {
+		players, err = h.playerRepo.List()
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ranking"})
 		return
@@ -357,7 +421,14 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 
 	rotation := (rand.Float64() * 60) - 30 // -30 a 30
 
-	postcard, err := h.postcardRepo.Create(playerID, publicPath, message, rotation, senderName)
+	// Si hay event_id en el contexto, usar CreateWithEvent
+	var postcard *models.Postcard
+	if eventID, exists := c.Get("event_id"); exists {
+		postcard, err = h.postcardRepo.CreateWithEvent(eventID.(uuid.UUID), &playerID, publicPath, message, rotation, senderName)
+	} else {
+		postcard, err = h.postcardRepo.Create(playerID, publicPath, message, rotation, senderName)
+	}
+
 	if err != nil {
 		os.Remove(diskPath)
 		fmt.Printf("[ERROR] CreatePostcard repo.Create failed: %v\n", err)
@@ -503,7 +574,15 @@ func (h *Handler) RevealSecretBox(c *gin.Context) {
 
 // ListPostcards obtiene todas las postales
 func (h *Handler) ListPostcards(c *gin.Context) {
-	postcards, err := h.postcardRepo.List()
+	// Si hay event_id en el contexto, usar ListByEvent, sino List
+	var postcards []models.Postcard
+	var err error
+	if eventID, exists := c.Get("event_id"); exists {
+		postcards, err = h.postcardRepo.ListByEvent(eventID.(uuid.UUID))
+	} else {
+		postcards, err = h.postcardRepo.List()
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list postcards"})
 		return

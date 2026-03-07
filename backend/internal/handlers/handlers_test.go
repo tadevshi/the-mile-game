@@ -224,10 +224,16 @@ func (r *mockPostcardRepo) RevealPostcard(id uuid.UUID) (*models.Postcard, error
 func (r *mockPostcardRepo) Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error) {
 	return r.createdPostcard, nil
 }
+func (r *mockPostcardRepo) CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error) {
+	return r.createdPostcard, nil
+}
 func (r *mockPostcardRepo) GetByID(id uuid.UUID) (*models.Postcard, error) { return nil, nil }
 func (r *mockPostcardRepo) List() ([]models.Postcard, error)               { return nil, nil }
-func (r *mockPostcardRepo) ListSecret() ([]models.Postcard, error)         { return nil, nil }
-func (r *mockPostcardRepo) RevealSecretBox() ([]models.Postcard, error)    { return nil, nil }
+func (r *mockPostcardRepo) ListByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
+	return nil, nil
+}
+func (r *mockPostcardRepo) ListSecret() ([]models.Postcard, error)      { return nil, nil }
+func (r *mockPostcardRepo) RevealSecretBox() ([]models.Postcard, error) { return nil, nil }
 
 type mockHub struct {
 	state *mockState
