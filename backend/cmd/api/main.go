@@ -9,7 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/the-mile-game/backend/internal/handlers"
+	"github.com/the-mile-game/backend/internal/middleware"
 	"github.com/the-mile-game/backend/internal/repository"
+	"github.com/the-mile-game/backend/internal/services"
 	"github.com/the-mile-game/backend/internal/websocket"
 )
 
@@ -41,13 +43,23 @@ func main() {
 		uploadPath = "./uploads"
 	}
 	postcardRepo := repository.NewPostcardRepository(db, uploadPath)
+	userRepo := repository.NewUserRepository(db)
+
+	// Crear servicios
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "default-secret-change-in-production"
+		log.Println("Warning: Using default JWT secret. Set JWT_SECRET env var in production!")
+	}
+	authService := services.NewAuthService(userRepo, jwtSecret)
 
 	// Crear WebSocket Hub
 	hub := websocket.NewHub()
 	go hub.Run()
 
-	// Crear handlers con WebSocket hub
+	// Crear handlers
 	handler := handlers.NewHandler(playerRepo, quizRepo, postcardRepo, hub)
+	authHandler := handlers.NewAuthHandler(authService)
 
 	// Configurar router
 	r := gin.Default()
@@ -64,7 +76,7 @@ func main() {
 	config.AllowOrigins = strings.Split(allowedOrigins, ",")
 
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "X-Player-ID", "X-Secret-Token", "X-Admin-Key"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Player-ID", "X-Secret-Token", "X-Admin-Key"}
 	config.AllowCredentials = true
 	r.Use(cors.New(config))
 
@@ -73,6 +85,18 @@ func main() {
 	// Rutas API
 	api := r.Group("/api")
 	{
+		// Auth (público)
+		api.POST("/auth/register", authHandler.Register)
+		api.POST("/auth/login", authHandler.Login)
+		api.POST("/auth/refresh", authHandler.Refresh)
+
+		// Auth (protegido)
+		auth := api.Group("/auth")
+		auth.Use(middleware.AuthMiddleware(authService))
+		{
+			auth.GET("/me", authHandler.Me)
+		}
+
 		// Players
 		api.POST("/players", handler.CreatePlayer)
 		api.GET("/players/:id", handler.GetPlayer)
