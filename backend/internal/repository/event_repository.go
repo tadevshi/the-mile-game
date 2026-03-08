@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -184,7 +185,7 @@ func (r *EventRepository) Delete(id uuid.UUID) error {
 }
 
 // ErrDuplicateSlug error cuando el slug ya existe
-var ErrDuplicateSlug = sql.ErrNoRows
+var ErrDuplicateSlug = errors.New("event slug already exists")
 
 // ErrEventNotFound error cuando el evento no existe
-var ErrEventNotFound = sql.ErrNoRows
+var ErrEventNotFound = errors.New("event not found")

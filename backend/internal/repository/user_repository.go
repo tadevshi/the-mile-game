@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -104,7 +105,7 @@ func (r *UserRepository) VerifyPassword(user *models.User, password string) bool
 }
 
 // ErrDuplicateEmail error cuando el email ya existe
-var ErrDuplicateEmail = sql.ErrNoRows
+var ErrDuplicateEmail = errors.New("email already exists")
 
 // ErrUserNotFound error cuando el usuario no existe
-var ErrUserNotFound = sql.ErrNoRows
+var ErrUserNotFound = errors.New("user not found")

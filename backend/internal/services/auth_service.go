@@ -1,7 +1,6 @@
 package services
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -58,7 +57,7 @@ func (s *AuthService) Login(email, password string) (*models.AuthResponse, error
 	// Buscar usuario
 	user, err := s.userRepo.GetByEmail(email)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, repository.ErrUserNotFound) {
 			return nil, ErrInvalidCredentials
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)

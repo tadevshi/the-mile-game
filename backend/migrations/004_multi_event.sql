@@ -77,12 +77,12 @@ ALTER TABLE postcards ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(i
 -- ============================================
 
 -- Crear un usuario admin por defecto para el legacy event
--- Password: 'admin123' (hasheado con bcrypt)
+-- Password: 'admin123' (hasheado con bcrypt, cost 10)
 INSERT INTO users (id, email, password_hash, name)
 VALUES (
     gen_random_uuid(),
     'admin@mile-game.local',
-    '$2a$10$YourHashedPasswordHere', -- Placeholder, actualizar con hash real
+    '$2a$10$WMj3pBxwFQQF0oPn9OLe8OMUp.qDohP3ONndvzxjLIw9ZmNwXlneu',
     'Admin Legacy'
 )
 ON CONFLICT (email) DO NOTHING

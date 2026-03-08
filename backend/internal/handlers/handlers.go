@@ -182,6 +182,19 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 		return
 	}
 
+	// Cross-event player validation: ensure player belongs to this event
+	if eventID, exists := c.Get("event_id"); exists {
+		player, playerErr := h.playerRepo.GetByID(playerID)
+		if playerErr != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
+			return
+		}
+		if player.EventID != eventID.(uuid.UUID) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Player does not belong to this event"})
+			return
+		}
+	}
+
 	// Obtener el normalizador desde el scorer
 	normalizer := h.scorer.GetNormalizer()
 
@@ -413,10 +426,18 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 		playerID = &id
 
 		// Verificar que el jugador existe
-		_, err = h.playerRepo.GetByID(id)
-		if err != nil {
+		player, lookupErr := h.playerRepo.GetByID(id)
+		if lookupErr != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
 			return
+		}
+
+		// Cross-event validation: ensure player belongs to this event
+		if eventID, exists := c.Get("event_id"); exists {
+			if player.EventID != eventID.(uuid.UUID) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Player does not belong to this event"})
+				return
+			}
 		}
 	} else {
 		// Modo 2: inline player registration
@@ -424,12 +445,12 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 		rawName := truncateMessage(c.Request.FormValue("name"), 255)
 		rawAvatar := truncateMessage(c.Request.FormValue("avatar"), 10)
 
-		if rawName == "" || rawAvatar == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Player ID or name+avatar required"})
+		if rawName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Player ID or name required"})
 			return
 		}
 
-		// Avatar por defecto
+		// Avatar por defecto si no se proporciona
 		if rawAvatar == "" {
 			rawAvatar = "👤"
 		}

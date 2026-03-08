@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -192,4 +193,4 @@ func (r *QuizQuestionRepository) DeleteByEvent(eventID uuid.UUID) error {
 }
 
 // ErrQuestionNotFound error cuando la pregunta no existe
-var ErrQuestionNotFound = sql.ErrNoRows
+var ErrQuestionNotFound = errors.New("quiz question not found")

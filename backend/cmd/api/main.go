@@ -113,8 +113,8 @@ func main() {
 			})
 
 			// Players
-			events.POST("/participants", handler.CreatePlayerScoped)
-			events.GET("/participants", handler.ListPlayersScoped)
+			events.POST("/players", handler.CreatePlayerScoped)
+			events.GET("/players", handler.ListPlayersScoped)
 
 			// Quiz
 			quiz := events.Group("/quiz")
