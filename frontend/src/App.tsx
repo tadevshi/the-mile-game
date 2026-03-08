@@ -1,10 +1,10 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { WelcomePage, RegisterPage, QuizPage, ThankYouPage } from '@features/quiz';
 import { RankingPage } from '@features/ranking';
 import { CorkboardPage, SecretBoxPage } from '@features/postcards';
 import { AdminPage } from '@features/admin';
-import { ErrorBoundary, FEATURES } from '@/shared';
+import { ErrorBoundary, FEATURES, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import type { ReactNode } from 'react';
 
@@ -112,6 +112,218 @@ function AnimatedPage({
   );
 }
 
+// ==========================================
+// LEGACY ROUTES (backward compatibility)
+// ==========================================
+
+function LegacyRoutes() {
+  return (
+    <Routes>
+      {/* WELCOME: Entrada elegante desde abajo */}
+      <Route 
+        path="/" 
+        element={
+          <AnimatedPage variants={slideUpVariants}>
+            <WelcomePage />
+          </AnimatedPage>
+        } 
+      />
+      
+      {/* REGISTER: Slide desde la derecha (avance) */}
+      <Route 
+        path="/register" 
+        element={
+          <AnimatedPage variants={slideRightVariants}>
+            <RegisterPage />
+          </AnimatedPage>
+        } 
+      />
+      
+      {/* QUIZ: Slide desde la derecha (continuación) */}
+      <Route 
+        path="/quiz" 
+        element={
+          <AnimatedPage variants={slideRightVariants}>
+            <QuizPage />
+          </AnimatedPage>
+        } 
+      />
+      
+      {/* THANK YOU: Zoom celebración especial */}
+      <Route 
+        path="/thank-you" 
+        element={
+          <AnimatedPage variants={zoomVariants}>
+            <ThankYouPage />
+          </AnimatedPage>
+        } 
+      />
+      
+      {/* RANKING: Fade elegante desde la izquierda */}
+      <Route 
+        path="/ranking" 
+        element={
+          <AnimatedPage variants={slideLeftVariants}>
+            <RankingPage />
+          </AnimatedPage>
+        } 
+      />
+
+      {/* CORKBOARD: Feature sorpresa — habilitado via VITE_ENABLE_CORKBOARD=true */}
+      {FEATURES.CORKBOARD && (
+        <Route 
+          path="/corkboard" 
+          element={
+            <AnimatedPage variants={fadeVariants}>
+              <CorkboardPage />
+            </AnimatedPage>
+          } 
+        />
+      )}
+
+      {/* SECRET BOX: Link compartible para postales de invitados remotos */}
+      {FEATURES.SECRET_BOX && (
+        <Route
+          path="/secret-box"
+          element={
+            <AnimatedPage variants={fadeVariants}>
+              <SecretBoxPage />
+            </AnimatedPage>
+          }
+        />
+      )}
+
+      {/* ADMIN: Panel de control para revelar Secret Box */}
+      {FEATURES.SECRET_BOX && (
+        <Route
+          path="/admin"
+          element={
+            <AnimatedPage variants={fadeVariants}>
+              <AdminPage />
+            </AnimatedPage>
+          }
+        />
+      )}
+      
+      {/* Ruta 404: Fade suave */}
+      <Route 
+        path="*" 
+        element={
+          <AnimatedPage variants={fadeVariants}>
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-4xl font-display text-accent mb-4">404</h1>
+                <p className="font-serif text-slate-600">Página no encontrada</p>
+              </div>
+            </div>
+          </AnimatedPage>
+        } 
+      />
+    </Routes>
+  );
+}
+
+// ==========================================
+// EVENT-SCOPED ROUTES (new multi-event structure)
+// ==========================================
+
+function EventQuizPage() {
+  const quizEnabled = useFeatureEnabled('quiz');
+  
+  if (!quizEnabled) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-display text-accent mb-4">Quiz no disponible</h1>
+          <p className="font-serif text-slate-500">Este evento no tiene el quiz habilitado.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <AnimatedPage variants={slideRightVariants}>
+      <QuizPage />
+    </AnimatedPage>
+  );
+}
+
+function EventRankingPage() {
+  return (
+    <AnimatedPage variants={slideLeftVariants}>
+      <RankingPage />
+    </AnimatedPage>
+  );
+}
+
+function EventCorkboardPage() {
+  const corkboardEnabled = useFeatureEnabled('corkboard');
+  
+  if (!corkboardEnabled) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-display text-accent mb-4">Cartelera no disponible</h1>
+          <p className="font-serif text-slate-500">Este evento no tiene la cartelera habilitada.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <AnimatedPage variants={fadeVariants}>
+      <CorkboardPage />
+    </AnimatedPage>
+  );
+}
+
+function EventRoutes() {
+  return (
+    <EventLoader>
+      <EventLayout>
+        <Routes>
+          {/* Redirect /event/:slug to /event/:slug/ranking */}
+          <Route 
+            index 
+            element={<Navigate to="ranking" replace />} 
+          />
+          
+          {/* Quiz */}
+          <Route 
+            path="quiz" 
+            element={<EventQuizPage />} 
+          />
+          
+          {/* Ranking */}
+          <Route 
+            path="ranking" 
+            element={<EventRankingPage />} 
+          />
+          
+          {/* Corkboard */}
+          <Route 
+            path="corkboard" 
+            element={<EventCorkboardPage />} 
+          />
+          
+          {/* 404 dentro del event */}
+          <Route 
+            path="*" 
+            element={
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                  <h1 className="text-4xl font-display text-accent mb-4">404</h1>
+                  <p className="font-serif text-slate-600">Página no encontrada en este evento</p>
+                </div>
+              </div>
+            } 
+          />
+        </Routes>
+      </EventLayout>
+    </EventLoader>
+  );
+}
+
 // Componente que maneja las rutas con AnimatePresence
 function AnimatedRoutes() {
   const location = useLocation();
@@ -119,106 +331,11 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* WELCOME: Entrada elegante desde abajo */}
-        <Route 
-          path="/" 
-          element={
-            <AnimatedPage variants={slideUpVariants}>
-              <WelcomePage />
-            </AnimatedPage>
-          } 
-        />
+        {/* EVENT ROUTES: /event/:slug/* (new multi-event structure) */}
+        <Route path="/event/:slug/*" element={<EventRoutes />} />
         
-        {/* REGISTER: Slide desde la derecha (avance) */}
-        <Route 
-          path="/register" 
-          element={
-            <AnimatedPage variants={slideRightVariants}>
-              <RegisterPage />
-            </AnimatedPage>
-          } 
-        />
-        
-        {/* QUIZ: Slide desde la derecha (continuación) */}
-        <Route 
-          path="/quiz" 
-          element={
-            <AnimatedPage variants={slideRightVariants}>
-              <QuizPage />
-            </AnimatedPage>
-          } 
-        />
-        
-        {/* THANK YOU: Zoom celebración especial */}
-        <Route 
-          path="/thank-you" 
-          element={
-            <AnimatedPage variants={zoomVariants}>
-              <ThankYouPage />
-            </AnimatedPage>
-          } 
-        />
-        
-        {/* RANKING: Fade elegante desde la izquierda */}
-        <Route 
-          path="/ranking" 
-          element={
-            <AnimatedPage variants={slideLeftVariants}>
-              <RankingPage />
-            </AnimatedPage>
-          } 
-        />
-
-        {/* CORKBOARD: Feature sorpresa — habilitado via VITE_ENABLE_CORKBOARD=true */}
-        {FEATURES.CORKBOARD && (
-          <Route 
-            path="/corkboard" 
-            element={
-              <AnimatedPage variants={fadeVariants}>
-                <CorkboardPage />
-              </AnimatedPage>
-            } 
-          />
-        )}
-
-        {/* SECRET BOX: Link compartible para postales de invitados remotos */}
-        {FEATURES.SECRET_BOX && (
-          <Route
-            path="/secret-box"
-            element={
-              <AnimatedPage variants={fadeVariants}>
-                <SecretBoxPage />
-              </AnimatedPage>
-            }
-          />
-        )}
-
-        {/* ADMIN: Panel de control para revelar Secret Box */}
-        {FEATURES.SECRET_BOX && (
-          <Route
-            path="/admin"
-            element={
-              <AnimatedPage variants={fadeVariants}>
-                <AdminPage />
-              </AnimatedPage>
-            }
-          />
-        )}
-        
-        {/* Ruta 404: Fade suave */}
-        <Route 
-          path="*" 
-          element={
-            <AnimatedPage variants={fadeVariants}>
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-4xl font-display text-accent mb-4">404</h1>
-                  <p className="font-serif text-slate-600">Página no encontrada</p>
-                </div>
-              </div>
-            </AnimatedPage>
-          } 
-        />
+        {/* LEGACY ROUTES: todas las demás rutas */}
+        <Route path="/*" element={<LegacyRoutes />} />
       </Routes>
     </AnimatePresence>
   );

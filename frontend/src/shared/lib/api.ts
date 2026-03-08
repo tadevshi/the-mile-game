@@ -31,6 +31,24 @@ export interface SubmitQuizResponse {
   message: string;
 }
 
+// Event types for multi-event support
+export interface EventFeatures {
+  quiz: boolean;
+  corkboard: boolean;
+  secretBox: boolean;
+}
+
+export interface Event {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  date?: string;
+  owner_id?: string;
+  features: EventFeatures;
+  is_active: boolean;
+}
+
 // Cliente API
 const PLAYER_ID_KEY = 'mile-game-player-id';
 
@@ -255,6 +273,110 @@ class ApiClient {
     // Health check está en la raíz, no en /api
     const baseURL = import.meta.env.VITE_API_URL || '';
     const response = await axios.get(`${baseURL}/health`);
+    return response.data;
+  }
+
+  // ==========================================
+  // Events (Multi-event support)
+  // ==========================================
+
+  async getEventBySlug(slug: string): Promise<Event> {
+    const response = await this.client.get<Event>(`/events/${slug}`);
+    return response.data;
+  }
+
+  // Create player scoped to an event
+  async createPlayerScoped(eventSlug: string, data: CreatePlayerRequest): Promise<Player> {
+    const response = await this.client.post<Player>(`/events/${eventSlug}/players`, data);
+    this.setPlayerId(response.data.id);
+    return response.data;
+  }
+
+  // Submit quiz for a specific event
+  async submitQuizScoped(eventSlug: string, data: SubmitQuizRequest): Promise<SubmitQuizResponse> {
+    if (!this.playerId) {
+      throw new Error('No player ID set. Call createPlayer first.');
+    }
+
+    const response = await this.client.post<SubmitQuizResponse>(
+      `/events/${eventSlug}/quiz/submit`,
+      data,
+      {
+        headers: {
+          'X-Player-ID': this.playerId,
+        },
+      }
+    );
+    return response.data;
+  }
+
+  // Get ranking for a specific event
+  async getRankingScoped(eventSlug: string): Promise<RankingEntry[]> {
+    const response = await this.client.get<RankingEntry[]>(`/events/${eventSlug}/ranking`);
+    return response.data;
+  }
+
+  // Create postcard for a specific event (with inline player registration)
+  async createPostcardScoped(
+    eventSlug: string, 
+    image: File, 
+    message: string, 
+    options?: { senderName?: string; name?: string; avatar?: string }
+  ): Promise<Postcard> {
+    let effectivePlayerId = this.playerId;
+
+    // Auto-registro: si no hay jugador y se provee name+avatar, registrar como invitado
+    if (!effectivePlayerId && options?.name && options?.avatar) {
+      const player = await this.createPlayerScoped(eventSlug, {
+        name: options.name,
+        avatar: options.avatar,
+      });
+      effectivePlayerId = player.id;
+    }
+
+    // Si sigue sin haber player, intentar con senderName como fallback
+    if (!effectivePlayerId && options?.senderName) {
+      const player = await this.createPlayerScoped(eventSlug, {
+        name: options.senderName,
+        avatar: '📸',
+      });
+      effectivePlayerId = player.id;
+    }
+
+    if (!effectivePlayerId) {
+      throw new Error('Se requiere un nombre para agregar una postal sin estar registrado.');
+    }
+
+    const formData = new FormData();
+    formData.append('image', image);
+    formData.append('message', message);
+    if (options?.senderName) {
+      formData.append('sender_name', options.senderName.trim());
+    }
+    if (options?.name) {
+      formData.append('name', options.name);
+    }
+    if (options?.avatar) {
+      formData.append('avatar', options.avatar);
+    }
+
+    const response = await this.client.post<Postcard>(
+      `/events/${eventSlug}/postcards`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'X-Player-ID': effectivePlayerId,
+        },
+        timeout: 30000,
+      }
+    );
+    return response.data;
+  }
+
+  // List postcards for a specific event
+  async listPostcardsScoped(eventSlug: string): Promise<Postcard[]> {
+    const response = await this.client.get<Postcard[]>(`/events/${eventSlug}/postcards`);
     return response.data;
   }
 }
