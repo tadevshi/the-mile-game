@@ -4,7 +4,13 @@ import { useEventStore, useFeatureEnabled } from '@/shared/store/eventStore';
 import { ButterflyBackground } from '@/shared/components/ButterflyBackground';
 import { Button } from '@/shared/components/Button';
 
-export function EventLayout() {
+interface EventLayoutProps {
+  // Optional children - if provided, they're rendered instead of Outlet
+  // This allows using EventLayout as a parent route with nested routes
+  children?: React.ReactNode;
+}
+
+export function EventLayout({ children }: EventLayoutProps) {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
   const currentEvent = useEventStore((state) => state.currentEvent);
@@ -38,7 +44,7 @@ export function EventLayout() {
             
             {/* Back to Welcome */}
             <Link to="/">
-              <Button variant="ghost" size="sm">
+              <Button variant="outline" size="sm">
                 ← Inicio
               </Button>
             </Link>
@@ -91,7 +97,7 @@ export function EventLayout() {
           transition={{ duration: 0.3 }}
           className="max-w-4xl mx-auto"
         >
-          <Outlet context={{ event: currentEvent }} />
+          {children || <Outlet context={{ event: currentEvent }} />}
         </motion.div>
       </main>
     </div>

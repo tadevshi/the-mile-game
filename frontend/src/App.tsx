@@ -277,53 +277,6 @@ function EventCorkboardPage() {
   );
 }
 
-function EventRoutes() {
-  return (
-    <EventLoader>
-      <EventLayout>
-        <Routes>
-          {/* Redirect /event/:slug to /event/:slug/ranking */}
-          <Route 
-            index 
-            element={<Navigate to="ranking" replace />} 
-          />
-          
-          {/* Quiz */}
-          <Route 
-            path="quiz" 
-            element={<EventQuizPage />} 
-          />
-          
-          {/* Ranking */}
-          <Route 
-            path="ranking" 
-            element={<EventRankingPage />} 
-          />
-          
-          {/* Corkboard */}
-          <Route 
-            path="corkboard" 
-            element={<EventCorkboardPage />} 
-          />
-          
-          {/* 404 dentro del event */}
-          <Route 
-            path="*" 
-            element={
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-4xl font-display text-accent mb-4">404</h1>
-                  <p className="font-serif text-slate-600">Página no encontrada en este evento</p>
-                </div>
-              </div>
-            } 
-          />
-        </Routes>
-      </EventLayout>
-    </EventLoader>
-  );
-}
-
 // Componente que maneja las rutas con AnimatePresence
 function AnimatedRoutes() {
   const location = useLocation();
@@ -332,7 +285,27 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         {/* EVENT ROUTES: /event/:slug/* (new multi-event structure) */}
-        <Route path="/event/:slug/*" element={<EventRoutes />} />
+        <Route path="/event/:slug/*" element={
+          <EventLoader>
+            <EventLayout>
+              <Route index element={<Navigate to="ranking" replace />} />
+              <Route path="quiz" element={<EventQuizPage />} />
+              <Route path="ranking" element={<EventRankingPage />} />
+              <Route path="corkboard" element={<EventCorkboardPage />} />
+              <Route 
+                path="*" 
+                element={
+                  <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-center">
+                      <h1 className="text-4xl font-display text-accent mb-4">404</h1>
+                      <p className="font-serif text-slate-600">Página no encontrada en este evento</p>
+                    </div>
+                  </div>
+                } 
+              />
+            </EventLayout>
+          </EventLoader>
+        } />
         
         {/* LEGACY ROUTES: todas las demás rutas */}
         <Route path="/*" element={<LegacyRoutes />} />
