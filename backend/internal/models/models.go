@@ -9,6 +9,7 @@ import (
 // Player representa un jugador registrado
 type Player struct {
 	ID        uuid.UUID `json:"id" db:"id"`
+	EventID   uuid.UUID `json:"event_id" db:"event_id"` // FK a events
 	Name      string    `json:"name" db:"name"`
 	Avatar    string    `json:"avatar" db:"avatar"`
 	Score     int       `json:"score" db:"score"`
@@ -47,6 +48,7 @@ type SubmitQuizRequest struct {
 // Postcard representa una postal en la cartelera de corcho
 type Postcard struct {
 	ID           uuid.UUID  `json:"id" db:"id"`
+	EventID      uuid.UUID  `json:"event_id" db:"event_id"`                 // FK a events
 	PlayerID     *uuid.UUID `json:"player_id,omitempty" db:"player_id"`     // nullable para secretas
 	SenderName   *string    `json:"sender_name,omitempty" db:"sender_name"` // sobreescribe player name
 	PlayerName   string     `json:"player_name" db:"player_name"`           // computado via JOIN/COALESCE

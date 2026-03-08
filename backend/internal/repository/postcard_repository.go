@@ -10,12 +10,13 @@ import (
 
 // PostcardRepository maneja las operaciones de base de datos para postales
 type PostcardRepository struct {
-	db *sql.DB
+	db         *sql.DB
+	uploadPath string
 }
 
 // NewPostcardRepository crea un nuevo repositorio de postales
-func NewPostcardRepository(db *sql.DB) *PostcardRepository {
-	return &PostcardRepository{db: db}
+func NewPostcardRepository(db *sql.DB, uploadPath string) *PostcardRepository {
+	return &PostcardRepository{db: db, uploadPath: uploadPath}
 }
 
 // scanPostcard escanea una fila de postcard con todos los campos nullable manejados.
@@ -221,4 +222,48 @@ func (r *PostcardRepository) GetSecretBoxStatus() (*models.SecretBoxStatus, erro
 	}
 
 	return &status, nil
+}
+
+// CreateWithEvent crea una nueva postal scopada a un evento
+func (r *PostcardRepository) CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error) {
+	id := uuid.New()
+	createdAt := time.Now()
+
+	query := `
+		INSERT INTO postcards (id, event_id, player_id, image_path, message, rotation, sender_name, is_secret, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE, $8)
+	`
+
+	_, err := r.db.Exec(query, id, eventID, playerID, imagePath, message, rotation, senderName, createdAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.GetByID(id)
+}
+
+// ListByEvent obtiene todas las postales PÚBLICAS de un evento específico
+func (r *PostcardRepository) ListByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
+	query := `SELECT` + publicPostcardCols + `
+		WHERE p.event_id = $1 AND (p.is_secret = FALSE OR p.revealed_at IS NOT NULL)
+		ORDER BY
+			CASE WHEN p.is_secret = TRUE AND p.revealed_at IS NOT NULL THEN 0 ELSE 1 END ASC,
+			p.created_at DESC`
+
+	rows, err := r.db.Query(query, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var postcards []models.Postcard
+	for rows.Next() {
+		postcard, err := scanPostcard(rows)
+		if err != nil {
+			return nil, err
+		}
+		postcards = append(postcards, *postcard)
+	}
+
+	return postcards, nil
 }
