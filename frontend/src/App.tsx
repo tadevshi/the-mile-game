@@ -284,28 +284,28 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* EVENT ROUTES: /event/:slug/* (new multi-event structure) */}
-        <Route path="/event/:slug/*" element={
+        {/* EVENT ROUTES: /event/:slug/* uses nested <Route> with <Outlet /> in EventLayout */}
+        <Route path="/event/:slug" element={
           <EventLoader>
-            <EventLayout>
-              <Route index element={<Navigate to="ranking" replace />} />
-              <Route path="quiz" element={<EventQuizPage />} />
-              <Route path="ranking" element={<EventRankingPage />} />
-              <Route path="corkboard" element={<EventCorkboardPage />} />
-              <Route 
-                path="*" 
-                element={
-                  <div className="min-h-screen flex items-center justify-center">
-                    <div className="text-center">
-                      <h1 className="text-4xl font-display text-accent mb-4">404</h1>
-                      <p className="font-serif text-slate-600">Página no encontrada en este evento</p>
-                    </div>
-                  </div>
-                } 
-              />
-            </EventLayout>
+            <EventLayout />
           </EventLoader>
-        } />
+        }>
+          <Route index element={<Navigate to="ranking" replace />} />
+          <Route path="quiz" element={<EventQuizPage />} />
+          <Route path="ranking" element={<EventRankingPage />} />
+          <Route path="corkboard" element={<EventCorkboardPage />} />
+          <Route 
+            path="*" 
+            element={
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                  <h1 className="text-4xl font-display text-accent mb-4">404</h1>
+                  <p className="font-serif text-slate-600">Página no encontrada en este evento</p>
+                </div>
+              </div>
+            } 
+          />
+        </Route>
         
         {/* LEGACY ROUTES: todas las demás rutas */}
         <Route path="/*" element={<LegacyRoutes />} />

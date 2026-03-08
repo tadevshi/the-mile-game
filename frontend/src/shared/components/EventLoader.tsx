@@ -31,7 +31,9 @@ export function EventLoader({ children, fallback }: EventLoaderProps) {
       try {
         const event = await api.getEventBySlug(slug);
         
-        // Transform backend response to match our Event type
+        // Transform backend response to match our Event type.
+        // Backend sends snake_case (secret_box), frontend uses camelCase (secretBox).
+        const rawFeatures = event.features as Record<string, boolean>;
         const transformedEvent: Event = {
           id: event.id,
           slug: event.slug,
@@ -40,9 +42,9 @@ export function EventLoader({ children, fallback }: EventLoaderProps) {
           date: event.date,
           ownerId: event.owner_id,
           features: {
-            quiz: event.features.quiz,
-            corkboard: event.features.corkboard,
-            secretBox: event.features.secretBox,
+            quiz: rawFeatures.quiz ?? false,
+            corkboard: rawFeatures.corkboard ?? false,
+            secretBox: rawFeatures.secret_box ?? rawFeatures.secretBox ?? false,
           },
           isActive: event.is_active,
         };
