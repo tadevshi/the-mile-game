@@ -1,15 +1,18 @@
 import { Outlet, useParams, useLocation, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { useEventStore, useFeatureEnabled } from '@/shared/store/eventStore';
-import { ButterflyBackground } from '@/shared/components/ButterflyBackground';
 import { Button } from '@/shared/components/Button';
 
 interface EventLayoutProps {
-  // Optional children - if provided, they're rendered instead of Outlet
-  // This allows using EventLayout as a parent route with nested routes
   children?: React.ReactNode;
 }
 
+/**
+ * EventLayout - Layout mínimo para navegación entre features de un evento.
+ * 
+ * NOTA: Este layout NO impone fondo, header ni estilos a las páginas hijas.
+ * Cada página mantiene su diseño original (PageLayout con watercolor, etc.).
+ * Solo proporciona una barra de navegación compacta en la parte superior.
+ */
 export function EventLayout({ children }: EventLayoutProps) {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
@@ -17,88 +20,77 @@ export function EventLayout({ children }: EventLayoutProps) {
   const quizEnabled = useFeatureEnabled('quiz');
   const corkboardEnabled = useFeatureEnabled('corkboard');
 
-  // Determine which page we're on for nav highlighting
   const isQuiz = location.pathname.includes('/quiz');
   const isRanking = location.pathname.includes('/ranking');
   const isCorkboard = location.pathname.includes('/corkboard');
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <ButterflyBackground />
-      
-      {/* Event Header */}
-      <header className="relative z-10 pt-6 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            {/* Event Title */}
-            <div>
-              <h1 className="text-2xl md:text-3xl font-display text-accent">
-                {currentEvent?.name || slug}
-              </h1>
-              {currentEvent?.description && (
-                <p className="text-sm font-serif text-slate-500 italic">
-                  {currentEvent.description}
-                </p>
+    <div className="relative">
+      {/* Barra de navegación minimalista - z-50 para estar por encima del contenido */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-pink-100/50">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Navegación izquierda */}
+            <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              <Link to="/">
+                <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:text-accent hover:border-accent">
+                  ← Inicio
+                </Button>
+              </Link>
+              
+              <div className="w-px h-4 bg-slate-200 mx-1" />
+              
+              {quizEnabled && (
+                <Link to={`/event/${slug}/quiz`}>
+                  <Button 
+                    variant={isQuiz ? 'primary' : 'outline'} 
+                    size="sm"
+                    className="whitespace-nowrap"
+                  >
+                    🎯 Quiz
+                  </Button>
+                </Link>
               )}
-            </div>
-            
-            {/* Back to Welcome */}
-            <Link to="/">
-              <Button variant="outline" size="sm">
-                ← Inicio
-              </Button>
-            </Link>
-          </div>
+              
+              <Link to={`/event/${slug}/ranking`}>
+                <Button 
+                  variant={isRanking ? 'primary' : 'outline'} 
+                  size="sm"
+                  className="whitespace-nowrap"
+                >
+                  🏆 Ranking
+                </Button>
+              </Link>
+              
+              {corkboardEnabled && (
+                <Link to={`/event/${slug}/corkboard`}>
+                  <Button 
+                    variant={isCorkboard ? 'primary' : 'outline'} 
+                    size="sm"
+                    className="whitespace-nowrap"
+                  >
+                    📌 Cartelera
+                  </Button>
+                </Link>
+              )}
+            </nav>
 
-          {/* Navigation Tabs */}
-          <nav className="flex gap-2 overflow-x-auto pb-2">
-            {quizEnabled && (
-              <Link to={`/event/${slug}/quiz`}>
-                <Button 
-                  variant={isQuiz ? 'primary' : 'secondary'} 
-                  size="sm"
-                  className="whitespace-nowrap"
-                >
-                  🎯 Jugar Quiz
-                </Button>
-              </Link>
+            {/* Título del evento (truncado) */}
+            {currentEvent?.name && (
+              <span className="hidden sm:block text-sm font-serif text-slate-500 truncate max-w-[200px]">
+                {currentEvent.name}
+              </span>
             )}
-            
-            <Link to={`/event/${slug}/ranking`}>
-              <Button 
-                variant={isRanking ? 'primary' : 'secondary'} 
-                size="sm"
-                className="whitespace-nowrap"
-              >
-                🏆 Ranking
-              </Button>
-            </Link>
-            
-            {corkboardEnabled && (
-              <Link to={`/event/${slug}/corkboard`}>
-                <Button 
-                  variant={isCorkboard ? 'primary' : 'secondary'} 
-                  size="sm"
-                  className="whitespace-nowrap"
-                >
-                  📌 Cartelera
-                </Button>
-              </Link>
-            )}
-          </nav>
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="relative z-10 px-4 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="max-w-4xl mx-auto"
-        >
-          {children || <Outlet context={{ event: currentEvent }} />}
-        </motion.div>
+      {/* Spacer para compensar la barra fija */}
+      <div className="h-14" />
+
+      {/* Main Content - sin wrapper adicional, las páginas manejan su propio layout */}
+      <main>
+        {children || <Outlet context={{ event: currentEvent }} />}
       </main>
     </div>
   );

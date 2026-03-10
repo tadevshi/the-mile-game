@@ -33,7 +33,7 @@ export function EventLoader({ children, fallback }: EventLoaderProps) {
         
         // Transform backend response to match our Event type.
         // Backend sends snake_case (secret_box), frontend uses camelCase (secretBox).
-        const rawFeatures = event.features as Record<string, boolean>;
+        const rawFeatures = event.features as unknown as Record<string, boolean>;
         const transformedEvent: Event = {
           id: event.id,
           slug: event.slug,

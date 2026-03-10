@@ -307,14 +307,11 @@ func TestSecretPostcardAutoRevealLogic(t *testing.T) {
 			repo := &mockPostcardRepo{state: state, createdPostcard: postcard}
 			hub := &mockHub{state: state}
 
-			h := &Handler{postcardRepo: repo, hub: hub}
+			tmpDir := t.TempDir()
+			h := &Handler{postcardRepo: repo, hub: hub, uploadsDir: tmpDir}
 
 			os.Setenv("SECRET_BOX_TOKEN", "test-token")
 			defer os.Unsetenv("SECRET_BOX_TOKEN")
-
-			tmpDir := t.TempDir()
-			os.Setenv("UPLOADS_DIR", tmpDir)
-			defer os.Unsetenv("UPLOADS_DIR")
 
 			r := gin.New()
 			r.POST("/api/postcards/secret", h.CreateSecretPostcard)

@@ -208,7 +208,7 @@ func (h *Hub) Run() {
 }
 
 // ServeHTTP maneja las conexiones WebSocket
-// El query param "event" es requerido para determinar el room
+// El query param "event" es opcional; sin él el cliente recibe broadcasts globales
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Extraer event slug del query param
 	eventSlug := r.URL.Query().Get("event")

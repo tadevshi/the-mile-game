@@ -22,18 +22,20 @@ func NewPostcardRepository(db *sql.DB, uploadPath string) *PostcardRepository {
 // scanPostcard escanea una fila de postcard con todos los campos nullable manejados.
 // La query que alimenta este scanner DEBE seleccionar columnas en este orden:
 //
-//	p.id, p.player_id, p.sender_name, player_name (computed), player_avatar (computed),
+//	p.id, p.event_id, p.player_id, p.sender_name, player_name (computed), player_avatar (computed),
 //	p.image_path, p.message, p.rotation, p.is_secret, p.revealed_at, p.created_at
 func scanPostcard(row interface {
 	Scan(...any) error
 }) (*models.Postcard, error) {
 	var postcard models.Postcard
+	var eventIDStr sql.NullString
 	var playerIDStr sql.NullString
 	var senderNameStr sql.NullString
 	var revealedAt sql.NullTime
 
 	err := row.Scan(
 		&postcard.ID,
+		&eventIDStr,
 		&playerIDStr,
 		&senderNameStr,
 		&postcard.PlayerName,
@@ -49,6 +51,12 @@ func scanPostcard(row interface {
 		return nil, err
 	}
 
+	if eventIDStr.Valid {
+		id, err := uuid.Parse(eventIDStr.String)
+		if err == nil {
+			postcard.EventID = id
+		}
+	}
 	if playerIDStr.Valid {
 		id, err := uuid.Parse(playerIDStr.String)
 		if err == nil {
@@ -68,6 +76,7 @@ func scanPostcard(row interface {
 // publicPostcardCols columnas base para queries públicas (player_name y player_avatar via COALESCE)
 const publicPostcardCols = `
 	p.id,
+	p.event_id::text,
 	p.player_id::text,
 	p.sender_name,
 	COALESCE(p.sender_name, pl.name, 'Invitado') AS player_name,

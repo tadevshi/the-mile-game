@@ -284,27 +284,37 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* EVENT ROUTES: /event/:slug/* uses nested <Route> with <Outlet /> in EventLayout */}
-        <Route path="/event/:slug" element={
-          <EventLoader>
-            <EventLayout />
-          </EventLoader>
-        }>
-          <Route index element={<Navigate to="ranking" replace />} />
-          <Route path="quiz" element={<EventQuizPage />} />
-          <Route path="ranking" element={<EventRankingPage />} />
-          <Route path="corkboard" element={<EventCorkboardPage />} />
-          <Route 
-            path="*" 
-            element={
+        {/* EVENT ROUTES: /event/:slug/* */}
+        <Route path="/event/:slug">
+          {/* Rutas dentro del EventLayout (con header, tabs, max-w-4xl) */}
+          <Route element={
+            <EventLoader>
+              <EventLayout />
+            </EventLoader>
+          }>
+            <Route index element={<Navigate to="ranking" replace />} />
+            <Route path="quiz" element={<EventQuizPage />} />
+            <Route path="ranking" element={<EventRankingPage />} />
+          </Route>
+          
+          {/* Corkboard: full-bleed, sin EventLayout para mantener su diseño inmersivo */}
+          <Route path="corkboard" element={
+            <EventLoader>
+              <EventCorkboardPage />
+            </EventLoader>
+          } />
+          
+          {/* Catch-all para rutas inválidas dentro del evento */}
+          <Route path="*" element={
+            <EventLoader>
               <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                   <h1 className="text-4xl font-display text-accent mb-4">404</h1>
                   <p className="font-serif text-slate-600">Página no encontrada en este evento</p>
                 </div>
               </div>
-            } 
-          />
+            </EventLoader>
+          } />
         </Route>
         
         {/* LEGACY ROUTES: todas las demás rutas */}

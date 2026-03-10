@@ -49,6 +49,9 @@ func main() {
 	// Crear servicios
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
+		if ginMode == "release" {
+			log.Fatal("JWT_SECRET is required in release mode")
+		}
 		jwtSecret = "default-secret-change-in-production"
 		log.Println("Warning: Using default JWT secret. Set JWT_SECRET env var in production!")
 	}
@@ -59,7 +62,11 @@ func main() {
 	go hub.Run()
 
 	// Crear handlers
-	handler := handlers.NewHandler(playerRepo, quizRepo, postcardRepo, hub)
+	uploadsDir := os.Getenv("UPLOADS_DIR")
+	if uploadsDir == "" {
+		uploadsDir = uploadPath + "/postcards"
+	}
+	handler := handlers.NewHandler(playerRepo, quizRepo, postcardRepo, hub, uploadsDir)
 	authHandler := handlers.NewAuthHandler(authService)
 
 	// Configurar router

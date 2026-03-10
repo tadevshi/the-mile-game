@@ -33,6 +33,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-password}
       DB_NAME: ${DB_NAME:-milegame}
       GIN_MODE: ${GIN_MODE:-release}
+      JWT_SECRET: ${JWT_SECRET:-default-jwt-secret-change-me}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000,http://localhost:8081,http://localhost,http://192.168.100.82:8081}
       UPLOADS_DIR: /app/uploads/postcards
       SECRET_BOX_TOKEN: ${SECRET_BOX_TOKEN:-changeme-secret-token}

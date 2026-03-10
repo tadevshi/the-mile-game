@@ -50,16 +50,18 @@ type Handler struct {
 	postcardRepo PostcardRepo
 	scorer       *services.Scorer
 	hub          BroadcastHub
+	uploadsDir   string
 }
 
 // NewHandler crea un nuevo handler
-func NewHandler(playerRepo *repository.PlayerRepository, quizRepo *repository.QuizRepository, postcardRepo *repository.PostcardRepository, hub *websocket.Hub) *Handler {
+func NewHandler(playerRepo *repository.PlayerRepository, quizRepo *repository.QuizRepository, postcardRepo *repository.PostcardRepository, hub *websocket.Hub, uploadsDir string) *Handler {
 	return &Handler{
 		playerRepo:   playerRepo,
 		quizRepo:     quizRepo,
 		postcardRepo: postcardRepo,
 		scorer:       services.NewScorer(),
 		hub:          hub,
+		uploadsDir:   uploadsDir,
 	}
 }
 
@@ -308,7 +310,7 @@ func (h *Handler) GetRanking(c *gin.Context) {
 
 // validateAndSaveImage valida el archivo de imagen y lo guarda en disco.
 // Retorna la ruta pública y la ruta en disco, o un error con su mensaje HTTP.
-func validateAndSaveImage(c *gin.Context) (publicPath, diskPath string, httpErr *struct {
+func (h *Handler) validateAndSaveImage(c *gin.Context) (publicPath, diskPath string, httpErr *struct {
 	Code    int
 	Message string
 }) {
@@ -359,7 +361,7 @@ func validateAndSaveImage(c *gin.Context) (publicPath, diskPath string, httpErr 
 	}
 	filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
 
-	uploadsDir := os.Getenv("UPLOADS_DIR")
+	uploadsDir := h.uploadsDir
 	if uploadsDir == "" {
 		uploadsDir = "/app/uploads/postcards"
 	}
@@ -473,7 +475,7 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 		playerID = &player.ID
 	}
 
-	publicPath, diskPath, httpErr := validateAndSaveImage(c)
+	publicPath, diskPath, httpErr := h.validateAndSaveImage(c)
 	if httpErr != nil {
 		c.JSON(httpErr.Code, gin.H{"error": httpErr.Message})
 		return
@@ -535,7 +537,7 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 		return
 	}
 
-	publicPath, diskPath, httpErr := validateAndSaveImage(c)
+	publicPath, diskPath, httpErr := h.validateAndSaveImage(c)
 	if httpErr != nil {
 		c.JSON(httpErr.Code, gin.H{"error": httpErr.Message})
 		return
