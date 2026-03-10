@@ -10,9 +10,12 @@ export { ConfettiEffect, fireConfetti } from './components/Confetti';
 export { ButterflyBackground } from './components/ButterflyBackground';
 export { ErrorBoundary } from './components/ErrorBoundary';
 export { ThemeToggle } from './components/ThemeToggle';
+export { EventLayout } from './components/EventLayout';
+export { EventLoader } from './components/EventLoader';
 
 // Stores
 export { useThemeStore } from './store/themeStore';
+export { useEventStore, useFeatureEnabled, type Event, type EventFeatures } from './store/eventStore';
 
 // 3D Components
 export { MedalCanvas } from './3d';

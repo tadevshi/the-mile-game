@@ -224,10 +224,16 @@ func (r *mockPostcardRepo) RevealPostcard(id uuid.UUID) (*models.Postcard, error
 func (r *mockPostcardRepo) Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error) {
 	return r.createdPostcard, nil
 }
+func (r *mockPostcardRepo) CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error) {
+	return r.createdPostcard, nil
+}
 func (r *mockPostcardRepo) GetByID(id uuid.UUID) (*models.Postcard, error) { return nil, nil }
 func (r *mockPostcardRepo) List() ([]models.Postcard, error)               { return nil, nil }
-func (r *mockPostcardRepo) ListSecret() ([]models.Postcard, error)         { return nil, nil }
-func (r *mockPostcardRepo) RevealSecretBox() ([]models.Postcard, error)    { return nil, nil }
+func (r *mockPostcardRepo) ListByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
+	return nil, nil
+}
+func (r *mockPostcardRepo) ListSecret() ([]models.Postcard, error)      { return nil, nil }
+func (r *mockPostcardRepo) RevealSecretBox() ([]models.Postcard, error) { return nil, nil }
 
 type mockHub struct {
 	state *mockState
@@ -236,6 +242,13 @@ type mockHub struct {
 func (h *mockHub) BroadcastRanking(ranking []models.RankingEntry)    {}
 func (h *mockHub) BroadcastPostcard(postcard models.Postcard)        { h.state.broadcastCalled = true }
 func (h *mockHub) BroadcastSecretReveal(postcards []models.Postcard) {}
+
+// Room-specific broadcast mocks
+func (h *mockHub) BroadcastRankingToRoom(eventSlug string, ranking []models.RankingEntry) {}
+func (h *mockHub) BroadcastPostcardToRoom(eventSlug string, postcard models.Postcard) {
+	h.state.broadcastCalled = true
+}
+func (h *mockHub) BroadcastSecretRevealToRoom(eventSlug string, postcards []models.Postcard) {}
 
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -294,14 +307,11 @@ func TestSecretPostcardAutoRevealLogic(t *testing.T) {
 			repo := &mockPostcardRepo{state: state, createdPostcard: postcard}
 			hub := &mockHub{state: state}
 
-			h := &Handler{postcardRepo: repo, hub: hub}
+			tmpDir := t.TempDir()
+			h := &Handler{postcardRepo: repo, hub: hub, uploadsDir: tmpDir}
 
 			os.Setenv("SECRET_BOX_TOKEN", "test-token")
 			defer os.Unsetenv("SECRET_BOX_TOKEN")
-
-			tmpDir := t.TempDir()
-			os.Setenv("UPLOADS_DIR", tmpDir)
-			defer os.Unsetenv("UPLOADS_DIR")
 
 			r := gin.New()
 			r.POST("/api/postcards/secret", h.CreateSecretPostcard)
