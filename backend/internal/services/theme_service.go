@@ -44,7 +44,7 @@ func (s *ThemeService) GetThemeBySlug(slug string) (*models.Theme, error) {
 		return nil, err
 	}
 
-	return s.GetThemeForEvent(event.ID)
+	return s.GetThemeForEvent(event.ID.String())
 }
 
 // ApplyPresetToEvent applies a preset theme to an event
