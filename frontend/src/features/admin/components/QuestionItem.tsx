@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { GripVertical, Pencil, Trash2 } from 'lucide-react';
 import type { QuizQuestion } from '../types/questions.types';
-import { TYPE_LABELS } from '../types/questions.types';
 
 interface QuestionItemProps {
   question: QuizQuestion;
@@ -20,10 +19,10 @@ export function QuestionItem({
   dragHandleProps,
   isDeleting = false,
 }: QuestionItemProps) {
+  const typeLabel = question.options ? 'Opción múltiple' : 'Texto';
   const typeColors: Record<string, string> = {
-    text: 'bg-blue-100 text-blue-700',
-    choice: 'bg-purple-100 text-purple-700',
-    boolean: 'bg-green-100 text-green-700',
+    'Texto': 'bg-blue-100 text-blue-700',
+    'Opción múltiple': 'bg-purple-100 text-purple-700',
   };
 
   return (
@@ -38,10 +37,13 @@ export function QuestionItem({
         ${isDragging ? 'ring-2 ring-primary shadow-lg' : ''}
         ${isDeleting ? 'opacity-50' : ''}
       `}
+      data-question-id={question.id}
     >
       <div className="flex items-center gap-3">
         {/* Drag Handle */}
         <button
+          data-handle="drag-handle"
+          aria-label="Drag to reorder"
           className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 p-1"
           {...dragHandleProps}
         >
@@ -52,8 +54,8 @@ export function QuestionItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-mono text-gray-500">#{question.sort_order}</span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${typeColors[question.type]}`}>
-              {TYPE_LABELS[question.type]}
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${typeColors[typeLabel]}`}>
+              {typeLabel}
             </span>
             {question.is_scorable && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
@@ -62,7 +64,7 @@ export function QuestionItem({
             )}
           </div>
           <p className="text-sm font-medium text-gray-800 truncate">
-            {question.data.question}
+            {question.question_text}
           </p>
           <p className="text-xs text-gray-500 font-mono mt-0.5 truncate">
             {question.key}
@@ -75,6 +77,7 @@ export function QuestionItem({
             onClick={() => onEdit(question)}
             className="p-2 rounded-lg text-gray-500 hover:text-primary hover:bg-pink-50 transition-colors"
             title="Editar"
+            aria-label="Edit"
           >
             <Pencil size={16} />
           </button>
@@ -83,6 +86,7 @@ export function QuestionItem({
             disabled={isDeleting}
             className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
             title="Eliminar"
+            aria-label="Delete"
           >
             <Trash2 size={16} />
           </button>

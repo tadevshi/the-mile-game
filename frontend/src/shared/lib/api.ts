@@ -418,19 +418,10 @@ class ApiClient {
     return response.data;
   }
 
-  async importQuestions(eventSlug: string, file: File): Promise<{ imported: number; warnings?: string[] }> {
-    const formData = new FormData();
-    formData.append('file', file);
-
+  async importQuestions(eventSlug: string, questions: CreateQuestionRequest[]): Promise<{ imported: number; warnings?: string[] }> {
     const response = await this.client.post<{ imported: number; warnings?: string[] }>(
       `/admin/events/${eventSlug}/questions/import`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 30000,
-      }
+      { questions }
     );
     return response.data;
   }

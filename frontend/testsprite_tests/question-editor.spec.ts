@@ -6,7 +6,7 @@ const TEST_ADMIN_KEY = 'test-admin-key';
 test.describe('Question Editor E2E Tests', () => {
   // Helper to navigate to the question editor
   async function navigateToQuestionEditor(page: Page) {
-    await page.goto(`/admin/event/${TEST_EVENT_SLUG}/questions?key=${TEST_ADMIN_KEY}`);
+    await page.goto(`/admin/questions/${TEST_EVENT_SLUG}?key=${TEST_ADMIN_KEY}`);
   }
 
   // Helper to fill in the question form
@@ -33,10 +33,10 @@ test.describe('Question Editor E2E Tests', () => {
     } = options;
 
     if (key) {
-      await page.fill('input[name="key"]', key);
+      await page.fill('[data-testid="question-key-input"]', key);
     }
     if (question) {
-      await page.fill('textarea[name="question"]', question);
+      await page.fill('[data-testid="question-text-input"]', question);
     }
     if (section) {
       await page.selectOption('select[name="section"]', section);
@@ -52,18 +52,22 @@ test.describe('Question Editor E2E Tests', () => {
       }
     }
     if (isScorable !== undefined) {
-      await page.check('input[name="is_scorable"]');
+      if (isScorable) {
+        await page.check('[data-testid="is-scorable-checkbox"]');
+      } else {
+        await page.uncheck('[data-testid="is-scorable-checkbox"]');
+      }
     }
   }
 
   test.describe('Navigation & Authentication', () => {
     test('should redirect to login if key is missing', async ({ page }) => {
-      await page.goto(`/admin/event/${TEST_EVENT_SLUG}/questions`);
+      await page.goto(`/admin/questions/${TEST_EVENT_SLUG}`);
       await expect(page.getByText('Faltan parámetros')).toBeVisible();
     });
 
     test('should redirect to login if event is missing', async ({ page }) => {
-      await page.goto(`/admin/event//questions?key=${TEST_ADMIN_KEY}`);
+      await page.goto(`/admin/questions/?key=${TEST_ADMIN_KEY}`);
       await expect(page.getByText('Faltan parámetros')).toBeVisible();
     });
 
@@ -85,7 +89,8 @@ test.describe('Question Editor E2E Tests', () => {
       await page.click('button:has-text("Favorites")');
       
       // Try to submit without filling required fields
-      await page.click('button:has-text("Guardar pregunta")');
+      const buttonText = 'Crear pregunta';
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       
       // Check for validation error
       await expect(page.getByText(/key.*requerido/i)).toBeVisible();
@@ -96,10 +101,11 @@ test.describe('Question Editor E2E Tests', () => {
       await page.click('button:has-text("Favorites")');
       
       // Fill only the key
-      await page.fill('input[name="key"]', 'test_key_validation');
+      await page.fill('[data-testid="question-key-input"]', 'test_key_validation');
       
       // Try to submit
-      await page.click('button:has-text("Guardar pregunta")');
+      const buttonText = 'Crear pregunta';
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       
       // Check for validation error about question text
       await expect(page.getByText(/pregunta.*requerido/i)).toBeVisible();
@@ -113,7 +119,8 @@ test.describe('Question Editor E2E Tests', () => {
         question: 'First question',
         correctAnswers: ['answer'],
       });
-      await page.click('button:has-text("Guardar pregunta")');
+      const buttonText = 'Crear pregunta';
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       
       // Wait for creation
       await page.waitForTimeout(1000);
@@ -125,7 +132,7 @@ test.describe('Question Editor E2E Tests', () => {
         question: 'Second question',
         correctAnswers: ['answer'],
       });
-      await page.click('button:has-text("Guardar pregunta")');
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       
       // Should show duplicate key error
       await expect(page.getByText(/key.*ya existe/i)).toBeVisible();
@@ -139,6 +146,7 @@ test.describe('Question Editor E2E Tests', () => {
 
     test('should create a text question', async ({ page }) => {
       const uniqueKey = 'test_text_question_' + Date.now();
+      const buttonText = 'Crear pregunta';
       
       // Click on add question button
       await page.click('button:has-text("Favorites")');
@@ -154,7 +162,7 @@ test.describe('Question Editor E2E Tests', () => {
       });
       
       // Submit
-      await page.click('button:has-text("Guardar pregunta")');
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       
       // Wait for creation
       await page.waitForTimeout(1000);
@@ -165,6 +173,7 @@ test.describe('Question Editor E2E Tests', () => {
 
     test('should create a choice question', async ({ page }) => {
       const uniqueKey = 'test_choice_question_' + Date.now();
+      const buttonText = 'Crear pregunta';
       
       // Click on add question button
       await page.click('button:has-text("Preferences")');
@@ -181,7 +190,7 @@ test.describe('Question Editor E2E Tests', () => {
       });
       
       // Submit
-      await page.click('button:has-text("Guardar pregunta")');
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       
       // Wait for creation
       await page.waitForTimeout(1000);
@@ -192,6 +201,7 @@ test.describe('Question Editor E2E Tests', () => {
 
     test('should create a description question (non-scorable)', async ({ page }) => {
       const uniqueKey = 'test_desc_question_' + Date.now();
+      const buttonText = 'Crear pregunta';
       
       // Click on add question button
       await page.click('button:has-text("Description")');
@@ -207,7 +217,7 @@ test.describe('Question Editor E2E Tests', () => {
       });
       
       // Submit
-      await page.click('button:has-text("Guardar pregunta")');
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       
       // Wait for creation
       await page.waitForTimeout(1000);
@@ -224,6 +234,8 @@ test.describe('Question Editor E2E Tests', () => {
 
     test('should edit an existing question', async ({ page }) => {
       const uniqueKey = 'test_edit_question_' + Date.now();
+      const createButtonText = 'Crear pregunta';
+      const editButtonText = 'Guardar cambios';
       
       // First create a question
       await page.click('button:has-text("Favorites")');
@@ -232,18 +244,18 @@ test.describe('Question Editor E2E Tests', () => {
         question: 'Original question text',
         correctAnswers: ['original'],
       });
-      await page.click('button:has-text("Guardar pregunta")');
+      await page.click(`button[data-testid="save-question-button"]:has-text("${createButtonText}")`);
       await page.waitForTimeout(1000);
       
       // Now edit it - click edit button
-      const questionCard = page.locator('.question-item', { hasText: 'Original question text' });
+      const questionCard = page.locator('[data-question-id]', { hasText: 'Original question text' });
       await questionCard.locator('button[aria-label="Edit"]').click();
       
       // Modify the question text
-      await page.fill('textarea[name="question"]', 'Modified question text');
+      await page.fill('[data-testid="question-text-input"]', 'Modified question text');
       
       // Save changes
-      await page.click('button:has-text("Guardar pregunta")');
+      await page.click(`button[data-testid="save-question-button"]:has-text("${editButtonText}")`);
       await page.waitForTimeout(1000);
       
       // Verify changes
@@ -259,6 +271,7 @@ test.describe('Question Editor E2E Tests', () => {
 
     test('should delete a question with confirmation', async ({ page }) => {
       const uniqueKey = 'test_delete_question_' + Date.now();
+      const buttonText = 'Crear pregunta';
       
       // First create a question to delete
       await page.click('button:has-text("Favorites")');
@@ -267,14 +280,14 @@ test.describe('Question Editor E2E Tests', () => {
         question: 'Question to delete',
         correctAnswers: ['answer'],
       });
-      await page.click('button:has-text("Guardar pregunta")');
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       await page.waitForTimeout(1000);
       
       // Verify it exists
       await expect(page.getByText('Question to delete')).toBeVisible();
       
       // Click delete button
-      const questionCard = page.locator('.question-item', { hasText: 'Question to delete' });
+      const questionCard = page.locator('[data-question-id]', { hasText: 'Question to delete' });
       await questionCard.locator('button[aria-label="Delete"]').click();
       
       // Confirm deletion in modal
@@ -290,6 +303,7 @@ test.describe('Question Editor E2E Tests', () => {
 
     test('should cancel deletion', async ({ page }) => {
       const uniqueKey = 'test_cancel_delete_' + Date.now();
+      const buttonText = 'Crear pregunta';
       
       // First create a question
       await page.click('button:has-text("Favorites")');
@@ -298,11 +312,11 @@ test.describe('Question Editor E2E Tests', () => {
         question: 'Question to cancel delete',
         correctAnswers: ['answer'],
       });
-      await page.click('button:has-text("Guardar pregunta")');
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       await page.waitForTimeout(1000);
       
       // Click delete button
-      const questionCard = page.locator('.question-item', { hasText: 'Question to cancel delete' });
+      const questionCard = page.locator('[data-question-id]', { hasText: 'Question to cancel delete' });
       await questionCard.locator('button[aria-label="Delete"]').click();
       
       // Cancel in modal
@@ -319,6 +333,8 @@ test.describe('Question Editor E2E Tests', () => {
     });
 
     test('should group questions by section', async ({ page }) => {
+      const buttonText = 'Crear pregunta';
+      
       // Create questions in different sections
       await page.click('button:has-text("Favorites")');
       await fillQuestionForm(page, {
@@ -327,7 +343,7 @@ test.describe('Question Editor E2E Tests', () => {
         section: 'favorites',
         correctAnswers: ['answer'],
       });
-      await page.click('button:has-text("Guardar pregunta")');
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       await page.waitForTimeout(500);
 
       await page.click('button:has-text("Preferences")');
@@ -337,7 +353,7 @@ test.describe('Question Editor E2E Tests', () => {
         section: 'preferences',
         correctAnswers: ['answer'],
       });
-      await page.click('button:has-text("Guardar pregunta")');
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       await page.waitForTimeout(500);
 
       // Verify section headers are visible
@@ -368,6 +384,8 @@ test.describe('Question Editor E2E Tests', () => {
     });
 
     test('should show drag handles for questions', async ({ page }) => {
+      const buttonText = 'Crear pregunta';
+      
       // Create at least one question
       await page.click('button:has-text("Favorites")');
       await fillQuestionForm(page, {
@@ -375,7 +393,7 @@ test.describe('Question Editor E2E Tests', () => {
         question: 'Draggable question',
         correctAnswers: ['answer'],
       });
-      await page.click('button:has-text("Guardar pregunta")');
+      await page.click(`button[data-testid="save-question-button"]:has-text("${buttonText}")`);
       await page.waitForTimeout(1000);
       
       // Check for drag handle (grip icon)

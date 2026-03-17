@@ -100,7 +100,7 @@ func main() {
 	handler := handlers.NewHandler(playerRepo, quizRepo, quizQuestionRepo, postcardRepo, hub, uploadsDir)
 	authHandler := handlers.NewAuthHandler(authService)
 	themeHandler := handlers.NewThemeHandler(themeService)
-	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo)
+	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
 
 	// Configurar router
 	r := gin.Default()
@@ -221,6 +221,7 @@ func main() {
 		adminEvents := api.Group("/admin/events/:slug")
 		adminEvents.Use(eventMiddleware)
 		adminEvents.Use(authMiddleware)
+		adminEvents.Use(middleware.OwnerMiddleware())
 		{
 			adminEvents.GET("/status", handler.GetSecretBoxStatus)
 			adminEvents.GET("/secret-box", handler.ListSecretPostcards)

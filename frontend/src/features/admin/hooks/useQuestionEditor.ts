@@ -130,9 +130,13 @@ export function useQuestionEditor(eventSlug: string, adminKey: string): UseQuest
     },
   });
 
-  // Import mutation
+  // Import mutation - reads file and sends JSON array to backend
   const importMutation = useMutation<{ imported: number; warnings?: string[] }, Error, File>({
-    mutationFn: (file) => api.importQuestions(eventSlug, file),
+    mutationFn: async (file) => {
+      const text = await file.text();
+      const questions = JSON.parse(text);
+      return api.importQuestions(eventSlug, questions);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: questionsKey });
     },

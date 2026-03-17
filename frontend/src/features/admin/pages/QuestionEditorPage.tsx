@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/shared';
@@ -12,8 +12,8 @@ import type { QuizQuestion, QuestionFormData, QuestionSection } from '../types/q
 
 export function QuestionEditorPage() {
   const navigate = useNavigate();
+  const { slug: eventSlug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
-  const eventSlug = searchParams.get('event') ?? '';
   const adminKey = searchParams.get('key') ?? '';
 
   const [selectedQuestion, setSelectedQuestion] = useState<QuizQuestion | null>(null);
@@ -30,7 +30,7 @@ export function QuestionEditorPage() {
     reorderMutation,
     importMutation,
     exportQuestions,
-  } = useQuestionEditor(eventSlug, adminKey);
+  } = useQuestionEditor(eventSlug ?? '', adminKey);
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const deletingId = deleteMutation.isPending ? showDeleteConfirm : null;
@@ -43,26 +43,20 @@ export function QuestionEditorPage() {
         await updateMutation.mutateAsync({
           id: selectedQuestion.id,
           key: data.key,
-          type: data.type,
           section: data.section,
-          data: {
-            question: data.question,
-            options: data.type === 'choice' ? data.options : undefined,
-            correct_answers: data.correct_answers,
-          },
+          question_text: data.question_text,
+          correct_answers: data.correct_answers,
+          options: data.options?.length ? data.options : null,
           is_scorable: data.is_scorable,
         });
       } else {
         // Create
         await createMutation.mutateAsync({
           key: data.key,
-          type: data.type,
           section: data.section,
-          data: {
-            question: data.question,
-            options: data.type === 'choice' ? data.options : undefined,
-            correct_answers: data.correct_answers,
-          },
+          question_text: data.question_text,
+          correct_answers: data.correct_answers,
+          options: data.options?.length ? data.options : undefined,
           is_scorable: data.is_scorable,
         });
       }
@@ -100,11 +94,10 @@ export function QuestionEditorPage() {
     setSelectedQuestion(question);
     setFormData({
       key: question.key,
-      type: question.type,
       section: question.section,
-      question: question.data.question,
-      options: question.data.options || ['', ''],
-      correct_answers: question.data.correct_answers,
+      question_text: question.question_text,
+      options: question.options || ['', ''],
+      correct_answers: question.correct_answers,
       is_scorable: question.is_scorable,
     });
   }, []);
@@ -124,10 +117,16 @@ export function QuestionEditorPage() {
   };
 
   // Handle add new question in a specific section
-  const handleAddQuestion = (_section: QuestionSection) => {
-    setSelectedQuestion(null);
-    setFormData(null);
-    // The form will show with the selected section
+  const handleAddQuestion = (section: QuestionSection) => {
+    setSelectedQuestion(null); // Create mode
+    setFormData({
+      key: '',
+      section,
+      question_text: '',
+      options: section === 'preferences' ? ['', ''] : [],
+      correct_answers: [],
+      is_scorable: true,
+    });
   };
 
   // Handle cancel form
@@ -145,7 +144,7 @@ export function QuestionEditorPage() {
         <div className="text-center">
           <p className="text-red-500 mb-2">Faltan parámetros</p>
           <p className="text-gray-500 text-sm">
-            Se requiere <code>?event=...</code> y <code>?key=...</code>
+            Se requiere <code>/admin/questions/:slug?key=...</code>
           </p>
         </div>
       </div>
@@ -239,15 +238,15 @@ export function QuestionEditorPage() {
                     isSubmitting={isSubmitting}
                     onSubmit={handleSubmit}
                     onCancel={handleCancelForm}
+                    onChange={setFormData}
                   />
                   <div className="mt-4">
                     <QuestionPreview data={formData || {
                       key: '',
-                      type: selectedQuestion?.type || 'text',
                       section: selectedQuestion?.section || 'favorites',
-                      question: selectedQuestion?.data.question || '',
-                      options: selectedQuestion?.data.options || ['', ''],
-                      correct_answers: selectedQuestion?.data.correct_answers || [],
+                      question_text: selectedQuestion?.question_text || '',
+                      options: selectedQuestion?.options || ['', ''],
+                      correct_answers: selectedQuestion?.correct_answers || [],
                       is_scorable: selectedQuestion?.is_scorable ?? true,
                     }} />
                   </div>

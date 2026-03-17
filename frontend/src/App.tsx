@@ -343,7 +343,7 @@ function AnimatedRoutes() {
             <ThemeEditorPage />
           </AnimatedPage>
         } />
-        <Route path="/admin/event/:slug/questions" element={
+        <Route path="/admin/questions/:slug" element={
           <AnimatedPage variants={fadeVariants}>
             <QuestionEditorPage />
           </AnimatedPage>

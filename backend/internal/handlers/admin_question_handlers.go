@@ -29,17 +29,24 @@ type EventFinder interface {
 	GetBySlug(slug string) (*models.Event, error)
 }
 
+// EventGetter define la operación para obtener evento por ID.
+type EventGetter interface {
+	GetByID(id uuid.UUID) (*models.Event, error)
+}
+
 // AdminQuestionHandler maneja las peticiones admin de preguntas del quiz
 type AdminQuestionHandler struct {
 	quizQuestionRepo QuizQuestionAdminRepo
 	eventFinder      EventFinder
+	eventGetter      EventGetter
 }
 
 // NewAdminQuestionHandler crea un nuevo handler de admin de preguntas
-func NewAdminQuestionHandler(quizQuestionRepo QuizQuestionAdminRepo, eventFinder EventFinder) *AdminQuestionHandler {
+func NewAdminQuestionHandler(quizQuestionRepo QuizQuestionAdminRepo, eventFinder EventFinder, eventGetter EventGetter) *AdminQuestionHandler {
 	return &AdminQuestionHandler{
 		quizQuestionRepo: quizQuestionRepo,
 		eventFinder:      eventFinder,
+		eventGetter:      eventGetter,
 	}
 }
 
@@ -97,14 +104,8 @@ func (h *AdminQuestionHandler) ListQuestions(c *gin.Context) {
 		questions = questions[start:end]
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"questions": questions,
-		"pagination": gin.H{
-			"page":     page,
-			"per_page": perPage,
-			"total":    total,
-		},
-	})
+	// Devolver array directamente
+	c.JSON(http.StatusOK, questions)
 }
 
 // CreateQuestion POST /api/admin/events/:slug/questions
@@ -146,14 +147,10 @@ func (h *AdminQuestionHandler) CreateQuestion(c *gin.Context) {
 		sortOrder = count + 1
 	}
 
-	// Si is_scorable no se proporcionó,默认为true
-	isScorable := req.IsScorable
-	if !req.IsScorable && req.IsScorable { // Only false if explicitly set to false
-		isScorable = false
-	}
-	// Por defecto es true
-	if !req.IsScorable && len(req.CorrectAnswers) > 0 {
-		isScorable = true
+	// Si is_scorable es nil, 默认true (tiene correct_answers)
+	isScorable := true
+	if req.IsScorable != nil {
+		isScorable = *req.IsScorable
 	}
 
 	// Crear pregunta
@@ -173,6 +170,33 @@ func (h *AdminQuestionHandler) CreateQuestion(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, question)
+}
+
+// checkOwnership verifica que el usuario autenticado sea owner del evento de la pregunta
+func (h *AdminQuestionHandler) checkOwnership(question *models.QuizQuestion, c *gin.Context) bool {
+	// Obtener user_id del contexto (seteado por AuthMiddleware)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		return false
+	}
+
+	// Obtener evento
+	event, err := h.eventGetter.GetByID(question.EventID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get event"})
+		return false
+	}
+
+	currentUserID := userID.(uuid.UUID)
+
+	// Verificar ownership
+	if currentUserID != event.OwnerID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized. You are not the owner of this event"})
+		return false
+	}
+
+	return true
 }
 
 // UpdateQuestion PUT /api/admin/questions/:id
@@ -195,16 +219,13 @@ func (h *AdminQuestionHandler) UpdateQuestion(c *gin.Context) {
 		return
 	}
 
-	// Parsear request
-	var req struct {
-		Section        *string  `json:"section,omitempty"`
-		Key            *string  `json:"key,omitempty"`
-		QuestionText   *string  `json:"question_text,omitempty"`
-		CorrectAnswers []string `json:"correct_answers,omitempty"`
-		Options        []string `json:"options,omitempty"`
-		SortOrder      *int     `json:"sort_order,omitempty"`
-		IsScorable     *bool    `json:"is_scorable,omitempty"`
+	// Verificar ownership
+	if !h.checkOwnership(question, c) {
+		return
 	}
+
+	// Parsear request
+	var req models.UpdateQuizQuestionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -269,14 +290,19 @@ func (h *AdminQuestionHandler) DeleteQuestion(c *gin.Context) {
 		return
 	}
 
-	// Verificar que existe
-	_, err = h.quizQuestionRepo.GetByID(id)
+	// Obtener pregunta
+	question, err := h.quizQuestionRepo.GetByID(id)
 	if err != nil {
 		if err == repository.ErrQuestionNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Question not found"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get question"})
+		return
+	}
+
+	// Verificar ownership
+	if !h.checkOwnership(question, c) {
 		return
 	}
 
@@ -299,24 +325,21 @@ func (h *AdminQuestionHandler) ReorderQuestions(c *gin.Context) {
 		return
 	}
 
-	// Parsear request - usar estructura con tags JSON para snake_case
-	var req []struct {
-		ID        string `json:"id"`
-		SortOrder int    `json:"sort_order"`
-	}
+	// Parsear request - aceptar estructura con orders
+	var req models.ReorderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
-	if len(req) == 0 {
+	if len(req.Orders) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No reorder updates provided"})
 		return
 	}
 
 	// Convertir a SortOrderUpdate
-	updates := make([]repository.SortOrderUpdate, len(req))
-	for i, r := range req {
+	updates := make([]repository.SortOrderUpdate, len(req.Orders))
+	for i, r := range req.Orders {
 		id, err := uuid.Parse(r.ID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid question ID: " + r.ID})
@@ -383,10 +406,8 @@ func (h *AdminQuestionHandler) ExportQuestions(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"event":     event.Name,
-		"questions": export,
-	})
+	// Devolver array directamente
+	c.JSON(http.StatusOK, export)
 }
 
 // ImportQuestions POST /api/admin/events/:slug/questions/import
@@ -399,33 +420,23 @@ func (h *AdminQuestionHandler) ImportQuestions(c *gin.Context) {
 		return
 	}
 
-	// Parsear request
-	var req struct {
-		Questions []struct {
-			Section        string   `json:"section" binding:"required"`
-			Key            string   `json:"key" binding:"required"`
-			QuestionText   string   `json:"question_text" binding:"required"`
-			CorrectAnswers []string `json:"correct_answers"`
-			Options        []string `json:"options"`
-			SortOrder      int      `json:"sort_order"`
-			IsScorable     bool     `json:"is_scorable"`
-		} `json:"questions" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
+	// Parsear request - aceptar array directamente (matching export format)
+	var questions []models.CreateQuizQuestionRequest
+	if err := c.ShouldBindJSON(&questions); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON: " + err.Error()})
 		return
 	}
 
-	if len(req.Questions) == 0 {
+	if len(questions) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No questions to import"})
 		return
 	}
 
 	// Validar cada pregunta y verificar keys únicas
-	created := make([]models.QuizQuestion, 0, len(req.Questions))
+	created := make([]models.QuizQuestion, 0, len(questions))
 	errors := make([]string, 0)
 
-	for i, q := range req.Questions {
+	for i, q := range questions {
 		// Validar required fields
 		if q.Section == "" || q.Key == "" || q.QuestionText == "" {
 			errors = append(errors, "Question "+strconv.Itoa(i+1)+": missing required fields")
@@ -454,6 +465,12 @@ func (h *AdminQuestionHandler) ImportQuestions(c *gin.Context) {
 			sortOrder = count + 1
 		}
 
+		// Resolver is_scorable (default true)
+		isScorable := true
+		if q.IsScorable != nil {
+			isScorable = *q.IsScorable
+		}
+
 		// Crear pregunta
 		createdQuestion, err := h.quizQuestionRepo.Create(
 			event.ID,
@@ -463,7 +480,7 @@ func (h *AdminQuestionHandler) ImportQuestions(c *gin.Context) {
 			q.CorrectAnswers,
 			q.Options,
 			sortOrder,
-			q.IsScorable,
+			isScorable,
 		)
 		if err != nil {
 			errors = append(errors, "Question "+strconv.Itoa(i+1)+": failed to create: "+err.Error())

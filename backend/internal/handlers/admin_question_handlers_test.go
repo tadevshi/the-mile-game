@@ -151,6 +151,27 @@ type mockEventFinder struct {
 	events map[string]*models.Event
 }
 
+type mockEventGetter struct {
+	events map[uuid.UUID]*models.Event
+}
+
+func newMockEventGetter() *mockEventGetter {
+	return &mockEventGetter{
+		events: make(map[uuid.UUID]*models.Event),
+	}
+}
+
+func (m *mockEventGetter) AddEvent(event *models.Event) {
+	m.events[event.ID] = event
+}
+
+func (m *mockEventGetter) GetByID(id uuid.UUID) (*models.Event, error) {
+	if e, ok := m.events[id]; ok {
+		return e, nil
+	}
+	return nil, sql.ErrNoRows
+}
+
 func newMockEventFinder() *mockEventFinder {
 	return &mockEventFinder{
 		events: make(map[string]*models.Event),
@@ -186,6 +207,29 @@ func setupTestRouter(handler *AdminQuestionHandler) *gin.Engine {
 	return r
 }
 
+// setupTestRouterWithAuth creates a router with auth context for ownership tests
+func setupTestRouterWithAuth(handler *AdminQuestionHandler, userID uuid.UUID) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	// Middleware to set user_id in context (simulating AuthMiddleware)
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", userID)
+		c.Next()
+	})
+
+	// Routes
+	r.GET("/api/admin/events/:slug/questions", handler.ListQuestions)
+	r.POST("/api/admin/events/:slug/questions", handler.CreateQuestion)
+	r.PUT("/api/admin/questions/:id", handler.UpdateQuestion)
+	r.DELETE("/api/admin/questions/:id", handler.DeleteQuestion)
+	r.PATCH("/api/admin/events/:slug/questions/reorder", handler.ReorderQuestions)
+	r.GET("/api/admin/events/:slug/questions/export", handler.ExportQuestions)
+	r.POST("/api/admin/events/:slug/questions/import", handler.ImportQuestions)
+
+	return r
+}
+
 func createTestEvent(slug, name string) *models.Event {
 	return &models.Event{
 		ID:          uuid.New(),
@@ -200,15 +244,17 @@ func createTestEvent(slug, name string) *models.Event {
 func TestAdminQuestionHandler_ListQuestions(t *testing.T) {
 	mockRepo := newMockQuizQuestionRepo()
 	mockEventFinder := newMockEventFinder()
+	mockEventGetter := newMockEventGetter()
 
 	event := createTestEvent("test-event", "Test Event")
 	mockEventFinder.AddEvent(event)
+	mockEventGetter.AddEvent(event)
 
 	// Add some questions
 	mockRepo.Create(event.ID, "favorites", "fav_color", "Favorite color?", []string{"Pink"}, nil, 1, true)
 	mockRepo.Create(event.ID, "preferences", "coffee_or_tea", "Coffee or tea?", []string{"Coffee"}, []string{"Coffee", "Tea"}, 1, true)
 
-	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder)
+	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder, mockEventGetter)
 	router := setupTestRouter(handler)
 
 	t.Run("success with pagination", func(t *testing.T) {
@@ -218,16 +264,12 @@ func TestAdminQuestionHandler_ListQuestions(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &response)
+		// Now returns array directly
+		var questions []interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &questions)
 		require.NoError(t, err)
 
-		questions := response["questions"].([]interface{})
 		assert.Len(t, questions, 2)
-
-		pagination := response["pagination"].(map[string]interface{})
-		assert.Equal(t, float64(1), pagination["page"])
-		assert.Equal(t, float64(2), pagination["total"])
 	})
 
 	t.Run("success with section filter", func(t *testing.T) {
@@ -237,11 +279,10 @@ func TestAdminQuestionHandler_ListQuestions(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &response)
+		var questions []interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &questions)
 		require.NoError(t, err)
 
-		questions := response["questions"].([]interface{})
 		assert.Len(t, questions, 1)
 	})
 
@@ -257,11 +298,13 @@ func TestAdminQuestionHandler_ListQuestions(t *testing.T) {
 func TestAdminQuestionHandler_CreateQuestion(t *testing.T) {
 	mockRepo := newMockQuizQuestionRepo()
 	mockEventFinder := newMockEventFinder()
+	mockEventGetter := newMockEventGetter()
 
 	event := createTestEvent("test-event", "Test Event")
 	mockEventFinder.AddEvent(event)
+	mockEventGetter.AddEvent(event)
 
-	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder)
+	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder, mockEventGetter)
 	router := setupTestRouter(handler)
 
 	t.Run("success", func(t *testing.T) {
@@ -334,14 +377,17 @@ func TestAdminQuestionHandler_CreateQuestion(t *testing.T) {
 func TestAdminQuestionHandler_UpdateQuestion(t *testing.T) {
 	mockRepo := newMockQuizQuestionRepo()
 	mockEventFinder := newMockEventFinder()
+	mockEventGetter := newMockEventGetter()
 
 	event := createTestEvent("test-event", "Test Event")
+	event.OwnerID = uuid.MustParse("00000000-0000-0000-0000-000000000001") // Set owner
 	mockEventFinder.AddEvent(event)
+	mockEventGetter.AddEvent(event)
 
 	question, _ := mockRepo.Create(event.ID, "favorites", "original_key", "Original?", []string{"Old"}, nil, 1, true)
 
-	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder)
-	router := setupTestRouter(handler)
+	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder, mockEventGetter)
+	router := setupTestRouterWithAuth(handler, event.OwnerID)
 
 	t.Run("success", func(t *testing.T) {
 		body := `{
@@ -396,19 +442,36 @@ func TestAdminQuestionHandler_UpdateQuestion(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
+
+	t.Run("forbidden - wrong owner", func(t *testing.T) {
+		// Create router with different user
+		routerWrongOwner := setupTestRouterWithAuth(handler, uuid.MustParse("99999999-9999-9999-9999-999999999999"))
+
+		body := `{"question_text": "Hacked?"}`
+
+		req, _ := http.NewRequest("PUT", "/api/admin/questions/"+question.ID.String(), bytes.NewBufferString(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		routerWrongOwner.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
 }
 
 func TestAdminQuestionHandler_DeleteQuestion(t *testing.T) {
 	mockRepo := newMockQuizQuestionRepo()
 	mockEventFinder := newMockEventFinder()
+	mockEventGetter := newMockEventGetter()
 
 	event := createTestEvent("test-event", "Test Event")
+	event.OwnerID = uuid.MustParse("00000000-0000-0000-0000-000000000001") // Set owner
 	mockEventFinder.AddEvent(event)
+	mockEventGetter.AddEvent(event)
 
 	question, _ := mockRepo.Create(event.ID, "favorites", "to_delete", "To delete?", []string{"A"}, nil, 1, true)
 
-	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder)
-	router := setupTestRouter(handler)
+	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder, mockEventGetter)
+	router := setupTestRouterWithAuth(handler, event.OwnerID)
 
 	t.Run("success", func(t *testing.T) {
 		req, _ := http.NewRequest("DELETE", "/api/admin/questions/"+question.ID.String(), nil)
@@ -437,24 +500,41 @@ func TestAdminQuestionHandler_DeleteQuestion(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
+
+	t.Run("forbidden - wrong owner", func(t *testing.T) {
+		// Create a new question for this test (since previous test deleted the other one)
+		question2, _ := mockRepo.Create(event.ID, "favorites", "to_delete_2", "To delete 2?", []string{"B"}, nil, 2, true)
+
+		// Create router with different user
+		routerWrongOwner := setupTestRouterWithAuth(handler, uuid.MustParse("99999999-9999-9999-9999-999999999999"))
+
+		req, _ := http.NewRequest("DELETE", "/api/admin/questions/"+question2.ID.String(), nil)
+		w := httptest.NewRecorder()
+		routerWrongOwner.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+	})
 }
 
 func TestAdminQuestionHandler_ReorderQuestions(t *testing.T) {
 	mockRepo := newMockQuizQuestionRepo()
 	mockEventFinder := newMockEventFinder()
+	mockEventGetter := newMockEventGetter()
 
 	event := createTestEvent("test-event", "Test Event")
 	mockEventFinder.AddEvent(event)
+	mockEventGetter.AddEvent(event)
 
 	q1, _ := mockRepo.Create(event.ID, "favorites", "q1", "Q1?", []string{"A"}, nil, 1, true)
 	q2, _ := mockRepo.Create(event.ID, "favorites", "q2", "Q2?", []string{"B"}, nil, 2, true)
 	q3, _ := mockRepo.Create(event.ID, "favorites", "q3", "Q3?", []string{"C"}, nil, 3, true)
 
-	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder)
+	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder, mockEventGetter)
 	router := setupTestRouter(handler)
 
 	t.Run("success", func(t *testing.T) {
-		body := `[{"id": "` + q3.ID.String() + `", "sort_order": 1}, {"id": "` + q1.ID.String() + `", "sort_order": 2}, {"id": "` + q2.ID.String() + `", "sort_order": 3}]`
+		// Now uses { orders: [...] } structure
+		body := `{"orders": [{"id": "` + q3.ID.String() + `", "sort_order": 1}, {"id": "` + q1.ID.String() + `", "sort_order": 2}, {"id": "` + q2.ID.String() + `", "sort_order": 3}]}`
 
 		req, _ := http.NewRequest("PATCH", "/api/admin/events/test-event/questions/reorder", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -474,9 +554,10 @@ func TestAdminQuestionHandler_ReorderQuestions(t *testing.T) {
 	t.Run("question not in event", func(t *testing.T) {
 		otherEvent := createTestEvent("other-event", "Other Event")
 		mockEventFinder.AddEvent(otherEvent)
+		mockEventGetter.AddEvent(otherEvent)
 		otherQ, _ := mockRepo.Create(otherEvent.ID, "favorites", "other", "Other?", []string{"A"}, nil, 1, true)
 
-		body := `[{"id": "` + otherQ.ID.String() + `", "sort_order": 1}]`
+		body := `{"orders": [{"id": "` + otherQ.ID.String() + `", "sort_order": 1}]}`
 
 		req, _ := http.NewRequest("PATCH", "/api/admin/events/test-event/questions/reorder", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -487,7 +568,7 @@ func TestAdminQuestionHandler_ReorderQuestions(t *testing.T) {
 	})
 
 	t.Run("empty array", func(t *testing.T) {
-		body := `[]`
+		body := `{"orders": []}`
 
 		req, _ := http.NewRequest("PATCH", "/api/admin/events/test-event/questions/reorder", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -501,14 +582,16 @@ func TestAdminQuestionHandler_ReorderQuestions(t *testing.T) {
 func TestAdminQuestionHandler_ExportQuestions(t *testing.T) {
 	mockRepo := newMockQuizQuestionRepo()
 	mockEventFinder := newMockEventFinder()
+	mockEventGetter := newMockEventGetter()
 
 	event := createTestEvent("test-event", "Test Event")
 	mockEventFinder.AddEvent(event)
+	mockEventGetter.AddEvent(event)
 
 	mockRepo.Create(event.ID, "favorites", "fav_color", "Favorite color?", []string{"Pink"}, nil, 1, true)
 	mockRepo.Create(event.ID, "preferences", "coffee_or_tea", "Coffee or tea?", []string{"Coffee"}, []string{"Coffee", "Tea"}, 1, true)
 
-	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder)
+	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder, mockEventGetter)
 	router := setupTestRouter(handler)
 
 	t.Run("success", func(t *testing.T) {
@@ -518,19 +601,18 @@ func TestAdminQuestionHandler_ExportQuestions(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &response)
+		// Now returns array directly
+		var questions []interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &questions)
 		require.NoError(t, err)
 
-		assert.Equal(t, "Test Event", response["event"])
-
-		questions := response["questions"].([]interface{})
 		assert.Len(t, questions, 2)
 	})
 
 	t.Run("empty event", func(t *testing.T) {
 		emptyEvent := createTestEvent("empty-event", "Empty Event")
 		mockEventFinder.AddEvent(emptyEvent)
+		mockEventGetter.AddEvent(emptyEvent)
 
 		req, _ := http.NewRequest("GET", "/api/admin/events/empty-event/questions/export", nil)
 		w := httptest.NewRecorder()
@@ -538,11 +620,10 @@ func TestAdminQuestionHandler_ExportQuestions(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]interface{}
-		err := json.Unmarshal(w.Body.Bytes(), &response)
+		var questions []interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &questions)
 		require.NoError(t, err)
 
-		questions := response["questions"].([]interface{})
 		assert.Len(t, questions, 0)
 	})
 }
@@ -550,35 +631,36 @@ func TestAdminQuestionHandler_ExportQuestions(t *testing.T) {
 func TestAdminQuestionHandler_ImportQuestions(t *testing.T) {
 	mockRepo := newMockQuizQuestionRepo()
 	mockEventFinder := newMockEventFinder()
+	mockEventGetter := newMockEventGetter()
 
 	event := createTestEvent("test-event", "Test Event")
 	mockEventFinder.AddEvent(event)
+	mockEventGetter.AddEvent(event)
 
-	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder)
+	handler := NewAdminQuestionHandler(mockRepo, mockEventFinder, mockEventGetter)
 	router := setupTestRouter(handler)
 
 	t.Run("success", func(t *testing.T) {
-		body := `{
-			"questions": [
-				{
-					"section": "favorites",
-					"key": "imported_1",
-					"question_text": "Imported question 1?",
-					"correct_answers": ["Answer 1"],
-					"sort_order": 1,
-					"is_scorable": true
-				},
-				{
-					"section": "preferences",
-					"key": "imported_2",
-					"question_text": "Imported question 2?",
-					"correct_answers": ["B"],
-					"options": ["A", "B"],
-					"sort_order": 2,
-					"is_scorable": true
-				}
-			]
-		}`
+		// Now accepts array directly
+		body := `[
+			{
+				"section": "favorites",
+				"key": "imported_1",
+				"question_text": "Imported question 1?",
+				"correct_answers": ["Answer 1"],
+				"sort_order": 1,
+				"is_scorable": true
+			},
+			{
+				"section": "preferences",
+				"key": "imported_2",
+				"question_text": "Imported question 2?",
+				"correct_answers": ["B"],
+				"options": ["A", "B"],
+				"sort_order": 2,
+				"is_scorable": true
+			}
+		]`
 
 		req, _ := http.NewRequest("POST", "/api/admin/events/test-event/questions/import", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -595,12 +677,10 @@ func TestAdminQuestionHandler_ImportQuestions(t *testing.T) {
 	})
 
 	t.Run("duplicate keys in import", func(t *testing.T) {
-		body := `{
-			"questions": [
-				{"section": "favorites", "key": "dup_1", "question_text": "Q1?", "correct_answers": ["A"]},
-				{"section": "favorites", "key": "dup_1", "question_text": "Q2?", "correct_answers": ["B"]}
-			]
-		}`
+		body := `[
+			{"section": "favorites", "key": "dup_1", "question_text": "Q1?", "correct_answers": ["A"]},
+			{"section": "favorites", "key": "dup_1", "question_text": "Q2?", "correct_answers": ["B"]}
+		]`
 
 		req, _ := http.NewRequest("POST", "/api/admin/events/test-event/questions/import", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -618,7 +698,7 @@ func TestAdminQuestionHandler_ImportQuestions(t *testing.T) {
 	})
 
 	t.Run("invalid json", func(t *testing.T) {
-		body := `{"questions": "not an array"}`
+		body := `"not an array"`
 
 		req, _ := http.NewRequest("POST", "/api/admin/events/test-event/questions/import", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -629,7 +709,7 @@ func TestAdminQuestionHandler_ImportQuestions(t *testing.T) {
 	})
 
 	t.Run("empty questions", func(t *testing.T) {
-		body := `{"questions": []}`
+		body := `[]`
 
 		req, _ := http.NewRequest("POST", "/api/admin/events/test-event/questions/import", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -640,7 +720,7 @@ func TestAdminQuestionHandler_ImportQuestions(t *testing.T) {
 	})
 
 	t.Run("event not found", func(t *testing.T) {
-		body := `{"questions": [{"section": "favorites", "key": "q", "question_text": "Q?"}]}`
+		body := `[{"section": "favorites", "key": "q", "question_text": "Q?"}]`
 
 		req, _ := http.NewRequest("POST", "/api/admin/events/nonexistent/questions/import", bytes.NewBufferString(body))
 		req.Header.Set("Content-Type", "application/json")
