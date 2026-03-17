@@ -26,9 +26,12 @@ type PostcardRepo interface {
 	List() ([]models.Postcard, error)
 	ListByEvent(eventID uuid.UUID) ([]models.Postcard, error)
 	ListSecret() ([]models.Postcard, error)
+	ListSecretByEvent(eventID uuid.UUID) ([]models.Postcard, error)
 	RevealSecretBox() ([]models.Postcard, error)
+	RevealSecretBoxByEvent(eventID uuid.UUID) ([]models.Postcard, error)
 	RevealPostcard(id uuid.UUID) (*models.Postcard, error)
 	GetSecretBoxStatus() (*models.SecretBoxStatus, error)
+	GetSecretBoxStatusByEvent(eventID uuid.UUID) (*models.SecretBoxStatus, error)
 }
 
 // BroadcastHub define las operaciones de broadcast usadas por los handlers.
@@ -673,6 +676,18 @@ func (h *Handler) GetSecretBoxStatus(c *gin.Context) {
 		return
 	}
 
+	// Si hay event_id en el contexto, usar versión scoped
+	if eventID, exists := c.Get("event_id"); exists {
+		status, err := h.postcardRepo.GetSecretBoxStatusByEvent(eventID.(uuid.UUID))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get secret box status"})
+			return
+		}
+		c.JSON(http.StatusOK, status)
+		return
+	}
+
+	// Fallback: versión global (backward compatibility)
 	status, err := h.postcardRepo.GetSecretBoxStatus()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get secret box status"})
@@ -688,6 +703,23 @@ func (h *Handler) ListSecretPostcards(c *gin.Context) {
 		return
 	}
 
+	// Si hay event_id en el contexto, usar versión scoped
+	if eventID, exists := c.Get("event_id"); exists {
+		postcards, err := h.postcardRepo.ListSecretByEvent(eventID.(uuid.UUID))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list secret postcards"})
+			return
+		}
+
+		if postcards == nil {
+			postcards = []models.Postcard{}
+		}
+
+		c.JSON(http.StatusOK, postcards)
+		return
+	}
+
+	// Fallback: versión global (backward compatibility)
 	postcards, err := h.postcardRepo.ListSecret()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list secret postcards"})
@@ -708,7 +740,17 @@ func (h *Handler) RevealSecretBox(c *gin.Context) {
 		return
 	}
 
-	postcards, err := h.postcardRepo.RevealSecretBox()
+	var postcards []models.Postcard
+	var err error
+
+	// Si hay event_id en el contexto, usar versión scoped
+	if eventID, exists := c.Get("event_id"); exists {
+		postcards, err = h.postcardRepo.RevealSecretBoxByEvent(eventID.(uuid.UUID))
+	} else {
+		// Fallback: versión global (backward compatibility)
+		postcards, err = h.postcardRepo.RevealSecretBox()
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reveal secret box"})
 		return

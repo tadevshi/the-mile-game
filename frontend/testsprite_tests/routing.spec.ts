@@ -12,31 +12,39 @@ test.describe('Routing Between Pages', () => {
   });
 
   test('should route to quiz page with registered user', async ({ page }) => {
-    // Register first
-    await page.goto('/register');
+    // Register first - V2 requires event prefix
+    await page.goto('/event/mile-2026/register');
     await page.getByPlaceholder(/Escribe tu nombre/i).fill('RouterTester');
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
     
-    // Verify quiz page (redirected to /event/mile-2026/quiz)
+    // Verify quiz page
     await expect(page).toHaveURL(/.*\/event\/mile-2026\/quiz/);
     await expect(page.getByText('¡Juguemos!')).toBeVisible();
   });
 
   test('should route to thank you page after quiz submission', async ({ page }) => {
-    // Complete quiz
-    await page.goto('/register');
+    // Complete quiz - V2 requires event prefix
+    await page.goto('/event/mile-2026/register');
     await page.getByPlaceholder(/Escribe tu nombre/i).fill('RouterTester');
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
     
-    // Fill and submit
+    // Fill all required quiz fields
     const inputs = page.locator('input[type="text"]');
-    for (let i = 0; i < 3; i++) {
-      await inputs.nth(i).fill('Answer');
+    const testAnswers = ['Taylor Swift', 'Rosa', 'Agua', 'Frozen', 'Verano', 'Rosa', 'Nada'];
+    
+    // Fill all 7 favorite questions
+    for (let i = 0; i < 7; i++) {
+      await inputs.nth(i).fill(testAnswers[i]);
     }
+    
+    // Fill description textarea
+    await page.locator('textarea').fill('Eres una persona increíble');
+    
+    // Submit the quiz
     await page.getByRole('button', { name: /Enviar Respuestas/i }).click();
     
-    // Verify thank you page (redirected to /event/mile-2026/ranking)
-    await expect(page).toHaveURL(/.*\/event\/mile-2026\/ranking/);
+    // V2 behavior: goes to /thank-you first
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/thank-you/);
     await expect(page.getByText('¡Gracias por participar!')).toBeVisible();
   });
 
@@ -44,7 +52,8 @@ test.describe('Routing Between Pages', () => {
     // /ranking redirects to /event/mile-2026/ranking
     await page.goto('/ranking');
     await expect(page).toHaveURL(/.*\/event\/mile-2026\/ranking/);
-    await expect(page.getByText('Ranking')).toBeVisible();
+    // Use more specific locator to avoid ambiguity with "Ver Ranking" buttons
+    await expect(page.getByRole('heading', { name: /Ranking/i })).toBeVisible();
   });
 
   test('should handle 404 for unknown routes', async ({ page }) => {

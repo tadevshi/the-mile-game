@@ -106,19 +106,39 @@ test.describe('Quiz Page Question Answering', () => {
   });
 
   test('should submit answers and navigate to thank you page', async ({ page }) => {
-    // Fill in some answers
-    const inputs = page.locator('input[type="text"]');
-    const count = await inputs.count();
+    // Wait for the page to be fully loaded and inputs to be ready
+    await page.waitForSelector('input[type="text"]');
     
-    for (let i = 0; i < Math.min(count, 7); i++) {
-      await inputs.nth(i).fill('Test Answer');
+    // Fill in all the favorite questions (text inputs)
+    const inputs = page.locator('input[type="text"]');
+    
+    // Wait for all inputs to be visible and fill them one by one
+    const testAnswers = ['Taylor Swift', 'Rosa', 'Agua', 'Frozen', 'Verano', 'Rosa', 'Nada'];
+    for (let i = 0; i < 7; i++) {
+      const input = inputs.nth(i);
+      await input.waitFor({ state: 'visible' });
+      await input.click();
+      await input.fill(testAnswers[i]);
+      await page.waitForTimeout(100); // Small delay for React to process
     }
     
-    // Click submit
-    await page.getByRole('button', { name: /Enviar Respuestas/i }).click();
+    // Fill in the description textarea
+    const textarea = page.locator('textarea');
+    await textarea.waitFor({ state: 'visible' });
+    await textarea.fill('Eres una persona increíble');
+    await page.waitForTimeout(100);
     
-    // Verify navigation
-    await expect(page).toHaveURL(/.*\/event\/mile-2026\/ranking/);
+    // Click submit button
+    const submitButton = page.getByRole('button', { name: /Enviar Respuestas/i });
+    await submitButton.waitFor({ state: 'visible' });
+    await submitButton.click();
+    
+    // V2 behavior: After submit, goes to /thank-you first
+    await page.waitForURL(/.*\/event\/mile-2026\/thank-you/, { timeout: 15000 });
+    
+    // Verify we're on the thank you page - check for any element that would be present
+    // The thank you page has a header with subtitle showing player name
+    await expect(page.locator('h1, h2')).toBeVisible();
   });
 
   test('should redirect to register if accessing quiz directly without name', async ({ page }) => {

@@ -215,6 +215,13 @@ func (r *mockPostcardRepo) GetSecretBoxStatus() (*models.SecretBoxStatus, error)
 	}, nil
 }
 
+func (r *mockPostcardRepo) GetSecretBoxStatusByEvent(eventID uuid.UUID) (*models.SecretBoxStatus, error) {
+	return &models.SecretBoxStatus{
+		Total:    1,
+		Revealed: r.state.secretBoxRevealed,
+	}, nil
+}
+
 func (r *mockPostcardRepo) RevealPostcard(id uuid.UUID) (*models.Postcard, error) {
 	t := time.Now()
 	r.createdPostcard.RevealedAt = &t
@@ -232,8 +239,14 @@ func (r *mockPostcardRepo) List() ([]models.Postcard, error)               { ret
 func (r *mockPostcardRepo) ListByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
 	return nil, nil
 }
-func (r *mockPostcardRepo) ListSecret() ([]models.Postcard, error)      { return nil, nil }
+func (r *mockPostcardRepo) ListSecret() ([]models.Postcard, error) { return nil, nil }
+func (r *mockPostcardRepo) ListSecretByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
+	return nil, nil
+}
 func (r *mockPostcardRepo) RevealSecretBox() ([]models.Postcard, error) { return nil, nil }
+func (r *mockPostcardRepo) RevealSecretBoxByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
+	return nil, nil
+}
 
 type mockHub struct {
 	state *mockState

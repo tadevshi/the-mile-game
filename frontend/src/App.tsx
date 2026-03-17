@@ -313,6 +313,15 @@ function AnimatedRoutes() {
             </EventLoader>
           } />
           
+          {/* Thank You: página de agradecimiento después del quiz */}
+          <Route path="thank-you" element={
+            <EventLoader>
+              <AnimatedPage variants={zoomVariants}>
+                <ThankYouPage />
+              </AnimatedPage>
+            </EventLoader>
+          } />
+          
           {/* Catch-all para rutas inválidas dentro del evento */}
           <Route path="*" element={
             <EventLoader>

@@ -276,3 +276,65 @@ func (r *PostcardRepository) ListByEvent(eventID uuid.UUID) ([]models.Postcard, 
 
 	return postcards, nil
 }
+
+// ListSecretByEvent obtiene todas las postales secretas de un evento específico
+func (r *PostcardRepository) ListSecretByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
+	query := `SELECT` + publicPostcardCols + `
+		WHERE p.event_id = $1 AND p.is_secret = TRUE
+		ORDER BY p.created_at DESC`
+
+	rows, err := r.db.Query(query, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var postcards []models.Postcard
+	for rows.Next() {
+		postcard, err := scanPostcard(rows)
+		if err != nil {
+			return nil, err
+		}
+		postcards = append(postcards, *postcard)
+	}
+
+	return postcards, nil
+}
+
+// RevealSecretBoxByEvent marca todas las secretas no reveladas de un evento como reveladas
+func (r *PostcardRepository) RevealSecretBoxByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
+	_, err := r.db.Exec(`
+		UPDATE postcards
+		SET revealed_at = NOW()
+		WHERE event_id = $1 AND is_secret = TRUE AND revealed_at IS NULL
+	`, eventID)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.ListSecretByEvent(eventID)
+}
+
+// GetSecretBoxStatusByEvent devuelve el estado de la Secret Box para un evento específico
+func (r *PostcardRepository) GetSecretBoxStatusByEvent(eventID uuid.UUID) (*models.SecretBoxStatus, error) {
+	var status models.SecretBoxStatus
+	var revealedAt sql.NullTime
+
+	err := r.db.QueryRow(`
+		SELECT
+			COUNT(*) AS total,
+			COUNT(*) FILTER (WHERE revealed_at IS NOT NULL) > 0 AS revealed,
+			MAX(revealed_at) AS revealed_at
+		FROM postcards
+		WHERE event_id = $1 AND is_secret = TRUE
+	`, eventID).Scan(&status.Total, &status.Revealed, &revealedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	if revealedAt.Valid {
+		status.RevealedAt = &revealedAt.Time
+	}
+
+	return &status, nil
+}

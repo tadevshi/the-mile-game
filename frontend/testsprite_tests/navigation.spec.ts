@@ -25,8 +25,8 @@ test.describe('Navigation Tests', () => {
     // Click back button
     await page.getByText(/Volver al inicio/i).click();
     
-    // Verify we're back on welcome page (root redirects to /event/mile-2026)
-    await expect(page).toHaveURL(/\/event\/mile-2026/);
-    await expect(page.getByText('¡Bienvenidos a mi Cumpleaños!')).toBeVisible();
+    // V2 behavior: /event/:slug redirects to /event/:slug/ranking
+    await expect(page).toHaveURL(/\/event\/mile-2026\/ranking/);
+    await expect(page.getByRole('heading', { name: /Ranking/i })).toBeVisible();
   });
 });

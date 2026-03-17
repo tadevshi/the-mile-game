@@ -202,10 +202,19 @@ func main() {
 		// Secret Box
 		api.POST("/postcards/secret", handler.CreateSecretPostcard)
 
-		// Admin
+		// Admin routes (legacy - backward compatibility)
 		api.GET("/admin/status", handler.GetSecretBoxStatus)
 		api.GET("/admin/secret-box", handler.ListSecretPostcards)
 		api.POST("/admin/reveal", handler.RevealSecretBox)
+
+		// Admin routes (event-scoped - multi-event)
+		adminEvents := api.Group("/admin/events/:slug")
+		adminEvents.Use(eventMiddleware)
+		{
+			adminEvents.GET("/status", handler.GetSecretBoxStatus)
+			adminEvents.GET("/secret-box", handler.ListSecretPostcards)
+			adminEvents.POST("/reveal", handler.RevealSecretBox)
+		}
 	}
 
 	// WebSocket endpoint (sin /api prefix, igual que health)
