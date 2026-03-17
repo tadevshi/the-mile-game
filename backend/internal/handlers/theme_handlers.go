@@ -4,16 +4,24 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/the-mile-game/backend/internal/services"
+	"github.com/the-mile-game/backend/internal/models"
 )
+
+// ThemeServiceInterface defines the interface for theme service operations
+type ThemeServiceInterface interface {
+	GetThemeBySlug(slug string) (*models.Theme, error)
+	GetAllPresets() []models.ThemePreset
+	UpdateTheme(eventID string, updates map[string]interface{}) (*models.Theme, error)
+	ApplyPresetToEvent(eventID string, presetName string) (*models.Theme, error)
+}
 
 // ThemeHandler handles theme-related HTTP requests
 type ThemeHandler struct {
-	themeService *services.ThemeService
+	themeService ThemeServiceInterface
 }
 
 // NewThemeHandler creates a new ThemeHandler
-func NewThemeHandler(themeService *services.ThemeService) *ThemeHandler {
+func NewThemeHandler(themeService ThemeServiceInterface) *ThemeHandler {
 	return &ThemeHandler{themeService: themeService}
 }
 
