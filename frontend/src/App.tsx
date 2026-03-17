@@ -4,6 +4,7 @@ import { WelcomePage, RegisterPage, QuizPage, ThankYouPage } from '@features/qui
 import { RankingPage } from '@features/ranking';
 import { CorkboardPage, SecretBoxPage } from '@features/postcards';
 import { AdminPage } from '@features/admin';
+import { ThemeEditorPage } from '@/features/admin/pages/ThemeEditorPage';
 import { ErrorBoundary, FEATURES, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import type { ReactNode } from 'react';
@@ -334,6 +335,13 @@ function AnimatedRoutes() {
             </EventLoader>
           } />
         </Route>
+        
+        {/* ADMIN ROUTES */}
+        <Route path="/admin/event/:id/theme" element={
+          <AnimatedPage variants={fadeVariants}>
+            <ThemeEditorPage />
+          </AnimatedPage>
+        } />
         
         {/* LEGACY ROUTES: todas las demás rutas */}
         <Route path="/*" element={<LegacyRoutes />} />
