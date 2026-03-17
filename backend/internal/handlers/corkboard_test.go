@@ -86,7 +86,15 @@ func (m *MockPostcardRepo) ListSecret() ([]models.Postcard, error) {
 	return nil, errors.New("not implemented")
 }
 
+func (m *MockPostcardRepo) ListSecretByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
+	return nil, errors.New("not implemented")
+}
+
 func (m *MockPostcardRepo) RevealSecretBox() ([]models.Postcard, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (m *MockPostcardRepo) RevealSecretBoxByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -95,6 +103,10 @@ func (m *MockPostcardRepo) RevealPostcard(id uuid.UUID) (*models.Postcard, error
 }
 
 func (m *MockPostcardRepo) GetSecretBoxStatus() (*models.SecretBoxStatus, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (m *MockPostcardRepo) GetSecretBoxStatusByEvent(eventID uuid.UUID) (*models.SecretBoxStatus, error) {
 	return nil, errors.New("not implemented")
 }
 

@@ -644,7 +644,7 @@ func TestAuthFlowComplete(t *testing.T) {
 				ExpiresIn:    900,
 				User: models.User{
 					ID:    userID,
-					Email: email,
+					Email: "user@example.com",
 					Name:  "Test User",
 				},
 			}, nil
@@ -809,4 +809,112 @@ func TestAuthFlowComplete(t *testing.T) {
 	}
 
 	t.Log("✅ Complete auth flow test passed!")
+}
+
+// ========== TESTS PARA LOGOUT ==========
+
+func TestLogoutSuccess(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	mockAuth := &MockAuthService{
+		ValidateTokenFunc: func(token string) (*models.JWTClaims, error) {
+			if token == "valid-token" {
+				return &models.JWTClaims{
+					UserID: uuid.New(),
+					Email:  "user@example.com",
+				}, nil
+			}
+			return nil, repository.ErrUserNotFound
+		},
+	}
+
+	// Auth middleware
+	authMiddleware := func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		if token == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization header"})
+			c.Abort()
+			return
+		}
+
+		if len(token) > 7 && token[:7] == "Bearer " {
+			token = token[7:]
+		}
+
+		claims, err := mockAuth.ValidateToken(token)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.Abort()
+			return
+		}
+
+		c.Set("user_id", claims.UserID)
+		c.Set("email", claims.Email)
+		c.Next()
+	}
+
+	// Logout handler (simula el handler real)
+	r.POST("/api/auth/logout", authMiddleware, func(c *gin.Context) {
+		_, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
+	})
+
+	// Test con token válido
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/auth/logout", nil)
+	req.Header.Set("Authorization", "Bearer valid-token")
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+
+	var resp map[string]string
+	json.Unmarshal(w.Body.Bytes(), &resp)
+
+	if resp["message"] != "Successfully logged out" {
+		t.Errorf("Expected message 'Successfully logged out', got '%s'", resp["message"])
+	}
+}
+
+func TestLogoutUnauthenticated(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	// Auth middleware
+	authMiddleware := func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		if token == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing authorization header"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+
+	// Logout handler
+	r.POST("/api/auth/logout", authMiddleware, func(c *gin.Context) {
+		_, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
+	})
+
+	// Test sin token
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/api/auth/logout", nil)
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
 }

@@ -101,3 +101,20 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		"email":   email,
 	})
 }
+
+// Logout cierra la sesión del usuario autenticado
+// POST /api/auth/logout
+// Nota: Dado que usamos JWT stateless sin blacklist, este endpoint
+// hace logout del lado del cliente. El servidor simplemente confirma.
+func (h *AuthHandler) Logout(c *gin.Context) {
+	// Verificar que el usuario está autenticado (middleware ya validó el token)
+	_, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// Logout stateless: el cliente debe eliminar los tokens
+	// El servidor solo confirma el logout
+	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
+}

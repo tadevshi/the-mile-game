@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Register Page Form Validation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5173/register');
+    await page.goto('/event/mile-2026/register');
   });
 
   test('should display register form elements', async ({ page }) => {
@@ -30,7 +30,7 @@ test.describe('Register Page Form Validation', () => {
     await expect(page.getByText('Por favor ingresa tu nombre')).toBeVisible();
     
     // Verify we stayed on register page
-    await expect(page).toHaveURL(/.*register/);
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/register/);
   });
 
   test('should show error for whitespace-only name', async ({ page }) => {
@@ -47,8 +47,8 @@ test.describe('Register Page Form Validation', () => {
     await page.getByPlaceholder(/Escribe tu nombre/i).fill('María');
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
     
-    // Verify navigation to quiz page
-    await expect(page).toHaveURL(/.*quiz/);
+    // Verify navigation to quiz page (event-scoped)
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/quiz/);
     await expect(page.getByText('¡Juguemos!')).toBeVisible();
   });
 
@@ -58,8 +58,8 @@ test.describe('Register Page Form Validation', () => {
     await page.getByPlaceholder(/Escribe tu nombre/i).fill(longName);
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
     
-    // Verify navigation
-    await expect(page).toHaveURL(/.*quiz/);
+    // Verify navigation (event-scoped)
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/quiz/);
   });
 
   test('should clear error when user starts typing', async ({ page }) => {

@@ -3,10 +3,10 @@ import { test, expect } from '@playwright/test';
 test.describe('Quiz Page Question Answering', () => {
   test.beforeEach(async ({ page }) => {
     // First register to be able to access quiz
-    await page.goto('http://localhost:5173/register');
+    await page.goto('/event/mile-2026/register');
     await page.getByPlaceholder(/Escribe tu nombre/i).fill('TestPlayer');
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
-    await expect(page).toHaveURL(/.*quiz/);
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/quiz/);
   });
 
   test('should display quiz page header with player name', async ({ page }) => {
@@ -106,27 +106,47 @@ test.describe('Quiz Page Question Answering', () => {
   });
 
   test('should submit answers and navigate to thank you page', async ({ page }) => {
-    // Fill in some answers
-    const inputs = page.locator('input[type="text"]');
-    const count = await inputs.count();
+    // Wait for the page to be fully loaded and inputs to be ready
+    await page.waitForSelector('input[type="text"]');
     
-    for (let i = 0; i < Math.min(count, 7); i++) {
-      await inputs.nth(i).fill('Test Answer');
+    // Fill in all the favorite questions (text inputs)
+    const inputs = page.locator('input[type="text"]');
+    
+    // Wait for all inputs to be visible and fill them one by one
+    const testAnswers = ['Taylor Swift', 'Rosa', 'Agua', 'Frozen', 'Verano', 'Rosa', 'Nada'];
+    for (let i = 0; i < 7; i++) {
+      const input = inputs.nth(i);
+      await input.waitFor({ state: 'visible' });
+      await input.click();
+      await input.fill(testAnswers[i]);
+      await page.waitForTimeout(100); // Small delay for React to process
     }
     
-    // Click submit
-    await page.getByRole('button', { name: /Enviar Respuestas/i }).click();
+    // Fill in the description textarea
+    const textarea = page.locator('textarea');
+    await textarea.waitFor({ state: 'visible' });
+    await textarea.fill('Eres una persona increíble');
+    await page.waitForTimeout(100);
     
-    // Verify navigation
-    await expect(page).toHaveURL(/.*thank-you/);
+    // Click submit button
+    const submitButton = page.getByRole('button', { name: /Enviar Respuestas/i });
+    await submitButton.waitFor({ state: 'visible' });
+    await submitButton.click();
+    
+    // V2 behavior: After submit, goes to /thank-you first
+    await page.waitForURL(/.*\/event\/mile-2026\/thank-you/, { timeout: 15000 });
+    
+    // Verify we're on the thank you page - check for any element that would be present
+    // The thank you page has a header with subtitle showing player name
+    await expect(page.locator('h1, h2')).toBeVisible();
   });
 
   test('should redirect to register if accessing quiz directly without name', async ({ page }) => {
     // Clear storage and navigate directly
     await page.evaluate(() => localStorage.clear());
-    await page.goto('http://localhost:5173/quiz');
+    await page.goto('/event/mile-2026/quiz');
     
-    // Should redirect to register
-    await expect(page).toHaveURL(/.*register/);
+    // Should redirect to register (event-scoped)
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/register/);
   });
 });

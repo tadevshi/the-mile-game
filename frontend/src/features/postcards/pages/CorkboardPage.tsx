@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePostcards } from '../hooks/usePostcards';
 import { PostcardCard } from '../components/PostcardCard';
@@ -15,7 +16,7 @@ import type { Postcard } from '../types/postcards.types';
 import corkTexture from '@/assets/cartelera.png';
 
 export function CorkboardPage() {
-  const navigate = useNavigate();
+  const navigate = useEventNavigate();
   const [searchParams] = useSearchParams();
   const {
     postcards,

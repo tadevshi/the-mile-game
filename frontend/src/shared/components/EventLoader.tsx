@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { useEventStore, type Event } from '@/shared/store/eventStore';
 import { api } from '@/shared/lib/api';
 import { Button } from '@/shared/components/Button';
@@ -11,7 +12,7 @@ interface EventLoaderProps {
 
 export function EventLoader({ children, fallback }: EventLoaderProps) {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
+  const navigate = useEventNavigate();
   const { currentEvent, setEvent, setLoading, setError, isLoading, error } = useEventStore();
   const [notFound, setNotFound] = useState(false);
 

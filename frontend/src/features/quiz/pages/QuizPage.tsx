@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { motion } from 'framer-motion';
 import { Button, Input, TextArea, Header, PageLayout, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
 import { useQuiz } from '../hooks/useQuiz';
@@ -51,7 +51,7 @@ function ProgressBarMinimal({ current, total }: { current: number; total: number
 // Preguntas del quiz — definidas en quiz.constants.ts, importadas aquí
 
 export function QuizPage() {
-  const navigate = useNavigate();
+  const navigate = useEventNavigate();
   const [hydrated, setHydrated] = useState(false);
   const {
     answers,

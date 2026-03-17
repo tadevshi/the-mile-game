@@ -2,19 +2,19 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Zustand State Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:5173/');
+    await page.goto('/');
     // Clear localStorage before each test
     await page.evaluate(() => localStorage.clear());
   });
 
   test('should persist player name in store', async ({ page }) => {
     // Navigate to register and enter name
-    await page.goto('http://localhost:5173/register');
+    await page.goto('/event/mile-2026/register');
     await page.getByPlaceholder(/Escribe tu nombre/i).fill('PersistentPlayer');
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
     
     // Navigate to quiz and verify name is displayed
-    await expect(page).toHaveURL(/.*quiz/);
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/quiz/);
     await expect(page.getByText('¿Qué tanto conoces a Mile, PersistentPlayer?')).toBeVisible();
     
     // Reload page and verify name persists
@@ -24,12 +24,12 @@ test.describe('Zustand State Management', () => {
 
   test('should persist quiz answers across page reloads', async ({ page }) => {
     // Go through registration
-    await page.goto('http://localhost:5173/register');
+    await page.goto('/event/mile-2026/register');
     await page.getByPlaceholder(/Escribe tu nombre/i).fill('AnswerTester');
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
     
     // Wait for quiz page to be ready
-    await expect(page).toHaveURL(/.*quiz/);
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/quiz/);
     await expect(page.getByText('¡Juguemos!')).toBeVisible();
     
     // Answer a question
@@ -52,7 +52,7 @@ test.describe('Zustand State Management', () => {
     // Score is calculated server-side after submission; there is no live score UI element
     // with class "bg-primary/20" on the quiz page. Skipping this test.
     // Go through registration and answer correctly
-    await page.goto('http://localhost:5173/register');
+    await page.goto('/event/mile-2026/register');
     await page.getByPlaceholder(/Escribe tu nombre/i).fill('ScoreTester');
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
     
@@ -74,7 +74,7 @@ test.describe('Zustand State Management', () => {
 
   test('should reset quiz state when starting new game', async ({ page }) => {
     // Complete a quiz first
-    await page.goto('http://localhost:5173/register');
+    await page.goto('/event/mile-2026/register');
     await page.getByPlaceholder(/Escribe tu nombre/i).fill('ResetTester');
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
     
@@ -85,7 +85,7 @@ test.describe('Zustand State Management', () => {
     }
     
     // Go back to welcome
-    await page.goto('http://localhost:5173/');
+    await page.goto('/');
     
     // Start new game
     await page.getByRole('button', { name: /Empezar Juego/i }).click();
@@ -100,28 +100,28 @@ test.describe('Zustand State Management', () => {
 
   test('should clear localStorage on manual clear', async ({ page }) => {
     // Set up some data
-    await page.goto('http://localhost:5173/register');
+    await page.goto('/event/mile-2026/register');
     await page.getByPlaceholder(/Escribe tu nombre/i).fill('ClearTester');
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
-    await expect(page).toHaveURL(/.*quiz/);
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/quiz/);
     
     // Clear localStorage and then reload to force Zustand to re-hydrate from empty storage
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     
     // After reload with empty localStorage, navigating to quiz should redirect to register
-    await page.goto('http://localhost:5173/quiz');
-    await expect(page).toHaveURL(/.*register/);
+    await page.goto('/event/mile-2026/quiz');
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/register/);
   });
 
   test('should handle concurrent store updates', async ({ page }) => {
     // Go to quiz
-    await page.goto('http://localhost:5173/register');
+    await page.goto('/event/mile-2026/register');
     await page.getByPlaceholder(/Escribe tu nombre/i).fill('ConcurrentTester');
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
     
     // Wait for quiz to be ready
-    await expect(page).toHaveURL(/.*quiz/);
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/quiz/);
     await expect(page.getByText('¡Juguemos!')).toBeVisible();
     
     // Answer multiple questions (sequentially to ensure each update is captured)

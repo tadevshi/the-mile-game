@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { useQuizStore } from '../store/quizStore';
 import { quizService } from '../services/quizApi';
 import { TOTAL_QUESTIONS, FAVORITE_QUESTIONS, PREFERENCE_QUESTIONS } from '../types/quiz.constants';
 
 export function useQuiz() {
-  const navigate = useNavigate();
+  const navigate = useEventNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
