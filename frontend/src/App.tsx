@@ -6,7 +6,8 @@ import { CorkboardPage, SecretBoxPage } from '@features/postcards';
 import { AdminPage } from '@features/admin';
 import { ThemeEditorPage } from '@/features/admin/pages/ThemeEditorPage';
 import { QuestionEditorPage } from '@/features/admin/pages/QuestionEditorPage';
-import { ErrorBoundary, FEATURES, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
+import { EventSettingsPage } from '@/features/admin/pages/EventSettingsPage';
+import { ErrorBoundary, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import type { ReactNode } from 'react';
 
@@ -171,41 +172,35 @@ function LegacyRoutes() {
         } 
       />
 
-      {/* CORKBOARD: Feature sorpresa — habilitado via VITE_ENABLE_CORKBOARD=true */}
-      {FEATURES.CORKBOARD && (
-        <Route 
-          path="/corkboard" 
-          element={
-            <AnimatedPage variants={fadeVariants}>
-              <CorkboardPage />
-            </AnimatedPage>
-          } 
-        />
-      )}
+      {/* CORKBOARD: Route always registered; page-level guard controls access via runtime flag */}
+      <Route 
+        path="/corkboard" 
+        element={
+          <AnimatedPage variants={fadeVariants}>
+            <CorkboardPage />
+          </AnimatedPage>
+        } 
+      />
 
       {/* SECRET BOX: Link compartible para postales de invitados remotos */}
-      {FEATURES.SECRET_BOX && (
-        <Route
-          path="/secret-box"
-          element={
-            <AnimatedPage variants={fadeVariants}>
-              <SecretBoxPage />
-            </AnimatedPage>
-          }
-        />
-      )}
+      <Route
+        path="/secret-box"
+        element={
+          <AnimatedPage variants={fadeVariants}>
+            <SecretBoxPage />
+          </AnimatedPage>
+        }
+      />
 
       {/* ADMIN: Panel de control para revelar Secret Box */}
-      {FEATURES.SECRET_BOX && (
-        <Route
-          path="/admin"
-          element={
-            <AnimatedPage variants={fadeVariants}>
-              <AdminPage />
-            </AnimatedPage>
-          }
-        />
-      )}
+      <Route
+        path="/admin"
+        element={
+          <AnimatedPage variants={fadeVariants}>
+            <AdminPage />
+          </AnimatedPage>
+        }
+      />
       
       {/* Ruta 404: Fade suave */}
       <Route 
@@ -347,6 +342,13 @@ function AnimatedRoutes() {
           <AnimatedPage variants={fadeVariants}>
             <QuestionEditorPage />
           </AnimatedPage>
+        } />
+        <Route path="/admin/events/:slug/settings" element={
+          <EventLoader>
+            <AnimatedPage variants={fadeVariants}>
+              <EventSettingsPage />
+            </AnimatedPage>
+          </EventLoader>
         } />
         
         {/* LEGACY ROUTES: todas las demás rutas */}

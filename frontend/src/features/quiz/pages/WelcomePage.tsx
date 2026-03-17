@@ -3,13 +3,14 @@ import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { useEventStore } from '@/shared/store/eventStore';
 import { api } from '@/shared/lib/api';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card, ScrollReveal, FEATURES } from '@/shared';
+import { Button, Header, PageLayout, Card, ScrollReveal, useFeatureEnabled } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
 
 export function WelcomePage() {
   const navigate = useEventNavigate();
   const hasCompleted = useQuizStore((s) => s.hasCompleted);
   const { currentEvent, setEvent } = useEventStore();
+  const isCorkboardEnabled = useFeatureEnabled('corkboard');
 
   // Load default event on mount so useEventNavigate can prepend the event slug
   useEffect(() => {
@@ -118,7 +119,7 @@ export function WelcomePage() {
           </Button>
 
           {/* Botón condicional: Dejar foto en cartelera (solo si ya jugó Y feature habilitado) */}
-          {FEATURES.CORKBOARD && hasCompleted && (
+          {isCorkboardEnabled && hasCompleted && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

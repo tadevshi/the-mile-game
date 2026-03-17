@@ -382,6 +382,30 @@ class ApiClient {
   }
 
   // ==========================================
+  // Admin — Event Features
+  // ==========================================
+
+  async updateEventFeatures(eventSlug: string, features: EventFeatures, adminKey: string): Promise<Event> {
+    // Transform camelCase to snake_case for backend compatibility
+    const snakeFeatures = {
+      quiz: features.quiz,
+      corkboard: features.corkboard,
+      secret_box: features.secretBox,
+    };
+    
+    const response = await this.client.put<Event>(
+      `/admin/events/${eventSlug}/features`,
+      { features: snakeFeatures },
+      {
+        headers: {
+          'Authorization': `Bearer ${adminKey}`,
+        },
+      }
+    );
+    return response.data;
+  }
+
+  // ==========================================
   // Admin — Questions
   // ==========================================
 

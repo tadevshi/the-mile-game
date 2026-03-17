@@ -1,6 +1,6 @@
 import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton, FEATURES } from '@/shared';
+import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton, useFeatureEnabled } from '@/shared';
 import { useRanking } from '../hooks/useRanking';
 
 const medalBgColors: Record<string, string> = {
@@ -33,6 +33,8 @@ const podiumVariants = {
 
 export function RankingPage() {
   const navigate = useEventNavigate();
+  // Default to true for backward compatibility in legacy routes (no event loaded)
+  const isCorkboardEnabled = useFeatureEnabled('corkboard') ?? true;
   const {
     ranking,
     isLoading,
@@ -295,7 +297,7 @@ export function RankingPage() {
               Volver al inicio
             </Button>
 
-            {FEATURES.CORKBOARD && (
+            {isCorkboardEnabled && (
             <Button
               variant="outline"
               size="md"

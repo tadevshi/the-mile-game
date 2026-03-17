@@ -18,7 +18,7 @@
 ### Feature Guides
 - [Theme System](guides/THEME_SYSTEM.md) - How to customize event themes
 - [Question Editor](guides/QUESTION_EDITOR.md) - Managing quiz questions
-- [Feature Flags](guides/FEATURE_FLAGS.md) - Runtime feature toggles (WIP)
+- [Feature Flags](guides/FEATURE_FLAGS.md) - Runtime feature toggles
 
 ### Architecture
 - [Project Structure](../AGENTS.md) - Codebase organization and conventions

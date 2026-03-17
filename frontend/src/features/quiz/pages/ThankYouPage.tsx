@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollStaggerItem, FEATURES } from '@/shared';
+import { Button, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollStaggerItem, useFeatureEnabled } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
 import { ConfettiEffect } from '@/shared/components/Confetti';
 import { rankingService } from '../../ranking/services/rankingApi';
@@ -55,6 +55,10 @@ export function ThankYouPage() {
   const playerName = useQuizStore((state) => state.playerName);
   const score = useQuizStore((state) => state.score);
   const hasCompleted = useQuizStore((state) => state.hasCompleted);
+
+  // Runtime feature flags
+  // Default to true for backward compatibility in legacy routes (no event loaded)
+  const isCorkboardEnabled = useFeatureEnabled('corkboard') ?? true;
 
   // Participantes reales desde la API
   const [otherPlayers, setOtherPlayers] = useState<Player[]>([]);
@@ -206,7 +210,7 @@ export function ThankYouPage() {
                 </Button>
               </motion.div>
 
-              {FEATURES.CORKBOARD && (
+              {isCorkboardEnabled && (
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
