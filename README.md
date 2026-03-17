@@ -22,6 +22,7 @@
 - [Estructura del Proyecto](#-estructura-del-proyecto)
 - [API Endpoints](#-api-endpoints)
 - [Contribución](#-contribución)
+- [Documentación](#-documentación)
 
 ---
 
@@ -818,6 +819,23 @@ docker-compose up -d --build frontend
 # Ctrl+Shift+R (Windows/Linux)
 # Cmd+Shift+R (Mac)
 ```
+
+---
+
+## 📖 Documentación
+
+Para documentación detallada, consulta la carpeta [`docs/`](./docs/):
+
+### Guías de Usuario
+- [Theme System](./docs/guides/THEME_SYSTEM.md) - Personalización de temas visuales
+- [Database Migrations](./docs/guides/MIGRATIONS.md) - Cómo ejecutar y crear migraciones
+
+### Referencia API
+- [API Overview](./docs/api/README.md) - Documentación completa de endpoints
+- [Themes API](./docs/api/THEMES.md) - Endpoints de personalización de temas
+
+### Arquitectura
+- [AGENTS.md](./AGENTS.md) - Convenciones de código y estructura del proyecto
 
 ---
 
