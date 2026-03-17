@@ -6,12 +6,11 @@ import { useThemeEditor } from '../hooks/useThemeEditor';
 import { ThemePresetGallery } from '../components/ThemePresetGallery';
 import { ThemeColorPicker } from '../components/ThemeColorPicker';
 import { ThemeFontSelector } from '../components/ThemeFontSelector';
-import { api } from '@/shared/lib/api';
 import type { Theme, ThemePreset } from '@/shared/theme';
 
 export function ThemeEditorPage() {
   const { slug: eventSlug } = useParams<{ slug: string }>();
-  const { theme, presets, isLoading, error, updateTheme, applyPreset, refreshTheme } = useThemeEditor(eventSlug || '');
+  const { theme, presets, isLoading, error, updateTheme, applyPreset } = useThemeEditor(eventSlug || '');
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -50,7 +49,7 @@ export function ThemeEditorPage() {
   };
 
   const handleSave = async () => {
-    if (!eventId || !hasChanges) return;
+    if (!eventSlug || !hasChanges) return;
 
     setIsSaving(true);
     setSaveError(null);
@@ -70,7 +69,7 @@ export function ThemeEditorPage() {
 
   if (isLoading) {
     return (
-      <PageLayout title="Theme Editor">
+      <PageLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-lg text-slate-500">Loading theme...</div>
         </div>
@@ -80,7 +79,7 @@ export function ThemeEditorPage() {
 
   if (error) {
     return (
-      <PageLayout title="Theme Editor">
+      <PageLayout>
         <div className="flex items-center justify-center h-64">
           <div className="text-lg text-red-500">Error: {error}</div>
         </div>
@@ -91,7 +90,7 @@ export function ThemeEditorPage() {
   const currentTheme = { ...theme, ...localTheme } as Theme;
 
   return (
-    <PageLayout title="Theme Editor">
+    <PageLayout>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
