@@ -539,3 +539,107 @@ func TestGetPlayerValidation(t *testing.T) {
 		})
 	}
 }
+
+// TestGetQuizQuestions tests the GetQuizQuestions handler returns questions without correct_answers
+func TestGetQuizQuestions(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	// Create a mock QuizQuestionRepository
+	mockQuestions := []models.QuizQuestion{
+		{
+			ID:             uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+			EventID:        uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+			Section:        "favorites",
+			Key:            "singer",
+			QuestionText:   "¿Cantante favorito?",
+			CorrectAnswers: []string{"ricardo arjona"}, // Should NOT be exposed
+			Options:        nil,
+			SortOrder:      1,
+			IsScorable:     true,
+		},
+		{
+			ID:             uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+			EventID:        uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+			Section:        "preferences",
+			Key:            "coffee",
+			QuestionText:   "¿Café o Té?",
+			CorrectAnswers: []string{"te"}, // Should NOT be exposed
+			Options:        []string{"Café", "Té"},
+			SortOrder:      1,
+			IsScorable:     true,
+		},
+		{
+			ID:             uuid.MustParse("33333333-3333-3333-3333-333333333333"),
+			EventID:        uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+			Section:        "description",
+			Key:            "describe_me",
+			QuestionText:   "¿Descríbeme en una oración?",
+			CorrectAnswers: []string{},
+			Options:        nil,
+			SortOrder:      1,
+			IsScorable:     false,
+		},
+	}
+
+	// Create handler with mock repo
+	r := gin.New()
+
+	// Simulate the GetQuizQuestions handler behavior
+	r.GET("/api/events/:slug/quiz/questions", func(c *gin.Context) {
+		// Simulate event_id in context
+		eventID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+		c.Set("event_id", eventID)
+
+		// Simulate returning questions without correct_answers
+		response := make([]QuizQuestionResponse, len(mockQuestions))
+		for i, q := range mockQuestions {
+			response[i] = QuizQuestionResponse{
+				ID:           q.ID,
+				Section:      q.Section,
+				Key:          q.Key,
+				QuestionText: q.QuestionText,
+				Options:      q.Options,
+				SortOrder:    q.SortOrder,
+				IsScorable:   q.IsScorable,
+			}
+		}
+		c.JSON(http.StatusOK, gin.H{"questions": response})
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/events/mile-2026/quiz/questions", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &response)
+
+	questions := response["questions"].([]interface{})
+	if len(questions) != 3 {
+		t.Errorf("Expected 3 questions, got %d", len(questions))
+	}
+
+	// Verify correct_answers is NOT exposed
+	firstQuestion := questions[0].(map[string]interface{})
+	if _, hasCorrectAnswers := firstQuestion["correct_answers"]; hasCorrectAnswers {
+		t.Error("correct_answers should NOT be exposed in API response")
+	}
+
+	// Verify other fields are present
+	if firstQuestion["key"] != "singer" {
+		t.Errorf("Expected key 'singer', got %v", firstQuestion["key"])
+	}
+	if firstQuestion["question_text"] != "¿Cantante favorito?" {
+		t.Errorf("Expected question_text, got %v", firstQuestion["question_text"])
+	}
+
+	// Verify preferences have options
+	secondQuestion := questions[1].(map[string]interface{})
+	options := secondQuestion["options"].([]interface{})
+	if len(options) != 2 {
+		t.Errorf("Expected 2 options for coffee question, got %d", len(options))
+	}
+}

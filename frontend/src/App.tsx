@@ -304,6 +304,15 @@ function AnimatedRoutes() {
             </EventLoader>
           } />
           
+          {/* Register: página de registro dentro del evento */}
+          <Route path="register" element={
+            <EventLoader>
+              <AnimatedPage variants={slideRightVariants}>
+                <RegisterPage />
+              </AnimatedPage>
+            </EventLoader>
+          } />
+          
           {/* Catch-all para rutas inválidas dentro del evento */}
           <Route path="*" element={
             <EventLoader>

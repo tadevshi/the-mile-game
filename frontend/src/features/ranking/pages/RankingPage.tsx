@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton, FEATURES } from '@/shared';
 import { useRanking } from '../hooks/useRanking';
@@ -32,7 +32,7 @@ const podiumVariants = {
 };
 
 export function RankingPage() {
-  const navigate = useNavigate();
+  const navigate = useEventNavigate();
   const {
     ranking,
     isLoading,

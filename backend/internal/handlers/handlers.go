@@ -45,23 +45,25 @@ type BroadcastHub interface {
 
 // Handler maneja las peticiones HTTP
 type Handler struct {
-	playerRepo   *repository.PlayerRepository
-	quizRepo     *repository.QuizRepository
-	postcardRepo PostcardRepo
-	scorer       *services.Scorer
-	hub          BroadcastHub
-	uploadsDir   string
+	playerRepo       *repository.PlayerRepository
+	quizRepo         *repository.QuizRepository
+	quizQuestionRepo *repository.QuizQuestionRepository
+	postcardRepo     PostcardRepo
+	scorer           *services.Scorer
+	hub              BroadcastHub
+	uploadsDir       string
 }
 
 // NewHandler crea un nuevo handler
-func NewHandler(playerRepo *repository.PlayerRepository, quizRepo *repository.QuizRepository, postcardRepo *repository.PostcardRepository, hub *websocket.Hub, uploadsDir string) *Handler {
+func NewHandler(playerRepo *repository.PlayerRepository, quizRepo *repository.QuizRepository, quizQuestionRepo *repository.QuizQuestionRepository, postcardRepo *repository.PostcardRepository, hub *websocket.Hub, uploadsDir string) *Handler {
 	return &Handler{
-		playerRepo:   playerRepo,
-		quizRepo:     quizRepo,
-		postcardRepo: postcardRepo,
-		scorer:       services.NewScorer(),
-		hub:          hub,
-		uploadsDir:   uploadsDir,
+		playerRepo:       playerRepo,
+		quizRepo:         quizRepo,
+		quizQuestionRepo: quizQuestionRepo,
+		postcardRepo:     postcardRepo,
+		scorer:           services.NewScorer(),
+		hub:              hub,
+		uploadsDir:       uploadsDir,
 	}
 }
 
@@ -185,13 +187,15 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 	}
 
 	// Cross-event player validation: ensure player belongs to this event
-	if eventID, exists := c.Get("event_id"); exists {
+	var eventID uuid.UUID
+	if eID, exists := c.Get("event_id"); exists {
+		eventID = eID.(uuid.UUID)
 		player, playerErr := h.playerRepo.GetByID(playerID)
 		if playerErr != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
 			return
 		}
-		if player.EventID != eventID.(uuid.UUID) {
+		if player.EventID != eventID {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Player does not belong to this event"})
 			return
 		}
@@ -215,8 +219,21 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 		return
 	}
 
+	// Calcular puntaje - intentar usar preguntas de DB primero, luego fallback a legacy
+	var score int
+	scorer := h.scorer
+
+	// Si hay event_id, intentar cargar preguntas de la DB
+	if eventID != uuid.Nil && h.quizQuestionRepo != nil {
+		questions, qErr := h.quizQuestionRepo.ListByEvent(eventID)
+		if qErr == nil && len(questions) > 0 {
+			// Usar scorer con preguntas de DB
+			scorer = services.NewScorerWithQuestions(questions)
+		}
+	}
+
 	// Calcular puntaje usando las respuestas YA NORMALIZADAS
-	score := h.scorer.Calculate(normalizedFavorites, normalizedPreferences)
+	score = scorer.Calculate(normalizedFavorites, normalizedPreferences)
 
 	// Actualizar puntaje del jugador
 	if err := h.playerRepo.UpdateScore(playerID, score); err != nil {
@@ -227,8 +244,8 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 	// Obtener ranking actualizado y broadcastear por WebSocket
 	// Si hay event_id en el contexto, usar ListByEvent, sino List
 	var players []models.Player
-	if eventID, exists := c.Get("event_id"); exists {
-		players, err = h.playerRepo.ListByEvent(eventID.(uuid.UUID))
+	if eventID != uuid.Nil {
+		players, err = h.playerRepo.ListByEvent(eventID)
 	} else {
 		players, err = h.playerRepo.List()
 	}
@@ -270,6 +287,65 @@ func (h *Handler) GetQuizAnswers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, answers)
+}
+
+// QuizQuestionResponse representa una pregunta del quiz para la API (sin correct_answers)
+type QuizQuestionResponse struct {
+	ID           uuid.UUID `json:"id"`
+	Section      string    `json:"section"`
+	Key          string    `json:"key"`
+	QuestionText string    `json:"question_text"`
+	Options      []string  `json:"options,omitempty"`
+	SortOrder    int       `json:"sort_order"`
+	IsScorable   bool      `json:"is_scorable"`
+}
+
+// GetQuizQuestions obtiene las preguntas del quiz para el evento actual.
+// NO retorna correct_answers para evitar hacer trampa.
+func (h *Handler) GetQuizQuestions(c *gin.Context) {
+	// Obtener event_id del contexto
+	eventID, exists := c.Get("event_id")
+	if !exists {
+		// Si no hay evento en contexto, intentar obtener preguntas legacy (sin evento)
+		// Esto es para backward compatibility con el endpoint legacy /api/quiz/questions
+		questions, err := h.quizQuestionRepo.ListByEvent(uuid.Nil)
+		if err != nil || len(questions) == 0 {
+			c.JSON(http.StatusNotFound, gin.H{"error": "No quiz questions found"})
+			return
+		}
+		h.returnQuestionsResponse(questions, c)
+		return
+	}
+
+	questions, err := h.quizQuestionRepo.ListByEvent(eventID.(uuid.UUID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get quiz questions"})
+		return
+	}
+
+	if len(questions) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No quiz questions found for this event"})
+		return
+	}
+
+	h.returnQuestionsResponse(questions, c)
+}
+
+// returnQuestionsResponse helper para devolver preguntas sin correct_answers
+func (h *Handler) returnQuestionsResponse(questions []models.QuizQuestion, c *gin.Context) {
+	response := make([]QuizQuestionResponse, len(questions))
+	for i, q := range questions {
+		response[i] = QuizQuestionResponse{
+			ID:           q.ID,
+			Section:      q.Section,
+			Key:          q.Key,
+			QuestionText: q.QuestionText,
+			Options:      q.Options,
+			SortOrder:    q.SortOrder,
+			IsScorable:   q.IsScorable,
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"questions": response})
 }
 
 // GetRanking obtiene el ranking de jugadores

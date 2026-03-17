@@ -3,10 +3,10 @@ import { test, expect } from '@playwright/test';
 test.describe('Quiz Page Question Answering', () => {
   test.beforeEach(async ({ page }) => {
     // First register to be able to access quiz
-    await page.goto('http://localhost:5173/register');
+    await page.goto('/event/mile-2026/register');
     await page.getByPlaceholder(/Escribe tu nombre/i).fill('TestPlayer');
     await page.getByRole('button', { name: /¡Listos para jugar!/i }).click();
-    await expect(page).toHaveURL(/.*quiz/);
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/quiz/);
   });
 
   test('should display quiz page header with player name', async ({ page }) => {
@@ -118,15 +118,15 @@ test.describe('Quiz Page Question Answering', () => {
     await page.getByRole('button', { name: /Enviar Respuestas/i }).click();
     
     // Verify navigation
-    await expect(page).toHaveURL(/.*thank-you/);
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/ranking/);
   });
 
   test('should redirect to register if accessing quiz directly without name', async ({ page }) => {
     // Clear storage and navigate directly
     await page.evaluate(() => localStorage.clear());
-    await page.goto('http://localhost:5173/quiz');
+    await page.goto('/event/mile-2026/quiz');
     
-    // Should redirect to register
-    await expect(page).toHaveURL(/.*register/);
+    // Should redirect to register (event-scoped)
+    await expect(page).toHaveURL(/.*\/event\/mile-2026\/register/);
   });
 });

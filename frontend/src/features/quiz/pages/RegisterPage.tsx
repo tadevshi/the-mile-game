@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { motion } from 'framer-motion';
 import { Button, Input, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollStaggerItem } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
@@ -58,7 +58,7 @@ const AVATAR_EMOJIS = [
 ];
 
 export function RegisterPage() {
-  const navigate = useNavigate();
+  const navigate = useEventNavigate();
   const [playerName, setPlayerName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('👸');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);

@@ -1,5 +1,9 @@
 package services
 
+import (
+	"github.com/the-mile-game/backend/internal/models"
+)
+
 // Scorer calcula el puntaje del quiz usando normalización de texto
 type Scorer struct {
 	normalizer         *Normalizer
@@ -7,7 +11,7 @@ type Scorer struct {
 	correctPreferences map[string]string   // Respuestas YA NORMALIZADAS
 }
 
-// NewScorer crea un nuevo calculador de puntajes
+// NewScorer crea un nuevo calculador de puntajes (modo legacy - hardcoded)
 func NewScorer() *Scorer {
 	normalizer := NewNormalizer()
 
@@ -52,6 +56,41 @@ func NewScorer() *Scorer {
 		normalizer:         normalizer,
 		correctFavorites:   normalizedFavorites,
 		correctPreferences: normalizedPreferences,
+	}
+}
+
+// NewScorerWithQuestions crea un scorer con preguntas de la base de datos.
+// Las preguntas deben tener sus correct_answers ya normalizados (el repo los deserializa).
+func NewScorerWithQuestions(questions []models.QuizQuestion) *Scorer {
+	normalizer := NewNormalizer()
+
+	correctFavorites := make(map[string][]string)
+	correctPreferences := make(map[string]string)
+
+	for _, q := range questions {
+		if !q.IsScorable {
+			continue
+		}
+
+		// Las respuestas ya vienen normalizadas desde la DB
+		correctAnswers := q.CorrectAnswers
+		if len(correctAnswers) == 0 {
+			continue
+		}
+
+		if q.Section == "favorites" {
+			// Favoritos pueden tener múltiples respuestas válidas
+			correctFavorites[q.Key] = correctAnswers
+		} else if q.Section == "preferences" {
+			// Preferencias tienen una sola respuesta correcta
+			correctPreferences[q.Key] = correctAnswers[0]
+		}
+	}
+
+	return &Scorer{
+		normalizer:         normalizer,
+		correctFavorites:   correctFavorites,
+		correctPreferences: correctPreferences,
 	}
 }
 

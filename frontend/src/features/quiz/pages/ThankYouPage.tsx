@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollStaggerItem, FEATURES } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
@@ -49,7 +49,7 @@ const scoreVariants = {
 };
 
 export function ThankYouPage() {
-  const navigate = useNavigate();
+  const navigate = useEventNavigate();
   
   // Datos reales del store
   const playerName = useQuizStore((state) => state.playerName);

@@ -39,6 +39,7 @@ export {
   scrollVariants 
 } from './hooks/useScrollAnimation';
 export { usePullToRefresh } from './hooks/usePullToRefresh';
+export { useEventNavigate } from './hooks/useEventNavigate';
 
 // API Client
 export { api } from './lib/api';

@@ -15,6 +15,31 @@ import (
 	"github.com/the-mile-game/backend/internal/websocket"
 )
 
+// webSocketEventValidator implementa websocket.EventValidator usando EventRepository
+type webSocketEventValidator struct {
+	eventRepo *repository.EventRepository
+}
+
+func (v *webSocketEventValidator) ValidateEvent(slug string) error {
+	event, err := v.eventRepo.GetBySlug(slug)
+	if err != nil {
+		return err
+	}
+	// Verificar que el evento esté activo
+	if !event.IsActive {
+		return &eventInactiveError{slug: slug}
+	}
+	return nil
+}
+
+type eventInactiveError struct {
+	slug string
+}
+
+func (e *eventInactiveError) Error() string {
+	return "event is inactive"
+}
+
 func main() {
 	// Cargar variables de entorno
 	if err := godotenv.Load(); err != nil {
@@ -45,6 +70,7 @@ func main() {
 	postcardRepo := repository.NewPostcardRepository(db, uploadPath)
 	userRepo := repository.NewUserRepository(db)
 	eventRepo := repository.NewEventRepository(db)
+	quizQuestionRepo := repository.NewQuizQuestionRepository(db)
 
 	// Crear servicios
 	jwtSecret := os.Getenv("JWT_SECRET")
@@ -57,8 +83,11 @@ func main() {
 	}
 	authService := services.NewAuthService(userRepo, jwtSecret)
 
-	// Crear WebSocket Hub
-	hub := websocket.NewHub()
+	// WebSocket event validator - valida que el evento existe y está activo
+	eventValidator := &webSocketEventValidator{eventRepo: eventRepo}
+
+	// Crear WebSocket Hub con validador de eventos
+	hub := websocket.NewHubWithValidator(eventValidator)
 	go hub.Run()
 
 	// Crear handlers
@@ -66,7 +95,7 @@ func main() {
 	if uploadsDir == "" {
 		uploadsDir = uploadPath + "/postcards"
 	}
-	handler := handlers.NewHandler(playerRepo, quizRepo, postcardRepo, hub, uploadsDir)
+	handler := handlers.NewHandler(playerRepo, quizRepo, quizQuestionRepo, postcardRepo, hub, uploadsDir)
 	authHandler := handlers.NewAuthHandler(authService)
 
 	// Configurar router
@@ -107,6 +136,7 @@ func main() {
 		auth.Use(authMiddleware)
 		{
 			auth.GET("/me", authHandler.Me)
+			auth.POST("/logout", authHandler.Logout)
 		}
 
 		// Event-scoped routes (nuevas - multi-event)
@@ -127,10 +157,7 @@ func main() {
 			quiz := events.Group("/quiz")
 			quiz.Use(middleware.QuizFeatureMiddleware())
 			{
-				quiz.GET("/questions", func(c *gin.Context) {
-					// TODO: Implementar quiz questions endpoint
-					c.JSON(200, gin.H{"questions": []interface{}{}})
-				})
+				quiz.GET("/questions", handler.GetQuizQuestions)
 				quiz.POST("/submit", handler.SubmitQuiz)
 				quiz.GET("/answers/:playerId", handler.GetQuizAnswers)
 			}

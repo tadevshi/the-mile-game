@@ -1,11 +1,38 @@
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
+import { useEventStore } from '@/shared/store/eventStore';
+import { api } from '@/shared/lib/api';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card, ScrollReveal, FEATURES } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
 
 export function WelcomePage() {
-  const navigate = useNavigate();
+  const navigate = useEventNavigate();
   const hasCompleted = useQuizStore((s) => s.hasCompleted);
+  const { currentEvent, setEvent } = useEventStore();
+
+  // Load default event on mount so useEventNavigate can prepend the event slug
+  useEffect(() => {
+    if (!currentEvent) {
+      api.getEventBySlug('mile-2026')
+        .then((event) => {
+          // Transform snake_case from API to camelCase for store
+          setEvent({
+            id: event.id,
+            slug: event.slug,
+            name: event.name,
+            description: event.description,
+            date: event.date,
+            ownerId: event.owner_id,
+            features: event.features,
+            isActive: event.is_active,
+          });
+        })
+        .catch((error) => {
+          console.error('Failed to load default event:', error);
+        });
+    }
+  }, [currentEvent, setEvent]);
 
   return (
     <PageLayout background="butterfly-animated" showSparkles={false}>

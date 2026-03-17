@@ -46,8 +46,16 @@ type Hub struct {
 	// Canal para broadcastear a un evento específico
 	broadcastToRoom chan *RoomMessage
 
+	// Validador de eventos (opcional) - si está presente, se validan los event slugs
+	eventValidator EventValidator
+
 	// Mutex para acceso seguro concurrente
 	mu sync.RWMutex
+}
+
+// EventValidator interface para validar que un evento existe y está activo
+type EventValidator interface {
+	ValidateEvent(slug string) error
 }
 
 // RoomMessage mensaje dirigido a un room específico
@@ -98,7 +106,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// NewHub crea un nuevo Hub
+// NewHub crea un nuevo Hub sin validador de eventos
 func NewHub() *Hub {
 	return &Hub{
 		register:        make(chan *Client),
@@ -108,6 +116,13 @@ func NewHub() *Hub {
 		clients:         make(map[*Client]bool),
 		rooms:           make(map[string]map[*Client]bool),
 	}
+}
+
+// NewHubWithValidator crea un nuevo Hub con validador de eventos
+func NewHubWithValidator(validator EventValidator) *Hub {
+	hub := NewHub()
+	hub.eventValidator = validator
+	return hub
 }
 
 // Run inicia el loop del hub para manejar registros y broadcasts
@@ -209,12 +224,21 @@ func (h *Hub) Run() {
 
 // ServeHTTP maneja las conexiones WebSocket
 // El query param "event" es opcional; sin él el cliente recibe broadcasts globales
+// Si hay un eventValidator configurado, se validará que el evento exista
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Extraer event slug del query param
 	eventSlug := r.URL.Query().Get("event")
 	if eventSlug == "" {
 		// Sin event, el cliente no recibe mensajes específicos
 		log.Printf("WebSocket: Conexión sin event slug - recibirá broadcasts globales nomás")
+	} else if h.eventValidator != nil {
+		// Validar que el evento existe y está activo
+		if err := h.eventValidator.ValidateEvent(eventSlug); err != nil {
+			log.Printf("WebSocket: Evento '%s' no válido: %v", eventSlug, err)
+			http.Error(w, "Event not found or inactive", http.StatusNotFound)
+			return
+		}
+		log.Printf("WebSocket: Conexión al evento '%s' aceptada", eventSlug)
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)

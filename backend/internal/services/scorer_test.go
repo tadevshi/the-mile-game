@@ -2,6 +2,9 @@ package services
 
 import (
 	"testing"
+
+	"github.com/google/uuid"
+	"github.com/the-mile-game/backend/internal/models"
 )
 
 func TestNewScorer(t *testing.T) {
@@ -285,5 +288,248 @@ func TestDislikeAcceptsAllValidAnswers(t *testing.T) {
 				t.Errorf("dislike=%q should give perfect score 13, got %d", dislike, score)
 			}
 		})
+	}
+}
+
+func TestNewScorerWithQuestions(t *testing.T) {
+	// Crear preguntas en formato DB (ya normalizadas)
+	questions := []models.QuizQuestion{
+		{
+			ID:             uuid.New(),
+			EventID:        uuid.Nil,
+			Section:        "favorites",
+			Key:            "singer",
+			QuestionText:   "¿Cantante favorito?",
+			CorrectAnswers: []string{"ricardo arjona"},
+			SortOrder:      1,
+			IsScorable:     true,
+		},
+		{
+			ID:             uuid.New(),
+			EventID:        uuid.Nil,
+			Section:        "favorites",
+			Key:            "flower",
+			QuestionText:   "¿Flor favorita?",
+			CorrectAnswers: []string{"girasol"},
+			SortOrder:      2,
+			IsScorable:     true,
+		},
+		{
+			ID:             uuid.New(),
+			EventID:        uuid.Nil,
+			Section:        "favorites",
+			Key:            "dislike",
+			QuestionText:   "¿Algo que no le guste?",
+			CorrectAnswers: []string{"aranas", "madrugar", "sol"}, // Multiple valid answers
+			SortOrder:      7,
+			IsScorable:     true,
+		},
+		{
+			ID:             uuid.New(),
+			EventID:        uuid.Nil,
+			Section:        "preferences",
+			Key:            "coffee",
+			QuestionText:   "¿Café o Té?",
+			CorrectAnswers: []string{"te"},
+			Options:        []string{"Café", "Té"},
+			SortOrder:      1,
+			IsScorable:     true,
+		},
+		{
+			ID:             uuid.New(),
+			EventID:        uuid.Nil,
+			Section:        "preferences",
+			Key:            "place",
+			QuestionText:   "¿Playa o Montaña?",
+			CorrectAnswers: []string{"playa"},
+			Options:        []string{"Playa", "Montaña"},
+			SortOrder:      2,
+			IsScorable:     true,
+		},
+		{
+			ID:             uuid.New(),
+			EventID:        uuid.Nil,
+			Section:        "description",
+			Key:            "describe_me",
+			QuestionText:   "¿Descríbeme en una oración?",
+			CorrectAnswers: []string{},
+			SortOrder:      1,
+			IsScorable:     false, // Not scorable
+		},
+	}
+
+	s := NewScorerWithQuestions(questions)
+
+	if s == nil {
+		t.Error("NewScorerWithQuestions() returned nil")
+	}
+	if s.normalizer == nil {
+		t.Error("Scorer should have a normalizer")
+	}
+
+	// Verificar que cargó las preguntas de favoritos
+	if len(s.correctFavorites) != 3 {
+		t.Errorf("Scorer should have 3 favorite questions, got %d", len(s.correctFavorites))
+	}
+
+	// Verificar que dislike tiene las 3 respuestas válidas
+	if len(s.correctFavorites["dislike"]) != 3 {
+		t.Errorf("dislike should have 3 valid answers, got %d", len(s.correctFavorites["dislike"]))
+	}
+
+	// Verificar que cargó las preguntas de preferencias
+	if len(s.correctPreferences) != 2 {
+		t.Errorf("Scorer should have 2 preference questions, got %d", len(s.correctPreferences))
+	}
+}
+
+func TestScorerWithDBQuestions_Calculate(t *testing.T) {
+	// Crear preguntas en formato DB (ya normalizadas)
+	questions := []models.QuizQuestion{
+		{
+			ID:             uuid.New(),
+			EventID:        uuid.Nil,
+			Section:        "favorites",
+			Key:            "singer",
+			QuestionText:   "¿Cantante favorito?",
+			CorrectAnswers: []string{"ricardo arjona"},
+			SortOrder:      1,
+			IsScorable:     true,
+		},
+		{
+			ID:             uuid.New(),
+			EventID:        uuid.Nil,
+			Section:        "favorites",
+			Key:            "flower",
+			QuestionText:   "¿Flor favorita?",
+			CorrectAnswers: []string{"girasol"},
+			SortOrder:      2,
+			IsScorable:     true,
+		},
+		{
+			ID:             uuid.New(),
+			EventID:        uuid.Nil,
+			Section:        "favorites",
+			Key:            "dislike",
+			QuestionText:   "¿Algo que no le guste?",
+			CorrectAnswers: []string{"aranas", "madrugar", "sol"},
+			SortOrder:      7,
+			IsScorable:     true,
+		},
+		{
+			ID:             uuid.New(),
+			EventID:        uuid.Nil,
+			Section:        "preferences",
+			Key:            "coffee",
+			QuestionText:   "¿Café o Té?",
+			CorrectAnswers: []string{"te"},
+			Options:        []string{"Café", "Té"},
+			SortOrder:      1,
+			IsScorable:     true,
+		},
+		{
+			ID:             uuid.New(),
+			EventID:        uuid.Nil,
+			Section:        "preferences",
+			Key:            "place",
+			QuestionText:   "¿Playa o Montaña?",
+			CorrectAnswers: []string{"playa"},
+			Options:        []string{"Playa", "Montaña"},
+			SortOrder:      2,
+			IsScorable:     true,
+		},
+	}
+
+	s := NewScorerWithQuestions(questions)
+
+	tests := []struct {
+		name        string
+		favorites   map[string]string
+		preferences map[string]string
+		expected    int
+	}{
+		{
+			name: "perfect score",
+			favorites: map[string]string{
+				"singer":  "ricardo arjona",
+				"flower":  "girasol",
+				"dislike": "aranas",
+			},
+			preferences: map[string]string{
+				"coffee": "te",
+				"place":  "playa",
+			},
+			expected: 5,
+		},
+		{
+			name: "dislike accepts madrugar",
+			favorites: map[string]string{
+				"singer":  "ricardo arjona",
+				"flower":  "girasol",
+				"dislike": "madrugar",
+			},
+			preferences: map[string]string{
+				"coffee": "te",
+				"place":  "playa",
+			},
+			expected: 5,
+		},
+		{
+			name: "all wrong",
+			favorites: map[string]string{
+				"singer":  "shakira",
+				"flower":  "rosa",
+				"dislike": "nadar",
+			},
+			preferences: map[string]string{
+				"coffee": "cafe",
+				"place":  "montana",
+			},
+			expected: 0,
+		},
+		{
+			name:        "empty answers",
+			favorites:   map[string]string{},
+			preferences: map[string]string{},
+			expected:    0,
+		},
+		{
+			name: "partial score",
+			favorites: map[string]string{
+				"singer": "ricardo arjona", // correct
+				"flower": "rosa",           // wrong
+			},
+			preferences: map[string]string{
+				"coffee": "cafe",  // wrong
+				"place":  "playa", // correct
+			},
+			expected: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			score := s.Calculate(tt.favorites, tt.preferences)
+			if score != tt.expected {
+				t.Errorf("Calculate() = %d, want %d", score, tt.expected)
+			}
+		})
+	}
+}
+
+func TestScorerWithQuestions_EmptyQuestions(t *testing.T) {
+	s := NewScorerWithQuestions([]models.QuizQuestion{})
+
+	if s == nil {
+		t.Error("NewScorerWithQuestions() returned nil")
+	}
+
+	// Should handle empty questions gracefully
+	score := s.Calculate(
+		map[string]string{"singer": "ricardo arjona"},
+		map[string]string{"coffee": "te"},
+	)
+	if score != 0 {
+		t.Errorf("Expected 0 score with no questions, got %d", score)
 	}
 }
