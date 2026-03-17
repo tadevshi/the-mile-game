@@ -382,6 +382,18 @@ class ApiClient {
   }
 
   // ==========================================
+  // Admin — Event Features
+  // ==========================================
+
+  async updateEventFeatures(eventSlug: string, features: EventFeatures): Promise<Event> {
+    const response = await this.client.put<Event>(
+      `/admin/events/${eventSlug}/features`,
+      { features }
+    );
+    return response.data;
+  }
+
+  // ==========================================
   // Admin — Questions
   // ==========================================
 

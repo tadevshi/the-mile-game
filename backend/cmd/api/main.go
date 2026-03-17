@@ -101,6 +101,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService)
 	themeHandler := handlers.NewThemeHandler(themeService)
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
+	adminEventHandler := handlers.NewAdminEventHandler(eventRepo)
 
 	// Configurar router
 	r := gin.Default()
@@ -235,6 +236,9 @@ func main() {
 			adminEvents.GET("/questions/export", adminQuestionHandler.ExportQuestions)
 			adminEvents.POST("/questions/import", adminQuestionHandler.ImportQuestions)
 			adminEvents.PATCH("/questions/reorder", adminQuestionHandler.ReorderQuestions)
+
+			// Event Features Admin
+			adminEvents.PUT("/features", adminEventHandler.UpdateEventFeatures)
 		}
 
 		// Admin routes (question-specific - no event slug needed)
