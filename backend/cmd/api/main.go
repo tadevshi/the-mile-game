@@ -71,6 +71,7 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	eventRepo := repository.NewEventRepository(db)
 	quizQuestionRepo := repository.NewQuizQuestionRepository(db)
+	themeRepo := repository.NewThemeRepository(db)
 
 	// Crear servicios
 	jwtSecret := os.Getenv("JWT_SECRET")
@@ -82,6 +83,7 @@ func main() {
 		log.Println("Warning: Using default JWT secret. Set JWT_SECRET env var in production!")
 	}
 	authService := services.NewAuthService(userRepo, jwtSecret)
+	themeService := services.NewThemeService(themeRepo, eventRepo)
 
 	// WebSocket event validator - valida que el evento existe y está activo
 	eventValidator := &webSocketEventValidator{eventRepo: eventRepo}
@@ -97,6 +99,7 @@ func main() {
 	}
 	handler := handlers.NewHandler(playerRepo, quizRepo, quizQuestionRepo, postcardRepo, hub, uploadsDir)
 	authHandler := handlers.NewAuthHandler(authService)
+	themeHandler := handlers.NewThemeHandler(themeService)
 
 	// Configurar router
 	r := gin.Default()
@@ -139,6 +142,9 @@ func main() {
 			auth.POST("/logout", authHandler.Logout)
 		}
 
+		// Theme presets (public)
+		api.GET("/themes/presets", themeHandler.GetPresets)
+
 		// Event-scoped routes (nuevas - multi-event)
 		events := api.Group("/events/:slug")
 		events.Use(eventMiddleware)
@@ -148,6 +154,9 @@ func main() {
 				event, _ := c.Get("event")
 				c.JSON(200, event)
 			})
+
+			// Theme
+			events.GET("/theme", themeHandler.GetTheme)
 
 			// Players
 			events.POST("/players", handler.CreatePlayerScoped)
@@ -210,10 +219,13 @@ func main() {
 		// Admin routes (event-scoped - multi-event)
 		adminEvents := api.Group("/admin/events/:slug")
 		adminEvents.Use(eventMiddleware)
+		adminEvents.Use(authMiddleware)
 		{
 			adminEvents.GET("/status", handler.GetSecretBoxStatus)
 			adminEvents.GET("/secret-box", handler.ListSecretPostcards)
 			adminEvents.POST("/reveal", handler.RevealSecretBox)
+			adminEvents.PUT("/theme", themeHandler.UpdateTheme)
+			adminEvents.POST("/theme/preset", themeHandler.ApplyPreset)
 		}
 	}
 

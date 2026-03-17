@@ -3,37 +3,79 @@
 /* Google Fonts — DEBE ir antes de cualquier regla que no sea @import */
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
 
+/* Dynamic Theme Variables - injected by ThemeProvider */
+:root {
+  /* Default theme (princess preset) - will be overridden by ThemeProvider */
+  --color-primary: #EC4899;
+  --color-secondary: #FBCFE8;
+  --color-accent: #DB2777;
+  --color-bg: #FFF5F7;
+  --color-text: #1E293B;
+  --font-display: 'Great Vibes', cursive;
+  --font-heading: 'Playfair Display', serif;
+  --font-body: 'Montserrat', sans-serif;
+}
+
 /* Tailwind v4: dark mode activado por clase .dark en <html>, NO por media query.
    Sin esto, Tailwind v4 usa prefers-color-scheme por defecto.
    IMPORTANTE: debe ir después de todos los @import, o el browser ignora los siguientes. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Theme configuration */
+/* Theme configuration using CSS variables */
 @theme {
-  /* Colors */
-  --color-primary: #f9a8d4;
-  --color-secondary: #fbcfe8;
-  --color-accent: #db2777;
-  --color-background-light: #fff5f7;
-  --color-background-dark: #2d1b24;
+  /* Static Colors (not themeable) */
   --color-gold: #D4AF37;
   --color-silver: #C0C0C0;
   --color-bronze: #CD7F32;
 
-  /* Fonts */
-  --font-display: "Great Vibes", cursive;
-  --font-serif: "Playfair Display", serif;
-  --font-sans: "Montserrat", sans-serif;
+  /* Dynamic colors (overridden by ThemeProvider) */
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-bg: var(--color-bg);
+  --color-text: var(--color-text);
+
+  /* Dynamic fonts (overridden by ThemeProvider) */
+  --font-display: var(--font-display);
+  --font-serif: var(--font-heading);
+  --font-sans: var(--font-body);
+}
+
+/* Theme Background Styles */
+.theme-watercolor {
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(244, 143, 177, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(244, 143, 177, 0.15) 0%, transparent 40%),
+    var(--color-bg);
+}
+
+.theme-minimal {
+  background: var(--color-bg);
+}
+
+.theme-dark {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.theme-party {
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(255, 200, 0, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(255, 100, 100, 0.1) 0%, transparent 40%),
+    var(--color-bg);
 }
 
 /* Base styles */
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background-color: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* Fix mobile viewport issues */
   height: 100dvh;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Root container fix for mobile */
@@ -50,6 +92,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+.theme-dark .glass-card,
 .dark .glass-card {
   background: rgba(30, 25, 26, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -73,22 +116,20 @@ body {
 .input-material {
   background: transparent;
   border: 0;
-  border-bottom: 1px solid rgba(249, 168, 212, 0.5);
+  border-bottom: 1px solid var(--color-secondary);
   padding: 0.25rem 0;
   transition: border-color 0.2s;
+  color: var(--color-text);
 }
 
 .input-material:focus {
   outline: none;
-  border-bottom-color: #db2777;
+  border-bottom-color: var(--color-accent);
 }
 
 .input-material::placeholder {
-  color: #fbcfe8;
-}
-
-.dark .input-material::placeholder {
-  color: #fbcfe8;
+  color: var(--color-secondary);
+  opacity: 0.7;
 }
 
 /* Sparkle dots para decoración */

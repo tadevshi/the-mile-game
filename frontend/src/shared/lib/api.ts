@@ -379,6 +379,30 @@ class ApiClient {
     const response = await this.client.get<Postcard[]>(`/events/${eventSlug}/postcards`);
     return response.data;
   }
+
+  // ==========================================
+  // Generic HTTP methods for flexible API calls
+  // ==========================================
+
+  async get<T>(url: string, config?: Parameters<AxiosInstance['get']>[1]): Promise<{ data: T }> {
+    const response = await this.client.get<T>(url, config);
+    return { data: response.data };
+  }
+
+  async post<T>(url: string, data?: unknown, config?: Parameters<AxiosInstance['post']>[2]): Promise<{ data: T }> {
+    const response = await this.client.post<T>(url, data, config);
+    return { data: response.data };
+  }
+
+  async put<T>(url: string, data?: unknown, config?: Parameters<AxiosInstance['put']>[2]): Promise<{ data: T }> {
+    const response = await this.client.put<T>(url, data, config);
+    return { data: response.data };
+  }
+
+  async delete<T>(url: string, config?: Parameters<AxiosInstance['delete']>[1]): Promise<{ data: T }> {
+    const response = await this.client.delete<T>(url, config);
+    return { data: response.data };
+  }
 }
 
 // Exportar singleton

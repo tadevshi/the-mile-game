@@ -1,6 +1,7 @@
 import { Outlet, useParams, useLocation, Link } from 'react-router-dom';
 import { useEventStore, useFeatureEnabled } from '@/shared/store/eventStore';
 import { Button } from '@/shared/components/Button';
+import { ThemeProvider } from '@/shared/theme';
 
 interface EventLayoutProps {
   children?: React.ReactNode;
@@ -24,8 +25,13 @@ export function EventLayout({ children }: EventLayoutProps) {
   const isRanking = location.pathname.includes('/ranking');
   const isCorkboard = location.pathname.includes('/corkboard');
 
+  if (!slug) {
+    return <div>Error: No event slug provided</div>;
+  }
+
   return (
-    <div className="relative">
+    <ThemeProvider eventSlug={slug}>
+      <div className="relative">
       {/* Barra de navegación minimalista - z-50 para estar por encima del contenido */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-pink-100/50">
         <div className="max-w-4xl mx-auto px-4 py-3">
@@ -93,5 +99,6 @@ export function EventLayout({ children }: EventLayoutProps) {
         {children || <Outlet context={{ event: currentEvent }} />}
       </main>
     </div>
+    </ThemeProvider>
   );
 }
