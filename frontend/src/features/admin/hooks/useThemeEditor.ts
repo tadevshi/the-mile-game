@@ -12,7 +12,7 @@ interface UseThemeEditorReturn {
   refreshTheme: () => Promise<void>;
 }
 
-export function useThemeEditor(eventId: string): UseThemeEditorReturn {
+export function useThemeEditor(eventSlug: string): UseThemeEditorReturn {
   const [theme, setTheme] = useState<Theme | null>(null);
   const [presets, setPresets] = useState<ThemePreset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,17 +20,13 @@ export function useThemeEditor(eventId: string): UseThemeEditorReturn {
 
   // Fetch current theme
   const fetchTheme = useCallback(async () => {
-    if (!eventId) return;
+    if (!eventSlug) return;
 
     try {
       setIsLoading(true);
       setError(null);
 
-      // Get event slug first
-      const eventResponse = await api.get(`/events/${eventId}`);
-      const eventSlug = eventResponse.data.slug;
-
-      // Then get theme
+      // Get theme directly using slug
       const themeResponse = await api.get<Theme>(`/events/${eventSlug}/theme`);
       setTheme(themeResponse.data);
     } catch (err) {
@@ -39,7 +35,7 @@ export function useThemeEditor(eventId: string): UseThemeEditorReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [eventId]);
+  }, [eventSlug]);
 
   // Fetch presets
   const fetchPresets = useCallback(async () => {
@@ -59,11 +55,11 @@ export function useThemeEditor(eventId: string): UseThemeEditorReturn {
 
   // Update theme
   const updateTheme = async (updates: Partial<Theme>) => {
-    if (!eventId) throw new Error('No event ID');
+    if (!eventSlug) throw new Error('No event slug');
 
     try {
       const response = await api.put<{ theme: Theme }>(
-        `/admin/events/${eventId}/theme`,
+        `/admin/events/${eventSlug}/theme`,
         updates
       );
       setTheme(response.data.theme);
@@ -75,11 +71,11 @@ export function useThemeEditor(eventId: string): UseThemeEditorReturn {
 
   // Apply preset
   const applyPreset = async (presetName: string) => {
-    if (!eventId) throw new Error('No event ID');
+    if (!eventSlug) throw new Error('No event slug');
 
     try {
       const response = await api.post<{ theme: Theme }>(
-        `/admin/events/${eventId}/theme/preset`,
+        `/admin/events/${eventSlug}/theme/preset`,
         { preset: presetName }
       );
       setTheme(response.data.theme);

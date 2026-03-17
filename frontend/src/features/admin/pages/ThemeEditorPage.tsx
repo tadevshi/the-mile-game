@@ -10,8 +10,8 @@ import { api } from '@/shared/lib/api';
 import type { Theme, ThemePreset } from '@/shared/theme';
 
 export function ThemeEditorPage() {
-  const { id: eventId } = useParams<{ id: string }>();
-  const { theme, presets, isLoading, error, updateTheme, applyPreset, refreshTheme } = useThemeEditor(eventId || '');
+  const { slug: eventSlug } = useParams<{ slug: string }>();
+  const { theme, presets, isLoading, error, updateTheme, applyPreset, refreshTheme } = useThemeEditor(eventSlug || '');
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);

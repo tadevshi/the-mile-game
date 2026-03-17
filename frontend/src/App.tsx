@@ -337,7 +337,7 @@ function AnimatedRoutes() {
         </Route>
         
         {/* ADMIN ROUTES */}
-        <Route path="/admin/event/:id/theme" element={
+        <Route path="/admin/event/:slug/theme" element={
           <AnimatedPage variants={fadeVariants}>
             <ThemeEditorPage />
           </AnimatedPage>

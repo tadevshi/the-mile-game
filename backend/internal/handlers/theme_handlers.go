@@ -47,9 +47,16 @@ func (h *ThemeHandler) GetPresets(c *gin.Context) {
 }
 
 // UpdateTheme updates the theme for an event (admin only)
-// PUT /api/admin/events/:id/theme
+// PUT /api/admin/events/:slug/theme
 func (h *ThemeHandler) UpdateTheme(c *gin.Context) {
-	eventID := c.Param("id")
+	// Get event from context (set by EventMiddleware)
+	event, exists := c.Get("event")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Event not found in context"})
+		return
+	}
+
+	eventID := event.(models.Event).ID.String()
 
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
@@ -70,9 +77,16 @@ func (h *ThemeHandler) UpdateTheme(c *gin.Context) {
 }
 
 // ApplyPreset applies a preset theme to an event (admin only)
-// POST /api/admin/events/:id/theme/preset
+// POST /api/admin/events/:slug/theme/preset
 func (h *ThemeHandler) ApplyPreset(c *gin.Context) {
-	eventID := c.Param("id")
+	// Get event from context (set by EventMiddleware)
+	event, exists := c.Get("event")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Event not found in context"})
+		return
+	}
+
+	eventID := event.(models.Event).ID.String()
 
 	var req struct {
 		Preset string `json:"preset" binding:"required"`
