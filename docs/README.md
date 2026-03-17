@@ -17,7 +17,7 @@
 
 ### Feature Guides
 - [Theme System](guides/THEME_SYSTEM.md) - How to customize event themes
-- [Quiz Editor](guides/QUIZ_EDITOR.md) - Managing quiz questions (WIP)
+- [Question Editor](guides/QUESTION_EDITOR.md) - Managing quiz questions
 - [Feature Flags](guides/FEATURE_FLAGS.md) - Runtime feature toggles (WIP)
 
 ### Architecture

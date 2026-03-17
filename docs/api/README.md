@@ -69,6 +69,17 @@ See [Authentication](AUTH.md) for details on obtaining tokens.
 | GET | `/admin/events/:slug/secret-box` | List secret postcards | Yes (Owner) |
 | POST | `/admin/events/:slug/reveal` | Reveal secret box | Yes (Owner) |
 
+### Question Editor (Quiz Questions)
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/admin/events/:slug/questions` | List questions | Yes (Owner) |
+| POST | `/admin/events/:slug/questions` | Create question | Yes (Owner) |
+| PUT | `/admin/questions/:id` | Update question | Yes (Owner) |
+| DELETE | `/admin/questions/:id` | Delete question | Yes (Owner) |
+| PATCH | `/admin/events/:slug/questions/reorder` | Reorder questions | Yes (Owner) |
+| GET | `/admin/events/:slug/questions/export` | Export questions | Yes (Owner) |
+| POST | `/admin/events/:slug/questions/import` | Import questions | Yes (Owner) |
+
 ### Authentication
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
@@ -131,6 +142,7 @@ API requests are limited to:
 - [Events](EVENTS.md) - Event management
 - [Themes](THEMES.md) - Theme customization
 - [Quiz](QUIZ.md) - Quiz questions and answers
+- [Questions](QUESTIONS.md) - Question Editor API
 - [Postcards](POSTCARDS.md) - Corkboard postcards
 
 ## WebSocket
