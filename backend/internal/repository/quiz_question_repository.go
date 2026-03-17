@@ -192,5 +192,51 @@ func (r *QuizQuestionRepository) DeleteByEvent(eventID uuid.UUID) error {
 	return err
 }
 
+// SortOrderUpdate represents a single question's new sort order
+type SortOrderUpdate struct {
+	ID        uuid.UUID
+	SortOrder int
+}
+
+// UpdateSortOrder updates the sort order of multiple questions in a transaction
+func (r *QuizQuestionRepository) UpdateSortOrder(updates []SortOrderUpdate) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare("UPDATE quiz_questions SET sort_order = $1 WHERE id = $2")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, update := range updates {
+		_, err = stmt.Exec(update.SortOrder, update.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+// CountByEvent counts the number of questions for an event
+func (r *QuizQuestionRepository) CountByEvent(eventID uuid.UUID) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM quiz_questions WHERE event_id = $1`
+	err := r.db.QueryRow(query, eventID).Scan(&count)
+	return count, err
+}
+
+// KeyExists checks if a question key already exists for an event
+func (r *QuizQuestionRepository) KeyExists(eventID uuid.UUID, key string) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS(SELECT 1 FROM quiz_questions WHERE event_id = $1 AND key = $2)`
+	err := r.db.QueryRow(query, eventID, key).Scan(&exists)
+	return exists, err
+}
+
 // ErrQuestionNotFound error cuando la pregunta no existe
 var ErrQuestionNotFound = errors.New("quiz question not found")

@@ -5,6 +5,7 @@ import { RankingPage } from '@features/ranking';
 import { CorkboardPage, SecretBoxPage } from '@features/postcards';
 import { AdminPage } from '@features/admin';
 import { ThemeEditorPage } from '@/features/admin/pages/ThemeEditorPage';
+import { QuestionEditorPage } from '@/features/admin/pages/QuestionEditorPage';
 import { ErrorBoundary, FEATURES, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import type { ReactNode } from 'react';
@@ -340,6 +341,11 @@ function AnimatedRoutes() {
         <Route path="/admin/event/:slug/theme" element={
           <AnimatedPage variants={fadeVariants}>
             <ThemeEditorPage />
+          </AnimatedPage>
+        } />
+        <Route path="/admin/questions/:slug" element={
+          <AnimatedPage variants={fadeVariants}>
+            <QuestionEditorPage />
           </AnimatedPage>
         } />
         

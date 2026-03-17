@@ -77,5 +77,27 @@ type CreateQuizQuestionRequest struct {
 	CorrectAnswers []string `json:"correct_answers"`
 	Options        []string `json:"options,omitempty"`
 	SortOrder      int      `json:"sort_order"`
-	IsScorable     bool     `json:"is_scorable"`
+	IsScorable     *bool    `json:"is_scorable"` // nil means default true
+}
+
+// UpdateQuizQuestionRequest body para actualizar pregunta
+type UpdateQuizQuestionRequest struct {
+	Section        *string  `json:"section,omitempty"`
+	Key            *string  `json:"key,omitempty"`
+	QuestionText   *string  `json:"question_text,omitempty"`
+	CorrectAnswers []string `json:"correct_answers,omitempty"`
+	Options        []string `json:"options,omitempty"`
+	SortOrder      *int     `json:"sort_order,omitempty"`
+	IsScorable     *bool    `json:"is_scorable,omitempty"`
+}
+
+// ReorderRequest body para reordenar preguntas
+type ReorderRequest struct {
+	Orders []ReorderItem `json:"orders" binding:"required"`
+}
+
+// ReorderItem representa un item en el reorder
+type ReorderItem struct {
+	ID        string `json:"id" binding:"required"`
+	SortOrder int    `json:"sort_order"`
 }
