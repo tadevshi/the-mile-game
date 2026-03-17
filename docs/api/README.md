@@ -68,6 +68,7 @@ See [Authentication](AUTH.md) for details on obtaining tokens.
 | GET | `/admin/events/:slug/status` | Secret box status | Yes (Owner) |
 | GET | `/admin/events/:slug/secret-box` | List secret postcards | Yes (Owner) |
 | POST | `/admin/events/:slug/reveal` | Reveal secret box | Yes (Owner) |
+| PUT | `/admin/events/:slug/features` | Update event features | Yes (Owner) |
 
 ### Question Editor (Quiz Questions)
 | Method | Endpoint | Description | Auth |
@@ -141,9 +142,10 @@ API requests are limited to:
 - [Authentication](AUTH.md) - Login, register, tokens
 - [Events](EVENTS.md) - Event management
 - [Themes](THEMES.md) - Theme customization
-- [Quiz](QUIZ.md) - Quiz questions and answers
+- [Quiz](QUIZ.md) - Quiz and questions endpoints
 - [Questions](QUESTIONS.md) - Question Editor API
 - [Postcards](POSTCARDS.md) - Corkboard postcards
+- [Features](FEATURES.md) - Feature flags management
 
 ## WebSocket
 
