@@ -8,11 +8,11 @@ import (
 // ThemeService handles theme business logic
 type ThemeService struct {
 	themeRepo repository.ThemeRepository
-	eventRepo repository.EventRepository
+	eventRepo *repository.EventRepository
 }
 
 // NewThemeService creates a new ThemeService
-func NewThemeService(themeRepo repository.ThemeRepository, eventRepo repository.EventRepository) *ThemeService {
+func NewThemeService(themeRepo repository.ThemeRepository, eventRepo *repository.EventRepository) *ThemeService {
 	return &ThemeService{
 		themeRepo: themeRepo,
 		eventRepo: eventRepo,
