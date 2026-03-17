@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Save, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared';
@@ -44,14 +44,14 @@ export function EventSettingsPage() {
   };
 
   const handleSave = async () => {
-    if (!eventSlug || !adminKey) return;
+    if (!eventSlug) return;
 
     setIsSaving(true);
     setError(null);
     setSuccess(false);
 
     try {
-      await updateFeaturesAction(features);
+      await updateFeaturesAction(features, adminKey);
       setSuccess(true);
       // Auto-hide success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000);
@@ -64,7 +64,7 @@ export function EventSettingsPage() {
   };
 
   // Validate params
-  if (!eventSlug || !adminKey) {
+  if (!eventSlug) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">

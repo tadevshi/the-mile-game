@@ -45,7 +45,7 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 	// El evento ya está en el contexto gracias a EventMiddleware
 	event, exists := c.Get("event")
 	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Event not in context"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
 		return
 	}
 	eventModel := event.(*models.Event)
@@ -86,10 +86,8 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 		return
 	}
 
-	// Merge con features existentes (no sobreescribir)
-	// Solo actualizar los campos que fueron enviados en el request
-	// (cuando el valor es true - cuando es false lo interpretamos como "no enviado" para merge)
-	// NOTA: Esto es un comportamiento de "toggle" - si mandás true se habilita
+	// Merge: only update provided fields
+	// Explicit false values ARE applied (they're sent in the request)
 	if featuresData["quiz"] != nil {
 		eventModel.Features.Quiz = req.Features.Quiz
 	}

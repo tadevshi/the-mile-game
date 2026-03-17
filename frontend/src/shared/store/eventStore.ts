@@ -31,7 +31,7 @@ interface EventState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearEvent: () => void;
-  updateFeatures: (features: EventFeatures) => Promise<Event>;
+  updateFeatures: (features: EventFeatures, adminKey: string) => Promise<Event>;
 }
 
 export const useEventStore = create<EventState>((set, get) => ({
@@ -44,7 +44,7 @@ export const useEventStore = create<EventState>((set, get) => ({
   setError: (error) => set({ error }),
   clearEvent: () => set({ currentEvent: null, isLoading: false, error: null }),
   
-  updateFeatures: async (features: EventFeatures) => {
+  updateFeatures: async (features: EventFeatures, adminKey: string) => {
     const { currentEvent } = get();
     if (!currentEvent) {
       throw new Error('No event loaded');
@@ -62,16 +62,36 @@ export const useEventStore = create<EventState>((set, get) => ({
         }
       });
       
-      // API call
-      const updatedEvent = await api.updateEventFeatures(
+      // API call - returns Event from api.ts (snake_case: owner_id, is_active)
+      const response = await api.updateEventFeatures(
         currentEvent.slug, 
-        features
+        features,
+        adminKey
       );
       
-      // Confirmar con datos del servidor
-      set({ currentEvent: updatedEvent });
+      // Transform response from snake_case (API) to camelCase (store)
+      // API returns: { owner_id, is_active, features: { secret_box } }
+      // Store expects: { ownerId, isActive, features: { secretBox } }
+      const apiFeatures = response.features as unknown as Record<string, boolean>;
+      const transformedEvent: Event = {
+        id: response.id,
+        slug: response.slug,
+        name: response.name,
+        description: response.description,
+        date: response.date,
+        ownerId: response.owner_id,
+        isActive: response.is_active,
+        features: {
+          quiz: response.features.quiz,
+          corkboard: response.features.corkboard,
+          secretBox: apiFeatures['secret_box'] ?? false,
+        },
+      };
       
-      return updatedEvent;
+      // Confirmar con datos del servidor
+      set({ currentEvent: transformedEvent });
+      
+      return transformedEvent;
     } catch (error) {
       // Revertir en caso de error
       set({ currentEvent: previousEvent });

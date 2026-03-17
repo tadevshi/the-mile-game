@@ -172,7 +172,7 @@ function LegacyRoutes() {
         } 
       />
 
-      {/* CORKBOARD: Feature controlado via runtime flag */}
+      {/* CORKBOARD: Route always registered; page-level guard controls access via runtime flag */}
       <Route 
         path="/corkboard" 
         element={
@@ -344,9 +344,11 @@ function AnimatedRoutes() {
           </AnimatedPage>
         } />
         <Route path="/admin/events/:slug/settings" element={
-          <AnimatedPage variants={fadeVariants}>
-            <EventSettingsPage />
-          </AnimatedPage>
+          <EventLoader>
+            <AnimatedPage variants={fadeVariants}>
+              <EventSettingsPage />
+            </AnimatedPage>
+          </EventLoader>
         } />
         
         {/* LEGACY ROUTES: todas las demás rutas */}

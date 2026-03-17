@@ -224,8 +224,8 @@ func TestUpdateEventFeatures_EventNotFound(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Since event is not in context, should return 500
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	// Since event is not in context, should return 404
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestUpdateEventFeatures_InvalidJSON(t *testing.T) {
@@ -261,7 +261,10 @@ func TestUpdateEventFeatures_InvalidJSON(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestUpdateEventFeatures_Unauthorized(t *testing.T) {
+// TestUpdateEventFeatures_NonOwnerUser tests handler behavior when user_id doesn't match event owner.
+// Note: Authorization ( OwnerMiddleware ) is tested separately in event_handlers_test.go.
+// This test verifies the handler doesn't crash when receiving a non-owner user_id.
+func TestUpdateEventFeatures_NonOwnerUser(t *testing.T) {
 	mockUpdater := newMockEventUpdater()
 
 	ownerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
@@ -273,14 +276,13 @@ func TestUpdateEventFeatures_Unauthorized(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
-	// Set event but with different user (simulating OwnerMiddleware failure)
-	// Actually, in the real app, OwnerMiddleware would handle this
-	// Here we simulate the case where the user is NOT the owner
+	// Set event but with different user_id
+	// The handler doesn't check ownership - that's middleware's job
 	r.Use(func(c *gin.Context) {
 		eventCopy := &models.Event{}
 		*eventCopy = *event
 		c.Set("event", eventCopy)
-		// Different user ID
+		// Different user ID (not the owner)
 		c.Set("user_id", uuid.MustParse("99999999-9999-9999-9999-999999999999"))
 		c.Next()
 	})
@@ -294,9 +296,8 @@ func TestUpdateEventFeatures_Unauthorized(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Since we don't have OwnerMiddleware in this test router, it would succeed
-	// But in the real app, the OwnerMiddleware would block this
-	// This test just verifies the handler doesn't crash
+	// Handler processes the request successfully (auth is handled by OwnerMiddleware)
+	// This test verifies the handler doesn't crash with a non-owner user_id
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 

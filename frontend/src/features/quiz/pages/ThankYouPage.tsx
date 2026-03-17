@@ -57,7 +57,8 @@ export function ThankYouPage() {
   const hasCompleted = useQuizStore((state) => state.hasCompleted);
 
   // Runtime feature flags
-  const isCorkboardEnabled = useFeatureEnabled('corkboard');
+  // Default to true for backward compatibility in legacy routes (no event loaded)
+  const isCorkboardEnabled = useFeatureEnabled('corkboard') ?? true;
 
   // Participantes reales desde la API
   const [otherPlayers, setOtherPlayers] = useState<Player[]>([]);

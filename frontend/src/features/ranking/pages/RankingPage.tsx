@@ -33,7 +33,8 @@ const podiumVariants = {
 
 export function RankingPage() {
   const navigate = useEventNavigate();
-  const isCorkboardEnabled = useFeatureEnabled('corkboard');
+  // Default to true for backward compatibility in legacy routes (no event loaded)
+  const isCorkboardEnabled = useFeatureEnabled('corkboard') ?? true;
   const {
     ranking,
     isLoading,
