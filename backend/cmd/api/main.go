@@ -100,6 +100,7 @@ func main() {
 	handler := handlers.NewHandler(playerRepo, quizRepo, quizQuestionRepo, postcardRepo, hub, uploadsDir)
 	authHandler := handlers.NewAuthHandler(authService)
 	themeHandler := handlers.NewThemeHandler(themeService)
+	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo)
 
 	// Configurar router
 	r := gin.Default()
@@ -226,6 +227,21 @@ func main() {
 			adminEvents.POST("/reveal", handler.RevealSecretBox)
 			adminEvents.PUT("/theme", themeHandler.UpdateTheme)
 			adminEvents.POST("/theme/preset", themeHandler.ApplyPreset)
+
+			// Quiz Questions Admin
+			adminEvents.GET("/questions", adminQuestionHandler.ListQuestions)
+			adminEvents.POST("/questions", adminQuestionHandler.CreateQuestion)
+			adminEvents.GET("/questions/export", adminQuestionHandler.ExportQuestions)
+			adminEvents.POST("/questions/import", adminQuestionHandler.ImportQuestions)
+			adminEvents.PATCH("/questions/reorder", adminQuestionHandler.ReorderQuestions)
+		}
+
+		// Admin routes (question-specific - no event slug needed)
+		adminQuestions := api.Group("/admin/questions")
+		adminQuestions.Use(authMiddleware)
+		{
+			adminQuestions.PUT("/:id", adminQuestionHandler.UpdateQuestion)
+			adminQuestions.DELETE("/:id", adminQuestionHandler.DeleteQuestion)
 		}
 	}
 

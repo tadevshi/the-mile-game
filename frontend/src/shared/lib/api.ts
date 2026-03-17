@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance, type AxiosError } from 'axios';
 import type { Postcard, SecretBoxStatus } from '@features/postcards/types/postcards.types';
+import type { QuizQuestion, CreateQuestionRequest, UpdateQuestionRequest, ReorderUpdate } from '@features/admin/types/questions.types';
 
 // Tipos de datos que vienen del backend
 export interface Player {
@@ -377,6 +378,60 @@ class ApiClient {
   // List postcards for a specific event
   async listPostcardsScoped(eventSlug: string): Promise<Postcard[]> {
     const response = await this.client.get<Postcard[]>(`/events/${eventSlug}/postcards`);
+    return response.data;
+  }
+
+  // ==========================================
+  // Admin — Questions
+  // ==========================================
+
+  async listQuestions(eventSlug: string): Promise<QuizQuestion[]> {
+    const response = await this.client.get<QuizQuestion[]>(`/admin/events/${eventSlug}/questions`);
+    return response.data;
+  }
+
+  async createQuestion(eventSlug: string, data: CreateQuestionRequest): Promise<QuizQuestion> {
+    const response = await this.client.post<QuizQuestion>(`/admin/events/${eventSlug}/questions`, data);
+    return response.data;
+  }
+
+  async updateQuestion(questionId: string, data: UpdateQuestionRequest): Promise<QuizQuestion> {
+    const response = await this.client.put<QuizQuestion>(`/admin/questions/${questionId}`, data);
+    return response.data;
+  }
+
+  async deleteQuestion(questionId: string): Promise<{ message: string }> {
+    const response = await this.client.delete<{ message: string }>(`/admin/questions/${questionId}`);
+    return response.data;
+  }
+
+  async reorderQuestions(eventSlug: string, orders: ReorderUpdate[]): Promise<{ message: string }> {
+    const response = await this.client.patch<{ message: string }>(
+      `/admin/events/${eventSlug}/questions/reorder`,
+      { orders }
+    );
+    return response.data;
+  }
+
+  async exportQuestions(eventSlug: string): Promise<QuizQuestion[]> {
+    const response = await this.client.get<QuizQuestion[]>(`/admin/events/${eventSlug}/questions/export`);
+    return response.data;
+  }
+
+  async importQuestions(eventSlug: string, file: File): Promise<{ imported: number; warnings?: string[] }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await this.client.post<{ imported: number; warnings?: string[] }>(
+      `/admin/events/${eventSlug}/questions/import`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000,
+      }
+    );
     return response.data;
   }
 
