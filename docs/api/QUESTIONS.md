@@ -2,15 +2,18 @@
 
 > Complete API reference for managing quiz questions via the admin interface.
 
+> **Note:** Admin authentication uses JWT Bearer tokens. The legacy `?key=` query parameter is deprecated.
+
 ## Authentication
 
-All Question Editor endpoints require admin authentication via query parameter:
+All Question Editor endpoints require JWT Bearer token authentication:
 
 ```
-GET /api/admin/events/:slug/questions?key=your-admin-key
+GET /api/admin/events/:slug/questions
+Authorization: Bearer {your-jwt-token}
 ```
 
-The `key` parameter must match the event owner's admin key.
+The user must be the owner of the event.
 
 ## Endpoints Overview
 
@@ -38,7 +41,6 @@ GET /api/admin/events/:slug/questions
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `key` | string | Yes | Admin authentication key |
 | `section` | string | No | Filter by section: `favorites`, `preferences`, or `description` |
 | `page` | number | No | Page number (default: 1) |
 | `per_page` | number | No | Items per page (default: 50, max: 100) |
@@ -46,7 +48,8 @@ GET /api/admin/events/:slug/questions
 ### Example Request
 
 ```bash
-curl -X GET "http://localhost:8081/api/admin/events/mile-2026/questions?key=your-key&section=favorites" \
+curl -X GET "http://localhost:8081/api/admin/events/mile-2026/questions?section=favorites" \
+  -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json"
 ```
 
@@ -120,7 +123,8 @@ POST /api/admin/events/:slug/questions
 ### Example: Text Question
 
 ```bash
-curl -X POST "http://localhost:8081/api/admin/events/mile-2026/questions?key=your-key" \
+curl -X POST "http://localhost:8081/api/admin/events/mile-2026/questions" \
+  -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
     "key": "favorite_color",
@@ -135,7 +139,8 @@ curl -X POST "http://localhost:8081/api/admin/events/mile-2026/questions?key=you
 ### Example: Choice Question
 
 ```bash
-curl -X POST "http://localhost:8081/api/admin/events/mile-2026/questions?key=your-key" \
+curl -X POST "http://localhost:8081/api/admin/events/mile-2026/questions" \
+  -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
     "key": "coffee_or_tea",
@@ -151,7 +156,8 @@ curl -X POST "http://localhost:8081/api/admin/events/mile-2026/questions?key=you
 ### Example: Description Question (Non-scorable)
 
 ```bash
-curl -X POST "http://localhost:8081/api/admin/events/mile-2026/questions?key=your-key" \
+curl -X POST "http://localhost:8081/api/admin/events/mile-2026/questions" \
+  -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
     "key": "describe_mile",
@@ -228,7 +234,8 @@ All fields are optional. Only provided fields will be updated.
 ### Example Request
 
 ```bash
-curl -X PUT "http://localhost:8081/api/admin/questions/550e8400-e29b-41d4-a716-446655440000?key=your-key" \
+curl -X PUT "http://localhost:8081/api/admin/questions/550e8400-e29b-41d4-a716-446655440000" \
+  -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
     "question_text": "¿Cuál es TU color favorito?",
@@ -270,7 +277,8 @@ DELETE /api/admin/questions/:id
 ### Example Request
 
 ```bash
-curl -X DELETE "http://localhost:8081/api/admin/questions/550e8400-e29b-41d4-a716-446655440000?key=your-key"
+curl -X DELETE "http://localhost:8081/api/admin/questions/550e8400-e29b-41d4-a716-446655440000" \
+  -H "Authorization: Bearer {token}"
 ```
 
 ### Response
@@ -314,7 +322,8 @@ PATCH /api/admin/events/:slug/questions/reorder
 ### Example Request
 
 ```bash
-curl -X PATCH "http://localhost:8081/api/admin/events/mile-2026/questions/reorder?key=your-key" \
+curl -X PATCH "http://localhost:8081/api/admin/events/mile-2026/questions/reorder" \
+  -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '[
     { "id": "550e8400-e29b-41d4-a716-446655440001", "sort_order": 2 },
@@ -346,16 +355,11 @@ Export all questions to JSON format (useful for backup or copying to another eve
 GET /api/admin/events/:slug/questions/export
 ```
 
-### Query Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `key` | string | Yes | Admin authentication key |
-
 ### Example Request
 
 ```bash
-curl -X GET "http://localhost:8081/api/admin/events/mile-2026/questions/export?key=your-key"
+curl -X GET "http://localhost:8081/api/admin/events/mile-2026/questions/export" \
+  -H "Authorization: Bearer {token}"
 ```
 
 ### Response
@@ -423,7 +427,8 @@ POST /api/admin/events/:slug/questions/import
 ### Example Request
 
 ```bash
-curl -X POST "http://localhost:8081/api/admin/events/mile-2026/questions/import?key=your-key" \
+curl -X POST "http://localhost:8081/api/admin/events/mile-2026/questions/import" \
+  -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
     "questions": [

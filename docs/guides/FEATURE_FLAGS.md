@@ -1,6 +1,8 @@
 # Feature Flags Guide
 
-The Mile Game uses feature flags to control which functionality is available for each event. This allows you to enable or disable features without redeploying the application.
+> The Mile Game uses feature flags to control which functionality is available for each event. This allows you to enable or disable features without redeploying the application.
+
+> **Note:** Admin authentication uses JWT Bearer tokens. The legacy `?key=` query parameter is deprecated.
 
 ## Available Features
 
@@ -26,7 +28,7 @@ The Mile Game uses feature flags to control which functionality is available for
 
 ### Via Admin UI
 
-1. Navigate to `/admin/events/{event-slug}/settings?key={admin-key}`
+1. Navigate to `/admin/events/{event-slug}/settings` (Requires admin login)
 2. Toggle switches for each feature
 3. Click "Save Changes"
 4. Changes take effect immediately

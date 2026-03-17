@@ -2,6 +2,8 @@
 
 > Complete user guide for managing quiz questions in The Mile Game admin panel.
 
+> **Note:** Admin authentication uses JWT Bearer tokens. The legacy `?key=` query parameter is deprecated.
+
 ## Overview
 
 The Question Editor allows event organizers to create, edit, and manage quiz questions for their events. It's part of the admin panel and provides a visual interface for:
@@ -18,7 +20,7 @@ The Question Editor allows event organizers to create, edit, and manage quiz que
 ### URL Format
 
 ```
-http://localhost:8081/admin/event/{event-slug}/questions?key={admin-key}
+http://localhost:8081/admin/event/{event-slug}/questions
 ```
 
 ### Parameters
@@ -26,9 +28,8 @@ http://localhost:8081/admin/event/{event-slug}/questions?key={admin-key}
 | Parameter | Description |
 |-----------|-------------|
 | `event-slug` | The unique identifier for your event (e.g., `mile-2026`) |
-| `admin-key` | Your admin authentication key |
 
-> **Note**: You need owner access to the event to use the Question Editor.
+> **Note**: You need owner access to the event and must be logged in via JWT to use the Question Editor.
 
 ## The Interface
 

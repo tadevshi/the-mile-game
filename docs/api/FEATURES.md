@@ -1,6 +1,8 @@
 # Feature Flags API
 
-Manage event feature flags dynamically.
+> Manage event feature flags dynamically.
+
+> **Note:** Admin authentication uses JWT Bearer tokens. The legacy `?key=` query parameter is deprecated.
 
 ## Update Event Features
 
