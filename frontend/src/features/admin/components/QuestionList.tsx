@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -27,7 +27,6 @@ interface QuestionListProps {
   onReorder: (orders: { id: string; sort_order: number }[]) => void;
   onEdit: (question: QuizQuestion) => void;
   onDelete: (id: string) => void;
-  isReordering?: boolean;
   deletingId?: string | null;
 }
 
@@ -179,7 +178,6 @@ export function QuestionList({
   onReorder,
   onEdit,
   onDelete,
-  isReordering = false,
   deletingId = null,
 }: QuestionListProps) {
   const sensors = useSensors(

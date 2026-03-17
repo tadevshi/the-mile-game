@@ -9,9 +9,7 @@ import type {
   QuestionSection 
 } from '../types/questions.types';
 import { 
-  INITIAL_QUESTION_FORM, 
-  TYPE_LABELS, 
-  SECTION_LABELS 
+  INITIAL_QUESTION_FORM
 } from '../types/questions.types';
 
 interface QuestionFormProps {

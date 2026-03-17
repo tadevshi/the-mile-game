@@ -33,7 +33,6 @@ export function QuestionEditorPage() {
   } = useQuestionEditor(eventSlug, adminKey);
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
-  const isReordering = reorderMutation.isPending;
   const deletingId = deleteMutation.isPending ? showDeleteConfirm : null;
 
   // Handle create/update
@@ -125,7 +124,7 @@ export function QuestionEditorPage() {
   };
 
   // Handle add new question in a specific section
-  const handleAddQuestion = (section: QuestionSection) => {
+  const handleAddQuestion = (_section: QuestionSection) => {
     setSelectedQuestion(null);
     setFormData(null);
     // The form will show with the selected section
@@ -212,7 +211,6 @@ export function QuestionEditorPage() {
               onReorder={handleReorder}
               onEdit={handleEdit}
               onDelete={handleDelete}
-              isReordering={isReordering}
               deletingId={deletingId}
             />
 

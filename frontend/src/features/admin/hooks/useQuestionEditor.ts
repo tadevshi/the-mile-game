@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { api } from '@/shared/lib/api';
 import type { 
   QuizQuestion, 
@@ -10,15 +10,19 @@ import type {
 
 const QUESTIONS_KEY = 'questions';
 
+interface MutationContext {
+  previousQuestions: QuizQuestion[] | undefined;
+}
+
 interface UseQuestionEditorReturn {
   questions: QuizQuestion[];
   isLoading: boolean;
   error: string | null;
-  createMutation: ReturnType<typeof useMutation<QuizQuestion, Error, CreateQuestionRequest>>;
-  updateMutation: ReturnType<typeof useMutation<QuizQuestion, Error, UpdateQuestionRequest>>;
-  deleteMutation: ReturnType<typeof useMutation<{ message: string }, Error, string>>;
-  reorderMutation: ReturnType<typeof useMutation<{ message: string }, Error, ReorderUpdate[]>>;
-  importMutation: ReturnType<typeof useMutation<{ imported: number; warnings?: string[] }, Error, File>>;
+  createMutation: UseMutationResult<QuizQuestion, Error, CreateQuestionRequest, MutationContext>;
+  updateMutation: UseMutationResult<QuizQuestion, Error, { id: string } & UpdateQuestionRequest, MutationContext>;
+  deleteMutation: UseMutationResult<{ message: string }, Error, string, MutationContext>;
+  reorderMutation: UseMutationResult<{ message: string }, Error, ReorderUpdate[], MutationContext>;
+  importMutation: UseMutationResult<{ imported: number; warnings?: string[] }, Error, File, unknown>;
   exportQuestions: () => Promise<void>;
   refetch: () => void;
 }
@@ -35,7 +39,7 @@ export function useQuestionEditor(eventSlug: string, adminKey: string): UseQuest
   });
 
   // Create mutation
-  const createMutation = useMutation<QuizQuestion, Error, CreateQuestionRequest>({
+  const createMutation = useMutation<QuizQuestion, Error, CreateQuestionRequest, MutationContext>({
     mutationFn: (data) => api.createQuestion(eventSlug, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: questionsKey });
@@ -43,7 +47,7 @@ export function useQuestionEditor(eventSlug: string, adminKey: string): UseQuest
   });
 
   // Update mutation
-  const updateMutation = useMutation<QuizQuestion, Error, UpdateQuestionRequest>({
+  const updateMutation = useMutation<QuizQuestion, Error, { id: string } & UpdateQuestionRequest, MutationContext>({
     mutationFn: ({ id, ...data }) => api.updateQuestion(id, data),
     onMutate: async ({ id, ...newData }) => {
       // Optimistic update
@@ -71,7 +75,7 @@ export function useQuestionEditor(eventSlug: string, adminKey: string): UseQuest
   });
 
   // Delete mutation
-  const deleteMutation = useMutation<{ message: string }, Error, string>({
+  const deleteMutation = useMutation<{ message: string }, Error, string, MutationContext>({
     mutationFn: (id) => api.deleteQuestion(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: questionsKey });
@@ -97,7 +101,7 @@ export function useQuestionEditor(eventSlug: string, adminKey: string): UseQuest
   });
 
   // Reorder mutation with optimistic update
-  const reorderMutation = useMutation<{ message: string }, Error, ReorderUpdate[]>({
+  const reorderMutation = useMutation<{ message: string }, Error, ReorderUpdate[], MutationContext>({
     mutationFn: (orders) => api.reorderQuestions(eventSlug, orders),
     onMutate: async (orders) => {
       await queryClient.cancelQueries({ queryKey: questionsKey });

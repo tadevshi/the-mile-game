@@ -3,9 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Upload, AlertTriangle, Check } from 'lucide-react';
 import { Button } from '@/shared';
 
+interface ImportResult {
+  imported: number;
+  warnings?: string[];
+}
+
 interface ImportExportPanelProps {
   onExport: () => Promise<void>;
-  onImport: (file: File) => Promise<void>;
+  onImport: (file: File) => Promise<ImportResult>;
   isExporting?: boolean;
   isImporting?: boolean;
   questionCount: number;
@@ -19,10 +24,7 @@ export function ImportExportPanel({
   questionCount,
 }: ImportExportPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importResult, setImportResult] = useState<{
-    imported: number;
-    warnings?: string[];
-  } | null>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
