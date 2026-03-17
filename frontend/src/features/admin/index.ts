@@ -14,11 +14,10 @@ export { ImportExportPanel } from './components/ImportExportPanel';
 export { SectionHeader } from './components/SectionHeader';
 export type { 
   QuizQuestion, 
-  QuestionType, 
   QuestionSection, 
   QuestionFormData,
   CreateQuestionRequest,
   UpdateQuestionRequest,
   ReorderUpdate,
 } from './types/questions.types';
-export { INITIAL_QUESTION_FORM, TYPE_LABELS, SECTION_LABELS } from './types/questions.types';
+export { INITIAL_QUESTION_FORM, SECTION_LABELS } from './types/questions.types';

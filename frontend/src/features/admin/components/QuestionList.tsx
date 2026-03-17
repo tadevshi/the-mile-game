@@ -19,7 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GripVertical, Pencil, Trash2 } from 'lucide-react';
 import type { QuizQuestion, QuestionSection } from '../types/questions.types';
-import { TYPE_LABELS, SECTION_LABELS } from '../types/questions.types';
+import { SECTION_LABELS } from '../types/questions.types';
 import { groupQuestionsBySection } from '../hooks/useQuestionEditor';
 
 interface QuestionListProps {
@@ -56,11 +56,12 @@ function SortableQuestionItem({
     transition,
   };
 
-  const typeColors: Record<string, string> = {
-    text: 'bg-blue-100 text-blue-700',
-    choice: 'bg-purple-100 text-purple-700',
-    boolean: 'bg-green-100 text-green-700',
-  };
+    // Derive type from options presence
+    const questionType = question.options && question.options.length > 0 ? 'choice' : 'text';
+    const typeLabels: Record<string, string> = {
+      text: 'Texto',
+      choice: 'Opción múltiple',
+    };
 
   return (
     <motion.div
@@ -91,8 +92,8 @@ function SortableQuestionItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-mono text-gray-500">#{question.sort_order}</span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${typeColors[question.type]}`}>
-              {TYPE_LABELS[question.type]}
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${questionType === 'choice' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+              {typeLabels[questionType]}
             </span>
             {question.is_scorable && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
@@ -101,7 +102,7 @@ function SortableQuestionItem({
             )}
           </div>
           <p className="text-sm font-medium text-gray-800 truncate">
-            {question.data.question}
+            {question.question_text}
           </p>
           <p className="text-xs text-gray-500 font-mono mt-0.5 truncate">
             {question.key}

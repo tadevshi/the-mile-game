@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Eye } from 'lucide-react';
-import type { QuestionFormData, QuestionSection } from '../types/questions.types';
+import type { QuestionFormData } from '../types/questions.types';
 import { SECTION_LABELS } from '../types/questions.types';
 
 interface QuestionPreviewProps {
@@ -9,11 +9,6 @@ interface QuestionPreviewProps {
 
 export function QuestionPreview({ data }: QuestionPreviewProps) {
   const isChoice = data.options.length > 0;
-  
-  const typeColors: Record<string, string> = {
-    'from-blue-50 to-blue-100': 'from-blue-50 to-blue-100',
-    'from-purple-50 to-purple-100': 'from-purple-50 to-purple-100',
-  };
   
   const bgGradient = isChoice 
     ? 'from-purple-50 to-purple-100' 
