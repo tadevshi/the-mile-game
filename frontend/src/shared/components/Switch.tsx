@@ -1,5 +1,3 @@
-import { motion } from 'framer-motion';
-
 interface SwitchProps {
   checked: boolean;
   onChange: (checked: boolean) => void;

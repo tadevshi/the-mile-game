@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Calendar, Settings, Eye, MoreVertical } from 'lucide-react';
+import { Calendar, Settings, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Event } from '@/shared/lib/api';
 
@@ -22,7 +22,7 @@ export function EventCard({ event }: EventCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, shadow-lg: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+      whileHover={{ y: -4, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
       className="bg-white rounded-2xl shadow-md border border-pink-100 overflow-hidden transition-shadow"
     >
       {/* Card Header */}

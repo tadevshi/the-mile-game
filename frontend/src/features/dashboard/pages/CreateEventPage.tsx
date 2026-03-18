@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
-import { api, type Event, type EventFeatures } from '@/shared/lib/api';
+import { api, type EventFeatures } from '@/shared/lib/api';
 import { Button } from '@/shared/components/Button';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { Switch } from '@/shared/components/Switch';

@@ -120,17 +120,6 @@ export function RegisterPage() {
     }
   };
 
-  const getStrengthColor = (strength: PasswordStrength): string => {
-    switch (strength) {
-      case 'weak':
-        return 'bg-red-400';
-      case 'medium':
-        return 'bg-yellow-400';
-      case 'strong':
-        return 'bg-green-400';
-    }
-  };
-
   const getStrengthLabel = (strength: PasswordStrength): string => {
     switch (strength) {
       case 'weak':
