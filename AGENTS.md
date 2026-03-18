@@ -440,6 +440,43 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
 
 ---
 
+## Authentication
+
+The Mile Game uses JWT Bearer tokens for authentication.
+
+### User Flow
+
+1. **Registration**: User creates account at `/register`
+2. **Login**: User authenticates at `/login` → receives JWT tokens
+3. **Dashboard**: Authenticated users see their events at `/dashboard`
+4. **Create Event**: Users create events at `/events/new`
+5. **Admin**: Event owners manage events via `/admin/*`
+
+### Auth Store
+
+Zustand store (`useAuthStore`) manages:
+- User profile
+- Access token (memory only)
+- Refresh token (localStorage if "remember me")
+- Auth state
+
+### API Authentication
+
+API client automatically adds `Authorization: Bearer <token>` header to all requests.
+Token refresh happens automatically on 401 responses.
+
+### Protected Routes
+
+Routes under `/dashboard`, `/events/new`, and `/admin/*` require authentication.
+Unauthenticated users are redirected to `/login`.
+
+### Legacy Auth (Deprecated)
+
+The previous authentication system using `X-Admin-Key` headers and `?key=` query parameters
+has been deprecated and replaced with JWT-based authentication.
+
+---
+
 ## API Endpoints (Backend Go)
 
 ```
