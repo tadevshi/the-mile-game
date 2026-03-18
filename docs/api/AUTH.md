@@ -31,8 +31,8 @@ Register a new user account.
 **Response:** `201 Created`
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "name": "John Doe",
@@ -63,8 +63,8 @@ Authenticate user and receive JWT tokens.
 **Response:** `200 OK`
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "name": "John Doe",
@@ -85,15 +85,15 @@ Refresh access token using a valid refresh token.
 **Request:**
 ```json
 {
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
 **Response:** `200 OK`
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -139,7 +139,7 @@ Authorization: Bearer <accessToken>
 **Request:**
 ```json
 {
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -158,7 +158,7 @@ Authorization: Bearer <accessToken>
 
 - **Purpose**: Authenticate API requests
 - **Lifetime**: 15 minutes
-- **Storage**: Memory only (not persisted)
+- **Storage**: localStorage (persisted across sessions)
 - **Claims**:
   ```json
   {
@@ -173,7 +173,7 @@ Authorization: Bearer <accessToken>
 
 - **Purpose**: Obtain new access tokens
 - **Lifetime**: 7 days
-- **Storage**: localStorage (if "remember me") or memory
+- **Storage**: localStorage (persisted if "remember me" is enabled)
 - **Rotation**: New refresh token issued on each refresh
 
 ### Token Refresh Flow
