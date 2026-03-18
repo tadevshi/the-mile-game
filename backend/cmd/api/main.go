@@ -152,6 +152,13 @@ func main() {
 			users.GET("/me/events", eventHandler.GetUserEvents)
 		}
 
+		// Events (protegido - crear evento)
+		eventsAuth := api.Group("/events")
+		eventsAuth.Use(authMiddleware)
+		{
+			eventsAuth.POST("", eventHandler.CreateEvent)
+		}
+
 		// Theme presets (public)
 		api.GET("/themes/presets", themeHandler.GetPresets)
 
