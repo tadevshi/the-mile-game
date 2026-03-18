@@ -10,7 +10,7 @@ type PasswordStrength = 'weak' | 'medium' | 'strong';
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const { register, isLoading, error, clearError, isAuthenticated } = useAuthStore();
+  const { register, isLoading, error, clearError, isAuthenticated, hasHydrated } = useAuthStore();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -21,12 +21,12 @@ export function RegisterPage() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>('weak');
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (only after hydration)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (hasHydrated && isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [hasHydrated, isAuthenticated, navigate]);
 
   // Clear error when unmounting
   useEffect(() => {
@@ -102,7 +102,7 @@ export function RegisterPage() {
         email: formData.email,
         password: formData.password,
       });
-      navigate('/dashboard', { replace: true });
+      // Navigation will be handled by useEffect when isAuthenticated changes
     } catch {
       // Error handled by store
     }

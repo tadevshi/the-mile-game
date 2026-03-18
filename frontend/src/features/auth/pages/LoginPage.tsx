@@ -9,7 +9,7 @@ import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading, error, clearError, isAuthenticated } = useAuthStore();
+  const { login, isLoading, error, clearError, isAuthenticated, hasHydrated } = useAuthStore();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -19,13 +19,13 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (only after hydration)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (hasHydrated && isAuthenticated) {
       const from = location.state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate, location]);
+  }, [hasHydrated, isAuthenticated, navigate, location]);
 
   // Clear error when unmounting
   useEffect(() => {
@@ -61,8 +61,7 @@ export function LoginPage() {
         { email: formData.email, password: formData.password },
         formData.rememberMe
       );
-      const from = location.state?.from?.pathname || '/dashboard';
-      navigate(from, { replace: true });
+      // Navigation will be handled by useEffect when isAuthenticated changes
     } catch {
       // Error handled by store
     }
