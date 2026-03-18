@@ -354,6 +354,24 @@ class ApiClient {
   // Events (Multi-event support)
   // ==========================================
 
+  // Get events owned by the current user
+  async getUserEvents(): Promise<Event[]> {
+    const response = await this.client.get<Event[]>('/users/me/events');
+    return response.data;
+  }
+
+  // Create a new event
+  async createEvent(data: {
+    name: string;
+    slug: string;
+    date?: string;
+    description?: string;
+    features?: EventFeatures;
+  }): Promise<Event> {
+    const response = await this.client.post<Event>('/events', data);
+    return response.data;
+  }
+
   async getEventBySlug(slug: string): Promise<Event> {
     const response = await this.client.get<Event>(`/events/${slug}`);
     return response.data;

@@ -14,6 +14,7 @@ export { EventLayout } from './components/EventLayout';
 export { EventLoader } from './components/EventLoader';
 export { LoadingSpinner } from './components/LoadingSpinner';
 export { ProtectedRoute } from './components/ProtectedRoute';
+export { Switch } from './components/Switch';
 
 // Stores
 export { useThemeStore } from './store/themeStore';
