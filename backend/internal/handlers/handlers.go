@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"io"
 	"math/rand"
@@ -604,7 +605,7 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 	// Validar token de acceso
 	token := c.GetHeader("X-Secret-Token")
 	expectedToken := os.Getenv("SECRET_BOX_TOKEN")
-	if expectedToken == "" || token != expectedToken {
+	if expectedToken == "" || subtle.ConstantTimeCompare([]byte(token), []byte(expectedToken)) != 1 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing secret token"})
 		return
 	}

@@ -73,14 +73,10 @@ func main() {
 	quizQuestionRepo := repository.NewQuizQuestionRepository(db)
 	themeRepo := repository.NewThemeRepository(db)
 
-	// Crear servicios
+	// JWT secret — siempre requerido
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		if ginMode == "release" {
-			log.Fatal("JWT_SECRET is required in release mode")
-		}
-		jwtSecret = "default-secret-change-in-production"
-		log.Println("Warning: Using default JWT secret. Set JWT_SECRET env var in production!")
+		log.Fatal("JWT_SECRET environment variable is required")
 	}
 	authService := services.NewAuthService(userRepo, jwtSecret)
 	themeService := services.NewThemeService(themeRepo, eventRepo)
