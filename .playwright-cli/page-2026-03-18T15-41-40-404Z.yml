@@ -1,0 +1,34 @@
+- generic [ref=e2]:
+  - button "Cambiar a modo oscuro" [ref=e3] [cursor=pointer]:
+    - img [ref=e5]
+  - generic [ref=e10]:
+    - generic [ref=e11]:
+      - heading "The Mile Game" [level=1] [ref=e12]
+      - paragraph [ref=e13]: Iniciar Sesión
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e16]: Email
+        - textbox "Email" [ref=e17]:
+          - /placeholder: tu@email.com
+      - generic [ref=e18]:
+        - generic [ref=e19]: Contraseña
+        - generic [ref=e20]:
+          - textbox "Contraseña" [ref=e21]:
+            - /placeholder: ••••••••
+          - button [ref=e22]:
+            - img [ref=e23]
+      - generic [ref=e26]:
+        - checkbox "Recordarme" [ref=e27]
+        - generic [ref=e28]: Recordarme
+      - button "Ingresar" [ref=e29] [cursor=pointer]:
+        - generic [ref=e32]:
+          - img [ref=e33]
+          - text: Ingresar
+    - generic [ref=e36]:
+      - paragraph [ref=e37]:
+        - text: ¿No tienes cuenta?
+        - link "Regístrate" [ref=e38] [cursor=pointer]:
+          - /url: /register
+      - paragraph [ref=e39]:
+        - link "¿Olvidaste tu contraseña?" [ref=e40] [cursor=pointer]:
+          - /url: "#"

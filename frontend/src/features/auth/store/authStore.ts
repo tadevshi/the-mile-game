@@ -35,17 +35,21 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const response = await api.login(credentials);
           
+          // Handle both snake_case and camelCase from backend
+          const token = (response as any).access_token || response.accessToken;
+          const refresh = (response as any).refresh_token || response.refreshToken;
+          
           // Store in localStorage immediately
-          localStorage.setItem('auth-token', response.accessToken);
+          localStorage.setItem('auth-token', token);
           localStorage.setItem('auth-user', JSON.stringify(response.user));
           
-          if (rememberMe && response.refreshToken) {
-            localStorage.setItem('auth-refresh', response.refreshToken);
+          if (rememberMe && refresh) {
+            localStorage.setItem('auth-refresh', refresh);
           }
           
           set({
             user: response.user,
-            accessToken: response.accessToken,
+            accessToken: token,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -63,14 +67,18 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const response = await api.register(data);
           
+          // Handle both snake_case and camelCase from backend
+          const token = (response as any).access_token || response.accessToken;
+          const refresh = (response as any).refresh_token || response.refreshToken;
+          
           // Store in localStorage immediately
-          localStorage.setItem('auth-token', response.accessToken);
+          localStorage.setItem('auth-token', token);
           localStorage.setItem('auth-user', JSON.stringify(response.user));
-          localStorage.setItem('auth-refresh', response.refreshToken);
+          localStorage.setItem('auth-refresh', refresh);
           
           set({
             user: response.user,
-            accessToken: response.accessToken,
+            accessToken: token,
             isAuthenticated: true,
             isLoading: false,
           });
