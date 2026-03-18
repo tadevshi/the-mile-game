@@ -1,6 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { useEffect, useState } from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface ProtectedRouteProps {
@@ -8,20 +7,15 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, checkAuth } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuthStore();
   const location = useLocation();
-  const [isReady, setIsReady] = useState(false);
-  const [isAuth, setIsAuth] = useState(false);
 
-  useEffect(() => {
-    // Check auth status on mount
-    const auth = checkAuth();
-    setIsAuth(auth);
-    setIsReady(true);
-  }, [checkAuth]);
+  // Read token directly from localStorage (synchronous)
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  const hasToken = !!token && token !== 'undefined' && token !== 'null';
 
-  // Show loading while checking
-  if (!isReady) {
+  // Show loading while store is initializing
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-pink-50">
         <LoadingSpinner size="lg" />
@@ -29,8 +23,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // Use either the store state or the direct check
-  const authenticated = isAuthenticated || isAuth;
+  // Check both store state and localStorage
+  const authenticated = isAuthenticated || hasToken;
 
   if (!authenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
