@@ -20,13 +20,32 @@ interface AuthStore extends AuthState {
 }
 
 // Simple store without complex hydration logic
+function getInitialState() {
+  let user: User | null = null;
+  let accessToken: string | null = null;
+  let isAuthenticated = false;
+
+  try {
+    const storedUser = localStorage.getItem('auth-user');
+    if (storedUser) {
+      user = JSON.parse(storedUser);
+    }
+    accessToken = localStorage.getItem('auth-token');
+    isAuthenticated = !!accessToken;
+  } catch {
+    // localStorage unavailable (SSR, incognito, etc.)
+  }
+
+  return { user, accessToken, isAuthenticated };
+}
+
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
       // Initial state - read from storage on init
-      user: JSON.parse(localStorage.getItem('auth-user') || 'null'),
-      accessToken: localStorage.getItem('auth-token'),
-      isAuthenticated: !!localStorage.getItem('auth-token'),
+      user: getInitialState().user,
+      accessToken: getInitialState().accessToken,
+      isAuthenticated: getInitialState().isAuthenticated,
       isLoading: false,
       error: null,
 
@@ -40,11 +59,14 @@ export const useAuthStore = create<AuthStore>()(
           const refresh = (response as any).refresh_token || response.refreshToken;
           
           // Store in localStorage immediately
-          localStorage.setItem('auth-token', token);
-          localStorage.setItem('auth-user', JSON.stringify(response.user));
-          
-          if (rememberMe && refresh) {
-            localStorage.setItem('auth-refresh', refresh);
+          try {
+            localStorage.setItem('auth-token', token);
+            localStorage.setItem('auth-user', JSON.stringify(response.user));
+            if (rememberMe && refresh) {
+              localStorage.setItem('auth-refresh', refresh);
+            }
+          } catch {
+            // localStorage unavailable, continue anyway
           }
           
           set({
@@ -72,9 +94,13 @@ export const useAuthStore = create<AuthStore>()(
           const refresh = (response as any).refresh_token || response.refreshToken;
           
           // Store in localStorage immediately
-          localStorage.setItem('auth-token', token);
-          localStorage.setItem('auth-user', JSON.stringify(response.user));
-          localStorage.setItem('auth-refresh', refresh);
+          try {
+            localStorage.setItem('auth-token', token);
+            localStorage.setItem('auth-user', JSON.stringify(response.user));
+            localStorage.setItem('auth-refresh', refresh);
+          } catch {
+            // localStorage unavailable, continue anyway
+          }
           
           set({
             user: response.user,
@@ -92,9 +118,13 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: () => {
-        localStorage.removeItem('auth-token');
-        localStorage.removeItem('auth-user');
-        localStorage.removeItem('auth-refresh');
+        try {
+          localStorage.removeItem('auth-token');
+          localStorage.removeItem('auth-user');
+          localStorage.removeItem('auth-refresh');
+        } catch {
+          // localStorage unavailable
+        }
         
         set({
           user: null,
@@ -107,8 +137,12 @@ export const useAuthStore = create<AuthStore>()(
       clearError: () => set({ error: null }),
       
       checkAuth: () => {
-        const token = localStorage.getItem('auth-token');
-        return !!token;
+        try {
+          const token = localStorage.getItem('auth-token');
+          return !!token;
+        } catch {
+          return false;
+        }
       },
     }),
     {

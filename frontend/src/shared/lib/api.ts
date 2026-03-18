@@ -82,9 +82,13 @@ class ApiClient {
     this.client.interceptors.request.use(
       (config) => {
         // Read token directly from localStorage for reliability
-        const token = localStorage.getItem('auth-token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+        try {
+          const token = localStorage.getItem('auth-token');
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        } catch {
+          // localStorage unavailable (SSR, incognito, etc.)
         }
         return config;
       },
@@ -97,8 +101,12 @@ class ApiClient {
       async (error) => {
         // If 401, clear auth and redirect to login
         if (error.response?.status === 401) {
-          localStorage.removeItem('auth-token');
-          localStorage.removeItem('auth-user');
+          try {
+            localStorage.removeItem('auth-token');
+            localStorage.removeItem('auth-user');
+          } catch {
+            // localStorage unavailable
+          }
           window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -166,8 +174,15 @@ class ApiClient {
   }
 
   async getCurrentUser(): Promise<User> {
-    const response = await this.client.get<User>('/auth/me');
-    return response.data;
+    const response = await this.client.get<{ user_id: string; email: string }>('/auth/me');
+    // Transform backend response { user_id, email } to User type
+    return {
+      id: response.data.user_id,
+      email: response.data.email,
+      name: '', // Backend doesn't return name in /auth/me
+      createdAt: '',
+      updatedAt: '',
+    };
   }
 
   // ==========================================
@@ -346,7 +361,26 @@ class ApiClient {
     description?: string;
     features?: EventFeatures;
   }): Promise<Event> {
-    const response = await this.client.post<Event>('/events', data);
+    // Transform camelCase to snake_case for backend compatibility
+    const payload: Record<string, unknown> = {
+      name: data.name,
+      slug: data.slug,
+      description: data.description || '',
+    };
+    
+    if (data.date) {
+      payload.starts_at = data.date;
+    }
+    
+    if (data.features) {
+      payload.features = {
+        quiz: data.features.quiz,
+        corkboard: data.features.corkboard,
+        secret_box: data.features.secretBox,
+      };
+    }
+    
+    const response = await this.client.post<Event>('/events', payload);
     return response.data;
   }
 

@@ -42,7 +42,7 @@ func (h *EventHandler) GetUserEvents(c *gin.Context) {
 	// Query events by owner
 	events, err := h.eventRepo.ListByOwner(userID.(uuid.UUID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve events"})
 		return
 	}
 
@@ -66,7 +66,7 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 	// Parse request body
 	var req models.CreateEventRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
@@ -86,7 +86,7 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Event slug already exists"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
 		return
 	}
 
