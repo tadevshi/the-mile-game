@@ -1,6 +1,8 @@
 import axios, { type AxiosInstance, type AxiosError } from 'axios';
 import type { Postcard, SecretBoxStatus } from '@features/postcards/types/postcards.types';
 import type { QuizQuestion, CreateQuestionRequest, UpdateQuestionRequest, ReorderUpdate } from '@features/admin/types/questions.types';
+import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, User } from '@features/auth/types/auth.types';
+import { useAuthStore } from '@features/auth/store/authStore';
 
 // Tipos de datos que vienen del backend
 export interface Player {
@@ -77,6 +79,49 @@ class ApiClient {
       timeout: 10000, // 10 segundos timeout
     });
 
+    // Request interceptor - add auth header
+    this.client.interceptors.request.use(
+      (config) => {
+        const { accessToken } = useAuthStore.getState();
+        if (accessToken) {
+          config.headers.Authorization = `Bearer ${accessToken}`;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // Response interceptor - handle token refresh
+    this.client.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+
+        // If 401 and not already retrying
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+            const success = await useAuthStore.getState().refreshAccessToken();
+            
+            if (success) {
+              // Retry original request with new token
+              const { accessToken } = useAuthStore.getState();
+              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+              return this.client(originalRequest);
+            }
+          } catch (refreshError) {
+            // Refresh failed, logout
+            useAuthStore.getState().logout();
+            window.location.href = '/login';
+            return Promise.reject(refreshError);
+          }
+        }
+
+        return Promise.reject(error);
+      }
+    );
+
     // Interceptor para manejar errores
     this.client.interceptors.response.use(
       (response) => response,
@@ -112,6 +157,34 @@ class ApiClient {
     } catch {
       // Silently fail if localStorage is unavailable
     }
+  }
+
+  // ==========================================
+  // Auth
+  // ==========================================
+
+  async login(credentials: LoginRequest): Promise<LoginResponse> {
+    const response = await this.client.post<LoginResponse>('/auth/login', credentials);
+    return response.data;
+  }
+
+  async register(data: RegisterRequest): Promise<RegisterResponse> {
+    const response = await this.client.post<RegisterResponse>('/auth/register', data);
+    return response.data;
+  }
+
+  async refreshToken(token: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const response = await this.client.post('/auth/refresh', { refreshToken: token });
+    return response.data;
+  }
+
+  async logout(): Promise<void> {
+    await this.client.post('/auth/logout');
+  }
+
+  async getCurrentUser(): Promise<User> {
+    const response = await this.client.get<User>('/auth/me');
+    return response.data;
   }
 
   // ==========================================
