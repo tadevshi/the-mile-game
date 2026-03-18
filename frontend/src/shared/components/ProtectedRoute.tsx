@@ -7,10 +7,11 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, hasHydrated } = useAuthStore();
   const location = useLocation();
 
-  if (isLoading) {
+  // Wait for store to hydrate before making auth decision
+  if (!hasHydrated || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-pink-50">
         <LoadingSpinner size="lg" />
