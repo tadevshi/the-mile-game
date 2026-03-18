@@ -127,8 +127,9 @@ export const useAuthStore = create<AuthStore>()(
       name: 'auth-storage',
       partialize: (state) => ({
         user: state.user,
+        accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
-      }), // Don't persist tokens, only user info
+      }), // Persist access token for session continuity
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);
