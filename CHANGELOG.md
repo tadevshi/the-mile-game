@@ -26,6 +26,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ?key= query parameter authentication
 - Legacy admin passphrase authentication
 
+### Security
+- JWT_SECRET environment variable is now required (no default fallback)
+- WebSocket origin validation against CORS_ALLOWED_ORIGINS
+- Token comparison uses constant-time comparison (prevents timing attacks)
+- PostgreSQL port no longer exposed to host in Docker
+- Removed committed binaries and temporary files from git
+
+### Fixed
+- getCurrentUser() now correctly transforms backend response to User type
+- localStorage access now wrapped in try/catch (SSR-safe)
+- Error messages sanitized (no internal details leaked)
+- localStorage guards prevent hydration issues
+- API field names normalized (camelCase/snake_case)
+- AUTH.md documentation updated with correct field names
+
+### Fixed (UI)
+- Fixed typo "Escolge" → "Escoge" in CreateEventPage
+- Removed duplicate exports in auth/index.ts
+- Added aria-label to Switch component
+
 ---
 
 ## [v2.0.0] - Phase 2
