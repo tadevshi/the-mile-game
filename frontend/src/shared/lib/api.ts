@@ -2,7 +2,6 @@ import axios, { type AxiosInstance, type AxiosError } from 'axios';
 import type { Postcard, SecretBoxStatus } from '@features/postcards/types/postcards.types';
 import type { QuizQuestion, CreateQuestionRequest, UpdateQuestionRequest, ReorderUpdate } from '@features/admin/types/questions.types';
 import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, User } from '@features/auth/types/auth.types';
-import { useAuthStore } from '@features/auth/store/authStore';
 
 // Tipos de datos que vienen del backend
 export interface Player {
@@ -82,42 +81,26 @@ class ApiClient {
     // Request interceptor - add auth header
     this.client.interceptors.request.use(
       (config) => {
-        const { accessToken } = useAuthStore.getState();
-        if (accessToken) {
-          config.headers.Authorization = `Bearer ${accessToken}`;
+        // Read token directly from localStorage for reliability
+        const token = localStorage.getItem('auth-token');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
       },
       (error) => Promise.reject(error)
     );
 
-    // Response interceptor - handle token refresh
+    // Response interceptor - handle 401
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
-        const originalRequest = error.config;
-
-        // If 401 and not already retrying
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          originalRequest._retry = true;
-
-          try {
-            const success = await useAuthStore.getState().refreshAccessToken();
-            
-            if (success) {
-              // Retry original request with new token
-              const { accessToken } = useAuthStore.getState();
-              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-              return this.client(originalRequest);
-            }
-          } catch (refreshError) {
-            // Refresh failed, logout
-            useAuthStore.getState().logout();
-            window.location.href = '/login';
-            return Promise.reject(refreshError);
-          }
+        // If 401, clear auth and redirect to login
+        if (error.response?.status === 401) {
+          localStorage.removeItem('auth-token');
+          localStorage.removeItem('auth-user');
+          window.location.href = '/login';
         }
-
         return Promise.reject(error);
       }
     );

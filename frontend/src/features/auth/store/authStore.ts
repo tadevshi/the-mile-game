@@ -6,52 +6,49 @@ import { api } from '@/shared/lib/api';
 interface AuthState {
   user: User | null;
   accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  hasHydrated: boolean;
 }
 
 interface AuthStore extends AuthState {
-  // Actions
   login: (credentials: LoginRequest, rememberMe?: boolean) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
-  refreshAccessToken: () => Promise<boolean>;
   clearError: () => void;
-  setAccessToken: (token: string) => void;
-  setHasHydrated: (value: boolean) => void;
+  checkAuth: () => boolean;
 }
 
+// Simple store without complex hydration logic
 export const useAuthStore = create<AuthStore>()(
   persist(
-    (set, get) => ({
-      // Initial state
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-      isAuthenticated: false,
+    (set) => ({
+      // Initial state - read from storage on init
+      user: JSON.parse(localStorage.getItem('auth-user') || 'null'),
+      accessToken: localStorage.getItem('auth-token'),
+      isAuthenticated: !!localStorage.getItem('auth-token'),
       isLoading: false,
       error: null,
-      hasHydrated: false,
 
-      // Actions
       login: async (credentials, rememberMe = false) => {
         set({ isLoading: true, error: null });
         try {
           const response = await api.login(credentials);
+          
+          // Store in localStorage immediately
+          localStorage.setItem('auth-token', response.accessToken);
+          localStorage.setItem('auth-user', JSON.stringify(response.user));
+          
+          if (rememberMe && response.refreshToken) {
+            localStorage.setItem('auth-refresh', response.refreshToken);
+          }
+          
           set({
             user: response.user,
             accessToken: response.accessToken,
-            refreshToken: rememberMe ? response.refreshToken : null,
             isAuthenticated: true,
             isLoading: false,
           });
-          // Store refresh token in localStorage only if rememberMe
-          if (rememberMe && response.refreshToken) {
-            localStorage.setItem('refreshToken', response.refreshToken);
-          }
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : 'Login failed',
@@ -65,10 +62,15 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null });
         try {
           const response = await api.register(data);
+          
+          // Store in localStorage immediately
+          localStorage.setItem('auth-token', response.accessToken);
+          localStorage.setItem('auth-user', JSON.stringify(response.user));
+          localStorage.setItem('auth-refresh', response.refreshToken);
+          
           set({
             user: response.user,
             accessToken: response.accessToken,
-            refreshToken: response.refreshToken,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -82,59 +84,28 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: () => {
-        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('auth-token');
+        localStorage.removeItem('auth-user');
+        localStorage.removeItem('auth-refresh');
+        
         set({
           user: null,
           accessToken: null,
-          refreshToken: null,
           isAuthenticated: false,
           error: null,
         });
       },
 
-      refreshAccessToken: async () => {
-        const state = get();
-        const storedRefreshToken = localStorage.getItem('refreshToken') || state.refreshToken;
-        if (!storedRefreshToken) {
-          state.logout();
-          return false;
-        }
-
-        try {
-          const response = await api.refreshToken(storedRefreshToken);
-          set({
-            accessToken: response.accessToken,
-            refreshToken: response.refreshToken,
-            isAuthenticated: true,
-          });
-          if (response.refreshToken) {
-            localStorage.setItem('refreshToken', response.refreshToken);
-          }
-          return true;
-        } catch (error) {
-          get().logout();
-          return false;
-        }
-      },
-
       clearError: () => set({ error: null }),
-
-      setAccessToken: (token) => set({ accessToken: token }),
-
-      setHasHydrated: (value) => set({ hasHydrated: value }),
+      
+      checkAuth: () => {
+        const token = localStorage.getItem('auth-token');
+        return !!token;
+      },
     }),
     {
-      name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        accessToken: state.accessToken,
-        isAuthenticated: state.isAuthenticated,
-      }), // Persist access token for session continuity
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.setHasHydrated(true);
-        }
-      },
+      name: 'auth-store',
+      partialize: () => ({}), // We handle storage manually for immediate persistence
     }
   )
 );

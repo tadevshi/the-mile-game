@@ -8,23 +8,20 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, hasHydrated } = useAuthStore();
+  const { isAuthenticated, checkAuth } = useAuthStore();
   const location = useLocation();
-  const [showLoading, setShowLoading] = useState(true);
+  const [isReady, setIsReady] = useState(false);
+  const [isAuth, setIsAuth] = useState(false);
 
-  // Give hydration a moment to complete before showing redirect
   useEffect(() => {
-    if (hasHydrated) {
-      // Small delay to prevent flash
-      const timer = setTimeout(() => {
-        setShowLoading(false);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [hasHydrated]);
+    // Check auth status on mount
+    const auth = checkAuth();
+    setIsAuth(auth);
+    setIsReady(true);
+  }, [checkAuth]);
 
-  // Show loading while hydrating or during transition
-  if (!hasHydrated || showLoading) {
+  // Show loading while checking
+  if (!isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-pink-50">
         <LoadingSpinner size="lg" />
@@ -32,9 +29,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // After hydration, check auth
-  if (!isAuthenticated) {
-    // Redirect to login, save the location they tried to access
+  // Use either the store state or the direct check
+  const authenticated = isAuthenticated || isAuth;
+
+  if (!authenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
