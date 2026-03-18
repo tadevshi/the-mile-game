@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -96,13 +98,38 @@ type SecretRevealMessage struct {
 	Postcards []models.Postcard `json:"postcards"`
 }
 
+// getAllowedOrigins returns the list of allowed origins from the CORS_ALLOWED_ORIGINS env var.
+// If empty, defaults to localhost patterns for development.
+func getAllowedOrigins() []string {
+	env := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if env == "" {
+		return []string{
+			"http://localhost:5173",
+			"http://localhost:3000",
+			"http://localhost:8081",
+			"http://localhost",
+		}
+	}
+	return strings.Split(env, ",")
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		// Permitir cualquier origen en desarrollo
-		// En producción, verificar contra CORS_ALLOWED_ORIGINS
-		return true
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			// No Origin header (e.g., direct WebSocket upgrade): allow
+			return true
+		}
+		allowedOrigins := getAllowedOrigins()
+		for _, allowed := range allowedOrigins {
+			if origin == allowed {
+				return true
+			}
+		}
+		log.Printf("WebSocket: Origin %q not in allowed list", origin)
+		return false
 	},
 }
 

@@ -7,6 +7,9 @@ import { AdminPage } from '@features/admin';
 import { ThemeEditorPage } from '@/features/admin/pages/ThemeEditorPage';
 import { QuestionEditorPage } from '@/features/admin/pages/QuestionEditorPage';
 import { EventSettingsPage } from '@/features/admin/pages/EventSettingsPage';
+import { LoginPage, RegisterPage as AuthRegisterPage } from '@/features/auth';
+import { DashboardPage, CreateEventPage } from '@/features/dashboard';
+import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
 import { ErrorBoundary, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import type { ReactNode } from 'react';
@@ -122,6 +125,46 @@ function AnimatedPage({
 function LegacyRoutes() {
   return (
     <Routes>
+      {/* PUBLIC AUTH ROUTES */}
+      <Route 
+        path="/login" 
+        element={
+          <AnimatedPage variants={slideUpVariants}>
+            <LoginPage />
+          </AnimatedPage>
+        } 
+      />
+      <Route 
+        path="/register" 
+        element={
+          <AnimatedPage variants={slideUpVariants}>
+            <AuthRegisterPage />
+          </AnimatedPage>
+        } 
+      />
+      
+      {/* PROTECTED DASHBOARD ROUTES */}
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <AnimatedPage variants={fadeVariants}>
+              <DashboardPage />
+            </AnimatedPage>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/events/new" 
+        element={
+          <ProtectedRoute>
+            <AnimatedPage variants={slideUpVariants}>
+              <CreateEventPage />
+            </AnimatedPage>
+          </ProtectedRoute>
+        } 
+      />
+      
       {/* WELCOME: Entrada elegante desde abajo */}
       <Route 
         path="/" 
@@ -134,7 +177,7 @@ function LegacyRoutes() {
       
       {/* REGISTER: Slide desde la derecha (avance) */}
       <Route 
-        path="/register" 
+        path="/quiz-register" 
         element={
           <AnimatedPage variants={slideRightVariants}>
             <RegisterPage />
@@ -332,23 +375,29 @@ function AnimatedRoutes() {
           } />
         </Route>
         
-        {/* ADMIN ROUTES */}
+        {/* ADMIN ROUTES - Protected */}
         <Route path="/admin/event/:slug/theme" element={
-          <AnimatedPage variants={fadeVariants}>
-            <ThemeEditorPage />
-          </AnimatedPage>
+          <ProtectedRoute>
+            <AnimatedPage variants={fadeVariants}>
+              <ThemeEditorPage />
+            </AnimatedPage>
+          </ProtectedRoute>
         } />
         <Route path="/admin/questions/:slug" element={
-          <AnimatedPage variants={fadeVariants}>
-            <QuestionEditorPage />
-          </AnimatedPage>
+          <ProtectedRoute>
+            <AnimatedPage variants={fadeVariants}>
+              <QuestionEditorPage />
+            </AnimatedPage>
+          </ProtectedRoute>
         } />
         <Route path="/admin/events/:slug/settings" element={
-          <EventLoader>
-            <AnimatedPage variants={fadeVariants}>
-              <EventSettingsPage />
-            </AnimatedPage>
-          </EventLoader>
+          <ProtectedRoute>
+            <EventLoader>
+              <AnimatedPage variants={fadeVariants}>
+                <EventSettingsPage />
+              </AnimatedPage>
+            </EventLoader>
+          </ProtectedRoute>
         } />
         
         {/* LEGACY ROUTES: todas las demás rutas */}

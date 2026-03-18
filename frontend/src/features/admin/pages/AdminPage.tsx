@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/shared/lib/api';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { Button } from '@/shared';
 import type { Postcard, SecretBoxStatus } from '@features/postcards/types/postcards.types';
 
@@ -11,8 +12,8 @@ import corkTexture from '@/assets/cartelera.png';
 type AdminState = 'loading' | 'unauthorized' | 'ready' | 'confirming' | 'revealing' | 'revealed' | 'error';
 
 export function AdminPage() {
-  const [searchParams] = useSearchParams();
-  const adminKey = searchParams.get('key') ?? '';
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
 
   const [state, setState] = useState<AdminState>('loading');
   const [status, setStatus] = useState<SecretBoxStatus | null>(null);
@@ -20,15 +21,15 @@ export function AdminPage() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const loadData = useCallback(async () => {
-    if (!adminKey) {
+    if (!isAuthenticated) {
       setState('unauthorized');
       return;
     }
 
     try {
       const [statusData, postcardData] = await Promise.all([
-        api.getSecretBoxStatus(adminKey),
-        api.listSecretPostcards(adminKey),
+        api.getSecretBoxStatus(),
+        api.listSecretPostcards(),
       ]);
       setStatus(statusData);
       setPostcards(postcardData);
@@ -42,16 +43,18 @@ export function AdminPage() {
         setState('error');
       }
     }
-  }, [adminKey]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!authLoading) {
+      loadData();
+    }
+  }, [authLoading, loadData]);
 
   const handleReveal = async () => {
     setState('revealing');
     try {
-      const result = await api.revealSecretBox(adminKey);
+      const result = await api.revealSecretBox();
       setPostcards(result.postcards);
       setStatus((prev) => prev ? { ...prev, revealed: true } : null);
       setState('revealed');
@@ -116,8 +119,15 @@ export function AdminPage() {
               <p className="text-5xl">🔒</p>
               <h2 className="text-xl font-display text-red-500">Acceso denegado</h2>
               <p className="text-gray-600 text-sm">
-                La clave de admin es incorrecta o falta el parámetro <code className="bg-gray-100 px-1 rounded">?key=...</code> en la URL.
+                Debes iniciar sesión para acceder al panel de administración.
               </p>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate('/login')}
+              >
+                Iniciar Sesión
+              </Button>
             </motion.div>
           )}
 

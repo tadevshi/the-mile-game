@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/the-mile-game/backend/internal/models"
 )
@@ -138,6 +139,19 @@ func TestUpdateTheme_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
+	// Create a test event
+	testEvent := &models.Event{
+		ID:   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+		Slug: "event-123",
+	}
+
+	// Middleware to set event and user in context (simulating EventMiddleware + OwnerMiddleware)
+	r.Use(func(c *gin.Context) {
+		c.Set("event", *testEvent)
+		c.Set("user_id", testEvent.ID)
+		c.Next()
+	})
+
 	mockTheme := &models.Theme{
 		EventID:      "event-123",
 		PrimaryColor: "#FF0000",
@@ -151,7 +165,7 @@ func TestUpdateTheme_Success(t *testing.T) {
 	}
 
 	handler := NewThemeHandler(mockService)
-	r.PUT("/api/admin/events/:id/theme", handler.UpdateTheme)
+	r.PUT("/api/admin/events/:slug/theme", handler.UpdateTheme)
 
 	updates := map[string]interface{}{
 		"primaryColor": "#FF0000",
@@ -176,9 +190,22 @@ func TestUpdateTheme_InvalidBody(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
+	// Create a test event
+	testEvent := &models.Event{
+		ID:   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+		Slug: "event-123",
+	}
+
+	// Middleware to set event and user in context
+	r.Use(func(c *gin.Context) {
+		c.Set("event", *testEvent)
+		c.Set("user_id", testEvent.ID)
+		c.Next()
+	})
+
 	mockService := &MockThemeService{}
 	handler := NewThemeHandler(mockService)
-	r.PUT("/api/admin/events/:id/theme", handler.UpdateTheme)
+	r.PUT("/api/admin/events/:slug/theme", handler.UpdateTheme)
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("PUT", "/api/admin/events/event-123/theme", bytes.NewBufferString("invalid json"))
@@ -192,6 +219,19 @@ func TestUpdateTheme_ServiceError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
+	// Create a test event
+	testEvent := &models.Event{
+		ID:   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+		Slug: "event-123",
+	}
+
+	// Middleware to set event and user in context
+	r.Use(func(c *gin.Context) {
+		c.Set("event", *testEvent)
+		c.Set("user_id", testEvent.ID)
+		c.Next()
+	})
+
 	mockService := &MockThemeService{
 		UpdateThemeFunc: func(eventID string, updates map[string]interface{}) (*models.Theme, error) {
 			return nil, errors.New("update failed")
@@ -199,7 +239,7 @@ func TestUpdateTheme_ServiceError(t *testing.T) {
 	}
 
 	handler := NewThemeHandler(mockService)
-	r.PUT("/api/admin/events/:id/theme", handler.UpdateTheme)
+	r.PUT("/api/admin/events/:slug/theme", handler.UpdateTheme)
 
 	updates := map[string]interface{}{"primaryColor": "#FF0000"}
 	body, _ := json.Marshal(updates)
@@ -217,6 +257,19 @@ func TestApplyPreset_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
+	// Create a test event
+	testEvent := &models.Event{
+		ID:   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+		Slug: "event-123",
+	}
+
+	// Middleware to set event and user in context
+	r.Use(func(c *gin.Context) {
+		c.Set("event", *testEvent)
+		c.Set("user_id", testEvent.ID)
+		c.Next()
+	})
+
 	mockTheme := &models.Theme{
 		EventID:         "event-123",
 		PrimaryColor:    "#06B6D4",
@@ -230,7 +283,7 @@ func TestApplyPreset_Success(t *testing.T) {
 	}
 
 	handler := NewThemeHandler(mockService)
-	r.POST("/api/admin/events/:id/theme/preset", handler.ApplyPreset)
+	r.POST("/api/admin/events/:slug/theme/preset", handler.ApplyPreset)
 
 	reqBody := map[string]string{"preset": "dark"}
 	body, _ := json.Marshal(reqBody)
@@ -251,9 +304,22 @@ func TestApplyPreset_MissingPreset(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
+	// Create a test event
+	testEvent := &models.Event{
+		ID:   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+		Slug: "event-123",
+	}
+
+	// Middleware to set event and user in context
+	r.Use(func(c *gin.Context) {
+		c.Set("event", *testEvent)
+		c.Set("user_id", testEvent.ID)
+		c.Next()
+	})
+
 	mockService := &MockThemeService{}
 	handler := NewThemeHandler(mockService)
-	r.POST("/api/admin/events/:id/theme/preset", handler.ApplyPreset)
+	r.POST("/api/admin/events/:slug/theme/preset", handler.ApplyPreset)
 
 	reqBody := map[string]string{} // Missing preset
 	body, _ := json.Marshal(reqBody)
@@ -269,6 +335,19 @@ func TestApplyPreset_ServiceError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 
+	// Create a test event
+	testEvent := &models.Event{
+		ID:   uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+		Slug: "event-123",
+	}
+
+	// Middleware to set event and user in context
+	r.Use(func(c *gin.Context) {
+		c.Set("event", *testEvent)
+		c.Set("user_id", testEvent.ID)
+		c.Next()
+	})
+
 	mockService := &MockThemeService{
 		ApplyPresetToEventFunc: func(eventID string, presetName string) (*models.Theme, error) {
 			return nil, errors.New("apply failed")
@@ -276,7 +355,7 @@ func TestApplyPreset_ServiceError(t *testing.T) {
 	}
 
 	handler := NewThemeHandler(mockService)
-	r.POST("/api/admin/events/:id/theme/preset", handler.ApplyPreset)
+	r.POST("/api/admin/events/:slug/theme/preset", handler.ApplyPreset)
 
 	reqBody := map[string]string{"preset": "unknown"}
 	body, _ := json.Marshal(reqBody)

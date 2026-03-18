@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance, type AxiosError } from 'axios';
 import type { Postcard, SecretBoxStatus } from '@features/postcards/types/postcards.types';
 import type { QuizQuestion, CreateQuestionRequest, UpdateQuestionRequest, ReorderUpdate } from '@features/admin/types/questions.types';
+import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, User } from '@features/auth/types/auth.types';
 
 // Tipos de datos que vienen del backend
 export interface Player {
@@ -77,6 +78,41 @@ class ApiClient {
       timeout: 10000, // 10 segundos timeout
     });
 
+    // Request interceptor - add auth header
+    this.client.interceptors.request.use(
+      (config) => {
+        // Read token directly from localStorage for reliability
+        try {
+          const token = localStorage.getItem('auth-token');
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        } catch {
+          // localStorage unavailable (SSR, incognito, etc.)
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // Response interceptor - handle 401
+    this.client.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        // If 401, clear auth and redirect to login
+        if (error.response?.status === 401) {
+          try {
+            localStorage.removeItem('auth-token');
+            localStorage.removeItem('auth-user');
+          } catch {
+            // localStorage unavailable
+          }
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+    );
+
     // Interceptor para manejar errores
     this.client.interceptors.response.use(
       (response) => response,
@@ -112,6 +148,41 @@ class ApiClient {
     } catch {
       // Silently fail if localStorage is unavailable
     }
+  }
+
+  // ==========================================
+  // Auth
+  // ==========================================
+
+  async login(credentials: LoginRequest): Promise<LoginResponse> {
+    const response = await this.client.post<LoginResponse>('/auth/login', credentials);
+    return response.data;
+  }
+
+  async register(data: RegisterRequest): Promise<RegisterResponse> {
+    const response = await this.client.post<RegisterResponse>('/auth/register', data);
+    return response.data;
+  }
+
+  async refreshToken(token: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const response = await this.client.post('/auth/refresh', { refreshToken: token });
+    return response.data;
+  }
+
+  async logout(): Promise<void> {
+    await this.client.post('/auth/logout');
+  }
+
+  async getCurrentUser(): Promise<User> {
+    const response = await this.client.get<{ user_id: string; email: string }>('/auth/me');
+    // Transform backend response { user_id, email } to User type
+    return {
+      id: response.data.user_id,
+      email: response.data.email,
+      name: '', // Backend doesn't return name in /auth/me
+      createdAt: '',
+      updatedAt: '',
+    };
   }
 
   // ==========================================
@@ -243,25 +314,20 @@ class ApiClient {
   // Admin — Secret Box
   // ==========================================
 
-  async getSecretBoxStatus(adminKey: string): Promise<SecretBoxStatus> {
-    const response = await this.client.get<SecretBoxStatus>('/admin/status', {
-      headers: { 'X-Admin-Key': adminKey },
-    });
+  async getSecretBoxStatus(): Promise<SecretBoxStatus> {
+    const response = await this.client.get<SecretBoxStatus>('/admin/status');
     return response.data;
   }
 
-  async listSecretPostcards(adminKey: string): Promise<Postcard[]> {
-    const response = await this.client.get<Postcard[]>('/admin/secret-box', {
-      headers: { 'X-Admin-Key': adminKey },
-    });
+  async listSecretPostcards(): Promise<Postcard[]> {
+    const response = await this.client.get<Postcard[]>('/admin/secret-box');
     return response.data;
   }
 
-  async revealSecretBox(adminKey: string): Promise<{ message: string; postcards: Postcard[] }> {
+  async revealSecretBox(): Promise<{ message: string; postcards: Postcard[] }> {
     const response = await this.client.post<{ message: string; postcards: Postcard[] }>(
       '/admin/reveal',
-      {},
-      { headers: { 'X-Admin-Key': adminKey } }
+      {}
     );
     return response.data;
   }
@@ -280,6 +346,43 @@ class ApiClient {
   // ==========================================
   // Events (Multi-event support)
   // ==========================================
+
+  // Get events owned by the current user
+  async getUserEvents(): Promise<Event[]> {
+    const response = await this.client.get<Event[]>('/users/me/events');
+    return response.data;
+  }
+
+  // Create a new event
+  async createEvent(data: {
+    name: string;
+    slug: string;
+    date?: string;
+    description?: string;
+    features?: EventFeatures;
+  }): Promise<Event> {
+    // Transform camelCase to snake_case for backend compatibility
+    const payload: Record<string, unknown> = {
+      name: data.name,
+      slug: data.slug,
+      description: data.description || '',
+    };
+    
+    if (data.date) {
+      payload.starts_at = data.date;
+    }
+    
+    if (data.features) {
+      payload.features = {
+        quiz: data.features.quiz,
+        corkboard: data.features.corkboard,
+        secret_box: data.features.secretBox,
+      };
+    }
+    
+    const response = await this.client.post<Event>('/events', payload);
+    return response.data;
+  }
 
   async getEventBySlug(slug: string): Promise<Event> {
     const response = await this.client.get<Event>(`/events/${slug}`);
@@ -385,7 +488,7 @@ class ApiClient {
   // Admin — Event Features
   // ==========================================
 
-  async updateEventFeatures(eventSlug: string, features: EventFeatures, adminKey: string): Promise<Event> {
+  async updateEventFeatures(eventSlug: string, features: EventFeatures): Promise<Event> {
     // Transform camelCase to snake_case for backend compatibility
     const snakeFeatures = {
       quiz: features.quiz,
@@ -395,12 +498,7 @@ class ApiClient {
     
     const response = await this.client.put<Event>(
       `/admin/events/${eventSlug}/features`,
-      { features: snakeFeatures },
-      {
-        headers: {
-          'Authorization': `Bearer ${adminKey}`,
-        },
-      }
+      { features: snakeFeatures }
     );
     return response.data;
   }

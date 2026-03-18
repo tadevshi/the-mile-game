@@ -66,3 +66,7 @@ Thumbs.db
 /anexus
 .claude/
 .playwright/
+.playwright-cli/
+
+backend/api
+register-page.yml

@@ -440,7 +440,67 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
 
 ---
 
+## Authentication
+
+The Mile Game uses JWT Bearer tokens for authentication.
+
+### User Flow
+
+1. **Registration**: User creates account at `/register`
+2. **Login**: User authenticates at `/login` → receives JWT tokens
+3. **Dashboard**: Authenticated users see their events at `/dashboard`
+4. **Create Event**: Users create events at `/events/new`
+5. **Admin**: Event owners manage events via `/admin/*`
+
+### Auth Store
+
+Zustand store (`useAuthStore`) manages:
+- User profile
+- Access token (localStorage)
+- Refresh token (localStorage)
+- Auth state
+
+### API Authentication
+
+API client automatically adds `Authorization: Bearer <token>` header to all requests.
+Token refresh happens automatically on 401 responses.
+
+### Protected Routes
+
+Routes under `/dashboard`, `/events/new`, and `/admin/*` require authentication.
+Unauthenticated users are redirected to `/login`.
+
+### Legacy Auth (Deprecated)
+
+The previous authentication system using `X-Admin-Key` headers and `?key=` query parameters
+has been deprecated and replaced with JWT-based authentication.
+
+---
+
 ## API Endpoints (Backend Go)
+
+### Authentication (JWT)
+
+```
+POST /api/auth/register    # Register new user (name, email, password)
+POST /api/auth/login      # Login → returns JWT access + refresh tokens
+POST /api/auth/refresh    # Refresh access token using refresh token
+GET  /api/auth/me         # Get current authenticated user
+POST /api/auth/logout     # Logout and revoke refresh token
+```
+
+### Events & Users
+
+```
+GET  /api/users/me/events   # Get authenticated user's events
+POST /api/events            # Create new event
+GET  /api/events/:id        # Get event details
+PUT  /api/events/:id        # Update event
+DELETE /api/events/:id      # Delete event
+GET  /api/themes/presets    # Get available theme presets
+```
+
+### Quiz & Game (Legacy — No Auth Required)
 
 ```
 POST /api/players             # Crear jugador (name, avatar)
@@ -449,15 +509,30 @@ GET  /api/players             # Listar todos los jugadores
 POST /api/quiz/submit         # Enviar respuestas (header: X-Player-ID)
 GET  /api/quiz/answers/:id    # Obtener respuestas de un jugador
 GET  /api/ranking             # Obtener ranking completo
+```
+
+### Postcards
+
+```
 POST /api/postcards           # Crear postal (multipart: image + message, header: X-Player-ID)
-GET  /api/postcards           # Listar todas las postales
+GET  /api/postcards           # Listar todas las postales (secretas ocultas hasta reveal)
 POST /api/postcards/secret    # Crear postal secreta (multipart: image + message + sender_name, header: X-Secret-Token)
 GET  /api/admin/secret-box    # Listar postcards secretas (header: X-Admin-Key)
 POST /api/admin/reveal        # Revelar Secret Box (header: X-Admin-Key)
 GET  /api/admin/status        # Estado de la Secret Box (header: X-Admin-Key)
+```
+
+### Infrastructure
+
+```
 WS   /ws                      # WebSocket para ranking y postcards real-time
 GET  /health                  # Health check
 ```
+
+### Security & CORS
+
+All origins configured via `CORS_ALLOWED_ORIGINS` env var control both HTTP API requests
+and WebSocket connections. Wildcard origins are NOT supported for WebSocket upgrades.
 
 El flujo de submit: recibe respuestas → normaliza texto → guarda en DB → calcula score → actualiza player → broadcast ranking vía WebSocket.
 
@@ -723,6 +798,31 @@ features/admin/
 - [React Three Fiber](https://docs.pmnd.rs/react-three-fiber)
 - [Tailwind CSS](https://tailwindcss.com)
 - [Zustand](https://github.com/pmndrs/zustand)
+
+---
+
+## Agent Skills
+
+Este proyecto incluye skills personalizadas para agentes de IA en el directorio `skills/`:
+
+| Skill | Descripción | Trigger Keywords |
+|-------|-------------|------------------|
+| `playwright-cli` | Comandos de automatización de navegador | "playwright", "navegador", "browser", "click", "screenshot" |
+| `playwright-cli-e2e` | Testing E2E completo del flujo UI | "test E2E", "verify UI flow", "E2E testing", "UI testing", "flujo completo" |
+
+### Uso de Skills
+
+```bash
+# Test completo E2E
+$ /bin/bash skills/playwright-cli-e2e/assets/e2e-test-template.sh
+
+# O paso a paso
+$ playwright-cli open http://localhost:8082
+$ playwright-cli goto /register
+# ... continuar con flujo
+```
+
+Ver [SKILL.md](skills/playwright-cli-e2e/SKILL.md) para documentación completa.
 
 ---
 

@@ -196,7 +196,7 @@ describe('ApiClient', () => {
     it('GETs /admin/status with X-Admin-Key header', async () => {
       mockGet.mockResolvedValueOnce({ data: { total: 5, revealed: false, revealed_at: null } })
 
-      await api.getSecretBoxStatus('admin-passphrase')
+      await api.getSecretBoxStatus()
 
       expect(mockGet).toHaveBeenCalledWith(
         '/admin/status',
@@ -210,7 +210,7 @@ describe('ApiClient', () => {
       const status = { total: 3, revealed: true, revealed_at: '2026-03-15T20:00:00Z' }
       mockGet.mockResolvedValueOnce({ data: status })
 
-      const result = await api.getSecretBoxStatus('admin-key')
+      const result = await api.getSecretBoxStatus()
       expect(result).toEqual(status)
     })
   })
@@ -221,7 +221,7 @@ describe('ApiClient', () => {
     it('GETs /admin/secret-box with X-Admin-Key header', async () => {
       mockGet.mockResolvedValueOnce({ data: [] })
 
-      await api.listSecretPostcards('admin-passphrase')
+      await api.listSecretPostcards()
 
       expect(mockGet).toHaveBeenCalledWith(
         '/admin/secret-box',
@@ -238,7 +238,7 @@ describe('ApiClient', () => {
       ]
       mockGet.mockResolvedValueOnce({ data: postcards })
 
-      const result = await api.listSecretPostcards('admin-key')
+      const result = await api.listSecretPostcards()
       expect(result).toEqual(postcards)
     })
   })
@@ -332,7 +332,7 @@ describe('ApiClient', () => {
     it('POSTs to /admin/reveal with X-Admin-Key header', async () => {
       mockPost.mockResolvedValueOnce({ data: { message: 'Revealed!', postcards: [] } })
 
-      await api.revealSecretBox('admin-passphrase')
+      await api.revealSecretBox()
 
       expect(mockPost).toHaveBeenCalledWith(
         '/admin/reveal',
@@ -349,7 +349,7 @@ describe('ApiClient', () => {
       ]
       mockPost.mockResolvedValueOnce({ data: { message: 'Secret Box revealed!', postcards } })
 
-      const result = await api.revealSecretBox('admin-key')
+      const result = await api.revealSecretBox()
       expect(result.postcards).toEqual(postcards)
       expect(result.message).toBe('Secret Box revealed!')
     })

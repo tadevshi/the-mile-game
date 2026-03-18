@@ -19,6 +19,10 @@ Authorization: Bearer {your-jwt-token}
 
 See [Authentication](AUTH.md) for details on obtaining tokens.
 
+> **Note:** The legacy authentication system using `X-Admin-Key` headers and `?key=` query 
+> parameters has been deprecated. All admin endpoints now require JWT authentication. Event 
+> owners can manage their events after logging in via `/auth/login`.
+
 ## Endpoints Overview
 
 ### Events

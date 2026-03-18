@@ -73,14 +73,10 @@ func main() {
 	quizQuestionRepo := repository.NewQuizQuestionRepository(db)
 	themeRepo := repository.NewThemeRepository(db)
 
-	// Crear servicios
+	// JWT secret — siempre requerido
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		if ginMode == "release" {
-			log.Fatal("JWT_SECRET is required in release mode")
-		}
-		jwtSecret = "default-secret-change-in-production"
-		log.Println("Warning: Using default JWT secret. Set JWT_SECRET env var in production!")
+		log.Fatal("JWT_SECRET environment variable is required")
 	}
 	authService := services.NewAuthService(userRepo, jwtSecret)
 	themeService := services.NewThemeService(themeRepo, eventRepo)
@@ -102,6 +98,7 @@ func main() {
 	themeHandler := handlers.NewThemeHandler(themeService)
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
 	adminEventHandler := handlers.NewAdminEventHandler(eventRepo)
+	eventHandler := handlers.NewEventHandler(eventRepo)
 
 	// Configurar router
 	r := gin.Default()
@@ -142,6 +139,20 @@ func main() {
 		{
 			auth.GET("/me", authHandler.Me)
 			auth.POST("/logout", authHandler.Logout)
+		}
+
+		// User events (protegido)
+		users := api.Group("/users")
+		users.Use(authMiddleware)
+		{
+			users.GET("/me/events", eventHandler.GetUserEvents)
+		}
+
+		// Events (protegido - crear evento)
+		eventsAuth := api.Group("/events")
+		eventsAuth.Use(authMiddleware)
+		{
+			eventsAuth.POST("", eventHandler.CreateEvent)
 		}
 
 		// Theme presets (public)
