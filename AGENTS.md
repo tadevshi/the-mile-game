@@ -763,6 +763,31 @@ features/admin/
 
 ---
 
+## Agent Skills
+
+Este proyecto incluye skills personalizadas para agentes de IA en el directorio `skills/`:
+
+| Skill | Descripción | Trigger Keywords |
+|-------|-------------|------------------|
+| `playwright-cli` | Comandos de automatización de navegador | "playwright", "navegador", "browser", "click", "screenshot" |
+| `playwright-cli-e2e` | Testing E2E completo del flujo UI | "test E2E", "verify UI flow", "E2E testing", "UI testing", "flujo completo" |
+
+### Uso de Skills
+
+```bash
+# Test completo E2E
+$ /bin/bash skills/playwright-cli-e2e/assets/e2e-test-template.sh
+
+# O paso a paso
+$ playwright-cli open http://localhost:8082
+$ playwright-cli goto /register
+# ... continuar con flujo
+```
+
+Ver [SKILL.md](skills/playwright-cli-e2e/SKILL.md) para documentación completa.
+
+---
+
 ## Notas para Colaboradores
 
 1. **Mobile First**: Diseñar siempre pensando en móvil primero

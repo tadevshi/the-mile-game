@@ -26,6 +26,29 @@ func (m *MockUserEventRepo) ListByOwner(ownerID uuid.UUID) ([]models.Event, erro
 	return m.Events, nil
 }
 
+func (m *MockUserEventRepo) Create(ownerID uuid.UUID, slug, name, description string,
+	features models.EventFeatures, settings models.EventSettings,
+	startsAt, endsAt *time.Time) (*models.Event, error) {
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	event := &models.Event{
+		ID:          uuid.New(),
+		Slug:        slug,
+		OwnerID:     ownerID,
+		Name:        name,
+		Description: description,
+		Features:    features,
+		Settings:    settings,
+		StartsAt:    startsAt,
+		EndsAt:      endsAt,
+		IsActive:    true,
+		CreatedAt:   time.Now(),
+	}
+	m.Events = append(m.Events, *event)
+	return event, nil
+}
+
 // ========== TESTS FOR GetUserEvents ==========
 
 func TestGetUserEvents_Success(t *testing.T) {
