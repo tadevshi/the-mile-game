@@ -654,28 +654,8 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 	c.JSON(http.StatusCreated, postcard)
 }
 
-// ==========================================
-// Admin (Secret Box)
-// ==========================================
-
-// validateAdminKey verifica el header X-Admin-Key contra el env var ADMIN_PASSPHRASE.
-// Retorna true si válido, false si no (y ya escribió el error HTTP).
-func (h *Handler) validateAdminKey(c *gin.Context) bool {
-	key := c.GetHeader("X-Admin-Key")
-	expected := os.Getenv("ADMIN_PASSPHRASE")
-	if expected == "" || key != expected {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing admin key"})
-		return false
-	}
-	return true
-}
-
 // GetSecretBoxStatus devuelve el estado de la Secret Box (total de secretas, si fue revelada)
 func (h *Handler) GetSecretBoxStatus(c *gin.Context) {
-	if !h.validateAdminKey(c) {
-		return
-	}
-
 	// Si hay event_id en el contexto, usar versión scoped
 	if eventID, exists := c.Get("event_id"); exists {
 		status, err := h.postcardRepo.GetSecretBoxStatusByEvent(eventID.(uuid.UUID))
@@ -699,10 +679,6 @@ func (h *Handler) GetSecretBoxStatus(c *gin.Context) {
 
 // ListSecretPostcards devuelve todas las postales secretas (para preview del admin)
 func (h *Handler) ListSecretPostcards(c *gin.Context) {
-	if !h.validateAdminKey(c) {
-		return
-	}
-
 	// Si hay event_id en el contexto, usar versión scoped
 	if eventID, exists := c.Get("event_id"); exists {
 		postcards, err := h.postcardRepo.ListSecretByEvent(eventID.(uuid.UUID))
@@ -736,10 +712,6 @@ func (h *Handler) ListSecretPostcards(c *gin.Context) {
 // RevealSecretBox revela la Secret Box: actualiza revealed_at y hace broadcast WS.
 // Idempotente: si ya fue revelada, devuelve las postales con 200 (no 409).
 func (h *Handler) RevealSecretBox(c *gin.Context) {
-	if !h.validateAdminKey(c) {
-		return
-	}
-
 	var postcards []models.Postcard
 	var err error
 

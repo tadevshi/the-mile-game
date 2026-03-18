@@ -102,6 +102,7 @@ func main() {
 	themeHandler := handlers.NewThemeHandler(themeService)
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
 	adminEventHandler := handlers.NewAdminEventHandler(eventRepo)
+	eventHandler := handlers.NewEventHandler(eventRepo)
 
 	// Configurar router
 	r := gin.Default()
@@ -142,6 +143,13 @@ func main() {
 		{
 			auth.GET("/me", authHandler.Me)
 			auth.POST("/logout", authHandler.Logout)
+		}
+
+		// User events (protegido)
+		users := api.Group("/users")
+		users.Use(authMiddleware)
+		{
+			users.GET("/me/events", eventHandler.GetUserEvents)
 		}
 
 		// Theme presets (public)
