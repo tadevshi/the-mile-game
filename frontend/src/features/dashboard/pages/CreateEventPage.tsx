@@ -109,7 +109,7 @@ export function CreateEventPage() {
 
     if (!validateForm()) return;
     if (slugAvailable === false) {
-      setError('El URL del evento ya está en uso. Escolge otro.');
+      setError('El URL del evento ya está en uso. Escoge otro.');
       return;
     }
 
