@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -7,9 +7,7 @@ import { Button } from '@/shared/components/Button';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 
 export function LoginPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { login, isLoading, error, clearError, isAuthenticated, hasHydrated } = useAuthStore();
+  const { login, isLoading, error, clearError } = useAuthStore();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -19,13 +17,8 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  // Redirect if already authenticated (only after hydration)
-  useEffect(() => {
-    if (hasHydrated && isAuthenticated) {
-      const from = location.state?.from?.pathname || '/dashboard';
-      navigate(from, { replace: true });
-    }
-  }, [hasHydrated, isAuthenticated, navigate, location]);
+  // No auto-redirect here - let ProtectedRoute handle it
+  // This prevents redirect loops during hydration
 
   // Clear error when unmounting
   useEffect(() => {
