@@ -27,7 +27,7 @@ interface UseQuestionEditorReturn {
   refetch: () => void;
 }
 
-export function useQuestionEditor(eventSlug: string, adminKey: string): UseQuestionEditorReturn {
+export function useQuestionEditor(eventSlug: string): UseQuestionEditorReturn {
   const queryClient = useQueryClient();
   const questionsKey = [QUESTIONS_KEY, eventSlug];
 
@@ -35,7 +35,7 @@ export function useQuestionEditor(eventSlug: string, adminKey: string): UseQuest
   const { data: questions = [], isLoading, error, refetch } = useQuery<QuizQuestion[]>({
     queryKey: questionsKey,
     queryFn: () => api.listQuestions(eventSlug),
-    enabled: !!eventSlug && !!adminKey,
+    enabled: !!eventSlug,
   });
 
   // Create mutation

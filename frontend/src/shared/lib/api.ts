@@ -316,25 +316,20 @@ class ApiClient {
   // Admin — Secret Box
   // ==========================================
 
-  async getSecretBoxStatus(adminKey: string): Promise<SecretBoxStatus> {
-    const response = await this.client.get<SecretBoxStatus>('/admin/status', {
-      headers: { 'X-Admin-Key': adminKey },
-    });
+  async getSecretBoxStatus(): Promise<SecretBoxStatus> {
+    const response = await this.client.get<SecretBoxStatus>('/admin/status');
     return response.data;
   }
 
-  async listSecretPostcards(adminKey: string): Promise<Postcard[]> {
-    const response = await this.client.get<Postcard[]>('/admin/secret-box', {
-      headers: { 'X-Admin-Key': adminKey },
-    });
+  async listSecretPostcards(): Promise<Postcard[]> {
+    const response = await this.client.get<Postcard[]>('/admin/secret-box');
     return response.data;
   }
 
-  async revealSecretBox(adminKey: string): Promise<{ message: string; postcards: Postcard[] }> {
+  async revealSecretBox(): Promise<{ message: string; postcards: Postcard[] }> {
     const response = await this.client.post<{ message: string; postcards: Postcard[] }>(
       '/admin/reveal',
-      {},
-      { headers: { 'X-Admin-Key': adminKey } }
+      {}
     );
     return response.data;
   }
@@ -476,7 +471,7 @@ class ApiClient {
   // Admin — Event Features
   // ==========================================
 
-  async updateEventFeatures(eventSlug: string, features: EventFeatures, adminKey: string): Promise<Event> {
+  async updateEventFeatures(eventSlug: string, features: EventFeatures): Promise<Event> {
     // Transform camelCase to snake_case for backend compatibility
     const snakeFeatures = {
       quiz: features.quiz,
@@ -486,12 +481,7 @@ class ApiClient {
     
     const response = await this.client.put<Event>(
       `/admin/events/${eventSlug}/features`,
-      { features: snakeFeatures },
-      {
-        headers: {
-          'Authorization': `Bearer ${adminKey}`,
-        },
-      }
+      { features: snakeFeatures }
     );
     return response.data;
   }

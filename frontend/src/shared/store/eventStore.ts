@@ -31,7 +31,7 @@ interface EventState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearEvent: () => void;
-  updateFeatures: (features: EventFeatures, adminKey: string) => Promise<Event>;
+  updateFeatures: (features: EventFeatures) => Promise<Event>;
 }
 
 export const useEventStore = create<EventState>((set, get) => ({
@@ -44,7 +44,7 @@ export const useEventStore = create<EventState>((set, get) => ({
   setError: (error) => set({ error }),
   clearEvent: () => set({ currentEvent: null, isLoading: false, error: null }),
   
-  updateFeatures: async (features: EventFeatures, adminKey: string) => {
+  updateFeatures: async (features: EventFeatures) => {
     const { currentEvent } = get();
     if (!currentEvent) {
       throw new Error('No event loaded');
@@ -62,11 +62,10 @@ export const useEventStore = create<EventState>((set, get) => ({
         }
       });
       
-      // API call - returns Event from api.ts (snake_case: owner_id, is_active)
+      // API call - JWT auth is handled automatically by interceptor
       const response = await api.updateEventFeatures(
         currentEvent.slug, 
-        features,
-        adminKey
+        features
       );
       
       // Transform response from snake_case (API) to camelCase (store)

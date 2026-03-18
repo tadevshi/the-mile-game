@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/shared';
@@ -13,8 +13,6 @@ import type { QuizQuestion, QuestionFormData, QuestionSection } from '../types/q
 export function QuestionEditorPage() {
   const navigate = useNavigate();
   const { slug: eventSlug } = useParams<{ slug: string }>();
-  const [searchParams] = useSearchParams();
-  const adminKey = searchParams.get('key') ?? '';
 
   const [selectedQuestion, setSelectedQuestion] = useState<QuizQuestion | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -30,7 +28,7 @@ export function QuestionEditorPage() {
     reorderMutation,
     importMutation,
     exportQuestions,
-  } = useQuestionEditor(eventSlug ?? '', adminKey);
+  } = useQuestionEditor(eventSlug ?? '');
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const deletingId = deleteMutation.isPending ? showDeleteConfirm : null;
@@ -138,13 +136,13 @@ export function QuestionEditorPage() {
   // Get existing keys for validation
   const existingKeys = questions.map((q) => q.key);
 
-  if (!eventSlug || !adminKey) {
+  if (!eventSlug) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <p className="text-red-500 mb-2">Faltan parámetros</p>
           <p className="text-gray-500 text-sm">
-            Se requiere <code>/admin/questions/:slug?key=...</code>
+            Se requiere el slug del evento en la URL: <code>/admin/questions/:slug</code>
           </p>
         </div>
       </div>

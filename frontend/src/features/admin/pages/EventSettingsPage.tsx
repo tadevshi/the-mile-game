@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Save, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared';
 import { useEventStore, type EventFeatures } from '@/shared/store/eventStore';
+import { api } from '@/shared/lib/api';
 import { FeatureToggle } from '../components/FeatureToggle';
 
 const DEFAULT_FEATURES: EventFeatures = {
@@ -15,8 +16,6 @@ const DEFAULT_FEATURES: EventFeatures = {
 export function EventSettingsPage() {
   const navigate = useNavigate();
   const { slug: eventSlug } = useParams<{ slug: string }>();
-  const [searchParams] = useSearchParams();
-  const adminKey = searchParams.get('key') ?? '';
 
   const currentEvent = useEventStore((state) => state.currentEvent);
   const updateFeaturesAction = useEventStore((state) => state.updateFeatures);
@@ -51,7 +50,10 @@ export function EventSettingsPage() {
     setSuccess(false);
 
     try {
-      await updateFeaturesAction(features, adminKey);
+      // Use API directly with JWT auth
+      await api.updateEventFeatures(eventSlug, features);
+      // Also update store
+      updateFeaturesAction(features);
       setSuccess(true);
       // Auto-hide success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000);
