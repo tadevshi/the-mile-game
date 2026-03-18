@@ -456,8 +456,8 @@ The Mile Game uses JWT Bearer tokens for authentication.
 
 Zustand store (`useAuthStore`) manages:
 - User profile
-- Access token (memory only)
-- Refresh token (localStorage if "remember me")
+- Access token (localStorage)
+- Refresh token (localStorage)
 - Auth state
 
 ### API Authentication
@@ -479,6 +479,29 @@ has been deprecated and replaced with JWT-based authentication.
 
 ## API Endpoints (Backend Go)
 
+### Authentication (JWT)
+
+```
+POST /api/auth/register    # Register new user (name, email, password)
+POST /api/auth/login      # Login → returns JWT access + refresh tokens
+POST /api/auth/refresh    # Refresh access token using refresh token
+GET  /api/auth/me         # Get current authenticated user
+POST /api/auth/logout     # Logout and revoke refresh token
+```
+
+### Events & Users
+
+```
+GET  /api/users/me/events   # Get authenticated user's events
+POST /api/events            # Create new event
+GET  /api/events/:id        # Get event details
+PUT  /api/events/:id        # Update event
+DELETE /api/events/:id      # Delete event
+GET  /api/themes/presets    # Get available theme presets
+```
+
+### Quiz & Game (Legacy — No Auth Required)
+
 ```
 POST /api/players             # Crear jugador (name, avatar)
 GET  /api/players/:id         # Obtener jugador por UUID
@@ -486,15 +509,30 @@ GET  /api/players             # Listar todos los jugadores
 POST /api/quiz/submit         # Enviar respuestas (header: X-Player-ID)
 GET  /api/quiz/answers/:id    # Obtener respuestas de un jugador
 GET  /api/ranking             # Obtener ranking completo
+```
+
+### Postcards
+
+```
 POST /api/postcards           # Crear postal (multipart: image + message, header: X-Player-ID)
-GET  /api/postcards           # Listar todas las postales
+GET  /api/postcards           # Listar todas las postales (secretas ocultas hasta reveal)
 POST /api/postcards/secret    # Crear postal secreta (multipart: image + message + sender_name, header: X-Secret-Token)
 GET  /api/admin/secret-box    # Listar postcards secretas (header: X-Admin-Key)
 POST /api/admin/reveal        # Revelar Secret Box (header: X-Admin-Key)
 GET  /api/admin/status        # Estado de la Secret Box (header: X-Admin-Key)
+```
+
+### Infrastructure
+
+```
 WS   /ws                      # WebSocket para ranking y postcards real-time
 GET  /health                  # Health check
 ```
+
+### Security & CORS
+
+All origins configured via `CORS_ALLOWED_ORIGINS` env var control both HTTP API requests
+and WebSocket connections. Wildcard origins are NOT supported for WebSocket upgrades.
 
 El flujo de submit: recibe respuestas → normaliza texto → guarda en DB → calcula score → actualiza player → broadcast ranking vía WebSocket.
 

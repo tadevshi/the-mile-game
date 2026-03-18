@@ -158,7 +158,8 @@ Authorization: Bearer <accessToken>
 
 - **Purpose**: Authenticate API requests
 - **Lifetime**: 15 minutes
-- **Storage**: localStorage (persisted across sessions)
+- **Access Token**: `localStorage` (persisted across sessions)
+- **Refresh Token**: `localStorage` (persisted if "remember me" is enabled)
 - **Claims**:
   ```json
   {
@@ -176,14 +177,8 @@ Authorization: Bearer <accessToken>
 - **Storage**: localStorage (persisted if "remember me" is enabled)
 - **Rotation**: New refresh token issued on each refresh
 
-### Token Refresh Flow
-
-1. Access token expires → API returns `401 Unauthorized`
-2. Client automatically sends refresh token to `/auth/refresh`
-3. Server validates refresh token and issues new pair
-4. Client retries original request with new access token
-
-The API client handles this automatically - no manual intervention required.
+> **Note**: Token refresh is not yet implemented. On `401 Unauthorized` responses, the
+> client redirects to `/login` instead of automatically refreshing the token.
 
 ---
 
@@ -244,7 +239,6 @@ interface AuthState {
   login: (credentials: LoginCredentials, rememberMe: boolean) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
-  refreshAccessToken: () => Promise<void>;
 }
 ```
 
