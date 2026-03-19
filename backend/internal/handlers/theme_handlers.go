@@ -56,7 +56,8 @@ func (h *ThemeHandler) UpdateTheme(c *gin.Context) {
 		return
 	}
 
-	eventID := event.(models.Event).ID.String()
+	eventModel := event.(*models.Event) // event is *models.Event (pointer)
+	eventID := eventModel.ID.String()
 
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
@@ -86,7 +87,7 @@ func (h *ThemeHandler) ApplyPreset(c *gin.Context) {
 		return
 	}
 
-	eventID := event.(models.Event).ID.String()
+	eventModel := event.(*models.Event) // event is *models.Event (pointer)
 
 	var req struct {
 		Preset string `json:"preset" binding:"required"`
@@ -96,7 +97,7 @@ func (h *ThemeHandler) ApplyPreset(c *gin.Context) {
 		return
 	}
 
-	theme, err := h.themeService.ApplyPresetToEvent(eventID, req.Preset)
+	theme, err := h.themeService.ApplyPresetToEvent(eventModel.ID.String(), req.Preset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to apply preset"})
 		return

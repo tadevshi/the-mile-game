@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -9,7 +9,8 @@ import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 type PasswordStrength = 'weak' | 'medium' | 'strong';
 
 export function RegisterPage() {
-  const { register, isLoading, error, clearError } = useAuthStore();
+  const { register, isLoading, error, clearError, isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -20,8 +21,12 @@ export function RegisterPage() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>('weak');
 
-  // No auto-redirect here - let ProtectedRoute handle it
-  // This prevents redirect loops during hydration
+  // Navigate to dashboard after successful registration
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   // Clear error when unmounting
   useEffect(() => {

@@ -376,7 +376,7 @@ class ApiClient {
       payload.features = {
         quiz: data.features.quiz,
         corkboard: data.features.corkboard,
-        secret_box: data.features.secretBox,
+        secretBox: data.features.secretBox,  // camelCase para coincidir con backend
       };
     }
     
@@ -493,7 +493,7 @@ class ApiClient {
     const snakeFeatures = {
       quiz: features.quiz,
       corkboard: features.corkboard,
-      secret_box: features.secretBox,
+      secretBox: features.secretBox,  // camelCase para coincidir con backend
     };
     
     const response = await this.client.put<Event>(

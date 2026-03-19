@@ -58,6 +58,29 @@ type QuizQuestion struct {
 	CreatedAt      time.Time `json:"created_at" db:"created_at"`
 }
 
+// DateOnly es un tipo custom para fechas en formato YYYY-MM-DD
+type DateOnly struct {
+	time.Time
+}
+
+// UnmarshalJSON implementa json.Unmarshaler para DateOnly
+func (d *DateOnly) UnmarshalJSON(data []byte) error {
+	// Quitar las comillas del string
+	str := string(data)
+	if str == "null" || str == "" {
+		return nil
+	}
+	str = str[1 : len(str)-1] // quitar comillas
+
+	// Parsear fecha simple
+	t, err := time.Parse("2006-01-02", str)
+	if err != nil {
+		return err
+	}
+	d.Time = t
+	return nil
+}
+
 // CreateEventRequest body para crear evento
 type CreateEventRequest struct {
 	Slug        string        `json:"slug" binding:"required"`
@@ -65,8 +88,8 @@ type CreateEventRequest struct {
 	Description string        `json:"description"`
 	Features    EventFeatures `json:"features"`
 	Settings    EventSettings `json:"settings"`
-	StartsAt    *time.Time    `json:"starts_at,omitempty"`
-	EndsAt      *time.Time    `json:"ends_at,omitempty"`
+	StartsAt    *DateOnly     `json:"starts_at,omitempty"`
+	EndsAt      *DateOnly     `json:"ends_at,omitempty"`
 }
 
 // CreateQuizQuestionRequest body para crear pregunta
