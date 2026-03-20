@@ -27,18 +27,28 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.2,
+      staggerChildren: 0.15,
+      delayChildren: 0.1,
     },
   },
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 40, scale: 0.95 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
+    scale: 1,
+    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const },
+  },
+};
+
+const iconVariants = {
+  hidden: { scale: 0, rotate: -180 },
+  visible: {
+    scale: 1,
+    rotate: 0,
+    transition: { duration: 0.5, type: 'spring' as const, stiffness: 200 },
   },
 };
 
@@ -48,12 +58,21 @@ export function FeaturesGrid() {
       <div className="max-w-5xl mx-auto">
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="text-center mb-12"
         >
+          <motion.span
+            initial={{ opacity: 0, y: -10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="inline-block px-4 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-sm font-medium rounded-full mb-4"
+          >
+            Características
+          </motion.span>
           <h2 className="text-3xl md:text-4xl font-display text-gray-800 dark:text-white mb-4">
             Todo lo que necesitás para tu evento
           </h2>
@@ -70,15 +89,24 @@ export function FeaturesGrid() {
           viewport={{ once: true, margin: '-50px' }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          {features.map((feature) => (
+          {features.map((feature, index) => (
             <motion.div
               key={feature.id}
               variants={cardVariants}
-              whileHover={{ y: -4, scale: 1.02 }}
-              className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-800 dark:to-slate-800/50 rounded-2xl p-6 border border-pink-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow"
+              whileHover={{ 
+                y: -8, 
+                scale: 1.02,
+                transition: { duration: 0.2 }
+              }}
+              className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-800 dark:to-slate-800/50 rounded-2xl p-6 border border-pink-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-pink-100/50 dark:hover:shadow-pink-900/20 transition-all"
             >
-              {/* Icon */}
-              <div className="text-5xl mb-4">{feature.icon}</div>
+              {/* Icon with animation */}
+              <motion.div
+                variants={iconVariants}
+                className="text-5xl mb-4"
+              >
+                {feature.icon}
+              </motion.div>
               
               {/* Title */}
               <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
@@ -91,11 +119,17 @@ export function FeaturesGrid() {
               </p>
 
               {/* Feature indicator */}
-              <div className="mt-4 pt-4 border-t border-pink-100 dark:border-slate-700">
+              <motion.div 
+                className="mt-4 pt-4 border-t border-pink-100 dark:border-slate-700"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 + index * 0.1 }}
+              >
                 <span className="text-xs font-medium text-pink-500 dark:text-pink-400">
                   ✓ Incluido en todos los planes
                 </span>
-              </div>
+              </motion.div>
             </motion.div>
           ))}
         </motion.div>

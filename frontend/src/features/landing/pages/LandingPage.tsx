@@ -8,11 +8,6 @@ import { Button } from '@/shared/components/Button';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useLandingStore } from '../store/landingStore';
 
-const fadeInUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
-};
-
 export function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
@@ -39,14 +34,23 @@ export function LandingPage() {
       <EventCodeForm />
 
       {/* CTA Section - Create Event */}
-      <section id="create-event-section" className="py-20 px-4 bg-white dark:bg-slate-900">
+      <section id="create-event-section" className="py-20 px-4 bg-gradient-to-b from-white to-pink-50 dark:from-slate-900 dark:to-slate-800">
         <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeInUp}
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="max-w-3xl mx-auto text-center"
         >
+          <motion.span
+            initial={{ opacity: 0, y: -10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="inline-block px-4 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-sm font-medium rounded-full mb-4"
+          >
+            Empezá hoy
+          </motion.span>
           <h2 className="text-3xl md:text-4xl font-display text-gray-800 dark:text-white mb-4">
             ¿Listo para crear tu evento?
           </h2>
@@ -55,21 +59,34 @@ export function LandingPage() {
             {isAuthenticated ? 'Vas directo al creador de eventos.' : 'Creá una cuenta gratis para empezar.'}
           </p>
 
-          <Button
-            onClick={handleCreateEvent}
-            className="px-10 py-4 text-lg bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 shadow-lg shadow-pink-200 dark:shadow-pink-900/50"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.5 }}
           >
-            <PartyPopper className="w-5 h-5" />
-            {isAuthenticated ? 'Crear Nuevo Evento' : 'Comenzar Gratis'}
-          </Button>
+            <Button
+              onClick={handleCreateEvent}
+              className="px-10 py-4 text-lg bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 shadow-lg shadow-pink-200 dark:shadow-pink-900/50"
+            >
+              <PartyPopper className="w-5 h-5" />
+              {isAuthenticated ? 'Crear Nuevo Evento' : 'Comenzar Gratis'}
+            </Button>
+          </motion.div>
 
           {!isAuthenticated && (
-            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="mt-4 text-sm text-gray-500 dark:text-gray-400"
+            >
               Ya tenés cuenta?{' '}
               <Link to="/login" className="text-pink-500 hover:text-pink-600 font-medium">
                 Ingresá acá
               </Link>
-            </p>
+            </motion.p>
           )}
         </motion.div>
       </section>

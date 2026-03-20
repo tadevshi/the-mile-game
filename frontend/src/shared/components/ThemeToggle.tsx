@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useThemeStore } from '../store/themeStore';
 
@@ -32,10 +33,26 @@ function MoonIcon() {
  * Botón flotante fixed para cambiar entre light/dark mode.
  * Aparece en todas las páginas sin necesidad de añadirlo en cada una.
  * Persiste la preferencia en localStorage via themeStore.
+ * 
+ * IMPORTANTE: Asegura que el tema se aplique correctamente al cargar la app,
+ * evitando el flash de tema incorrecto.
  */
 export function ThemeToggle() {
   const { theme, toggleTheme } = useThemeStore();
   const isDark = theme === 'dark';
+
+  // Efecto para asegurar que el tema se aplique correctamente al montar el componente
+  // Esto previene el flash de tema incorrecto en la primera renderización
+  useEffect(() => {
+    // El tema ya debería estar aplicado por onRehydrateStorage del store,
+    // pero este efecto es un fallback de seguridad
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [isDark]);
 
   return (
     <motion.button

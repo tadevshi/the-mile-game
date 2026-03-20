@@ -1,6 +1,6 @@
-# 🎉 The Mile Game - Birthday Quiz Platform
+# 🎉 EventHub - Interactive Event Platform
 
-> **Una plataforma interactiva de quiz para cumpleaños donde los invitados compiten en un ranking en tiempo real.**
+> **Creá experiencias memorables con quizzes interactivos, carteleras de fotos y cajas secretas. Todo en un solo lugar, fácil de compartir.**
 
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
@@ -28,20 +28,22 @@
 
 ## 🎯 Overview
 
-**The Mile Game** es un quiz interactivo diseñado para eventos y celebraciones. Los invitados responden preguntas sobre el cumpleañero/a y compiten en un ranking en tiempo real.
+**EventHub** es una plataforma de eventos interactivos diseñada para cualquier celebración. Creá eventos únicos con quizzes personalizados, carteleras de fotos colaborativas y cajas secretas para sorpresas.
 
 ### **Características Principales**
 
-✅ **Quiz Interactivo** - 13 preguntas (favoritos + preferencias + descripción)  
+✅ **Eventos Múltiples** - Creá y administrá múltiples eventos desde un solo dashboard  
+✅ **Quiz Interactivo** - Preguntas personalizadas sobre el cumpleañero/a (o el tema que elijas)  
+✅ **Theme Marketplace** - 6 temas pre-diseñados + personalización completa  
+✅ **Cartelera de Corcho** - Postcards con fotos y mensajes pineados en un corcho digital  
+✅ **Caja Secreta** - Postcards sorpresa de familiares que no pueden asistir  
 ✅ **Ranking en Vivo** - Leaderboard con podio para los top 3  
-✅ **Cartelera de Corcho** - Postcards con fotos y mensajes pineados en un corcho  
 ✅ **Animaciones** - Framer Motion para transiciones suaves  
-✅ **Confetti** - Celebraciones visuales según el puntaje  
 ✅ **Responsive Design** - Mobile-first, optimizado para smartphones  
 ✅ **Real-time Updates** - WebSockets para ranking y postcards en vivo  
 ✅ **3D Medals** - Monedas giratorias React Three Fiber en el podio  
 ✅ **Error Boundaries** - Manejo de errores global e inline  
-✅ **Secret Box** - Postcards sorpresa de familiares reveladas con animación de caja de regalos  
+✅ **Legacy Redirects** - URLs legacy redireccionan automáticamente  
 
 ---
 
@@ -200,7 +202,7 @@ milegame-web   nginx                            Up (healthy)   0.0.0.0:8081->80/
 
 ## 🎁 Secret Box — Guía Operacional
 
-La **Secret Box** permite que familiares o amigos que no pueden asistir envíen fotos y mensajes secretos a Mile. Se guardan ocultos y se revelan con una animación durante la fiesta.
+La **Secret Box** permite que familiares o amigos que no pueden asistir envíen fotos y mensajes secretos para el homenajeado. Se guardan ocultos y se revelan con una animación durante la celebración.
 
 ### **Paso 1 — Configurar tokens antes de la fiesta**
 
@@ -464,39 +466,55 @@ server {
 the-mile-game/
 ├── frontend/                 # React Application
 │   ├── src/
-│   │   ├── app/              # (vacío — router/providers en App.tsx)
-│   │   ├── features/         # Features (quiz, ranking, postcards, admin)
-│   │   │   ├── quiz/
-│   │   │   │   ├── hooks/        # useQuiz.ts (lógica completa)
-│   │   │   │   ├── pages/        # WelcomePage, RegisterPage, QuizPage, ThankYouPage
-│   │   │   │   ├── services/     # quizApi.ts (submit, fetch answers)
-│   │   │   │   ├── store/        # quizStore.ts (Zustand, persistido)
-│   │   │   │   └── types/
-│   │   │   ├── ranking/
-│   │   │   │   ├── hooks/        # useRanking.ts (WebSocket + fetch)
-│   │   │   │   ├── pages/        # RankingPage.tsx (WebSocket + 3D medals)
-│   │   │   │   ├── services/     # rankingApi.ts (fetch ranking)
-│   │   │   │   └── store/        # rankingStore.ts (solo currentPlayerId)
-│   │   │   ├── postcards/
-│   │   │   │   ├── hooks/        # usePostcards.ts (WebSocket real-time)
-│   │   │   │   ├── pages/        # CorkboardPage.tsx, SecretBoxPage.tsx (pendiente)
-│   │   │   │   ├── services/     # postcardApi.ts (upload + resize)
-│   │   │   │   ├── store/        # postcardStore.ts (Zustand)
-│   │   │   │   ├── components/   # PostcardCard, PostcardModal, AddPostcardSheet,
-│   │   │   │   │                 # PushPin, StampLayer, GiftBox (pendiente)
-│   │   │   │   └── types/
-│   │   │   └── admin/            # (pendiente - Secret Box)
-│   │   │       └── pages/        # AdminPage.tsx (pendiente)
-│   │   ├── shared/           # Shared code
-│   │   │   ├── components/   # Button, Header, PageLayout, ButterflyBackground,
-│   │   │   │                 # Confetti, ErrorBoundary, Skeleton
-│   │   │   ├── 3d/           # MedalCanvas, Coin3D (React Three Fiber)
-│   │   │   ├── hooks/        # useScrollAnimation, usePullToRefresh
-│   │   │   ├── store/        # websocketStore.ts (Zustand, singleton global)
-│   │   │   └── lib/          # ApiClient (Axios singleton), featureFlags.ts
+│   │   ├── features/
+│   │   │   ├── landing/         # Landing page (EventHub branding)
+│   │   │   │   ├── pages/
+│   │   │   │   │   └── LandingPage.tsx
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── HeroSection.tsx
+│   │   │   │   │   ├── FeaturesGrid.tsx
+│   │   │   │   │   └── EventCodeForm.tsx
+│   │   │   │   └── store/
+│   │   │   ├── auth/            # Login, Register
+│   │   │   ├── dashboard/        # User dashboard
+│   │   │   │   ├── pages/
+│   │   │   │   │   └── DashboardPage.tsx
+│   │   │   │   └── components/
+│   │   │   │       └── EventCard.tsx
+│   │   │   ├── event-wizard/    # 3-step event creation
+│   │   │   │   ├── pages/
+│   │   │   │   │   └── EventWizardPage.tsx
+│   │   │   │   └── components/
+│   │   │   │       ├── Step1_BasicInfo.tsx
+│   │   │   │       ├── Step2_Features.tsx
+│   │   │   │       └── Step3_Theme.tsx
+│   │   │   ├── event-admin/     # Event admin panel
+│   │   │   │   ├── pages/
+│   │   │   │   │   └── EventAdminPage.tsx
+│   │   │   │   └── components/
+│   │   │   │       ├── ConfigTab.tsx
+│   │   │   │       ├── QuestionsTab.tsx
+│   │   │   │       ├── ThemeTab.tsx
+│   │   │   │       └── StatsTab.tsx
+│   │   │   ├── event-public/    # Public event pages /e/:slug
+│   │   │   │   ├── pages/
+│   │   │   │   ├── EventLandingPage.tsx
+│   │   │   │   └── EventLayout.tsx
+│   │   │   ├── quiz/            # Legacy quiz feature
+│   │   │   ├── ranking/         # Legacy ranking feature
+│   │   │   ├── postcards/        # Corkboard + Secret Box
+│   │   │   └── admin/           # Legacy admin pages
+│   │   ├── shared/
+│   │   │   ├── components/
+│   │   │   │   ├── Button, EmptyState, LoadingSkeleton
+│   │   │   │   ├── WizardStepper, FeatureCard
+│   │   │   │   └── ThemeToggle, LegacyRedirect
+│   │   │   ├── 3d/              # MedalCanvas, Coin3D
+│   │   │   ├── hooks/
+│   │   │   ├── store/           # themeStore, websocketStore
+│   │   │   └── lib/              # api.ts, featureFlags.ts
 │   │   └── styles/
-│   ├── testsprite_tests/     # Playwright specs (35/38 passing)
-│   ├── TEST_PLAN.md          # Plan de tests E2E
+│   ├── tests/
 │   ├── playwright.config.ts
 │   ├── Dockerfile
 │   ├── nginx.conf
@@ -529,58 +547,42 @@ the-mile-game/
 
 ### **Base URL**: `http://localhost:8081/api` (Docker) o `http://localhost:8080/api` (Dev)
 
-#### **Players**
+#### **Authentication**
 
 ```http
-POST   /api/players          # Crear jugador
-GET    /api/players/:id      # Obtener jugador por ID
-GET    /api/players          # Listar todos los jugadores
+POST   /api/auth/register     # Registro de usuario
+POST   /api/auth/login        # Inicio de sesión
+POST   /api/auth/refresh      # Refrescar token
+GET    /api/auth/me           # Usuario actual
+POST   /api/auth/logout       # Cerrar sesión
+```
+
+#### **Events**
+
+```http
+GET    /api/events            # Listar eventos del usuario (auth requerida)
+POST   /api/events            # Crear evento (auth requerida)
+GET    /api/events/:id        # Obtener evento por ID (auth requerida)
+PUT    /api/events/:id        # Actualizar evento (auth requerida)
+DELETE /api/events/:id       # Eliminar evento (auth requerida)
+GET    /api/events/slug/:slug # Obtener evento por slug (público)
 ```
 
 **Example Request:**
 
 ```bash
-curl -X POST http://localhost:8081/api/players \
+curl -X POST http://localhost:8081/api/events \
   -H "Content-Type: application/json" \
-  -d '{"name": "Juan", "avatar": "👤"}'
-```
-
-**Response:**
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Juan",
-  "avatar": "👤",
-  "score": 0,
-  "created_at": "2026-02-04T10:00:00Z"
-}
-```
-
-#### **Quiz**
-
-```http
-POST   /api/quiz/submit                # Enviar respuestas
-GET    /api/quiz/answers/:playerId     # Obtener respuestas
-```
-
-**Example Request:**
-
-```bash
-curl -X POST http://localhost:8081/api/quiz/submit \
-  -H "Content-Type: application/json" \
-  -H "X-Player-ID: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Authorization: Bearer <token>" \
   -d '{
-    "favorites": {
-      "cantante": "Taylor Swift",
-      "flor": "Rosa",
-      "bebida": "Café"
-    },
-    "preferences": {
-      "cafe_te": "cafe",
-      "playa_montana": "playa"
-    },
-    "description": "Una persona increíble"
+    "name": "Cumpleaños de Ana",
+    "slug": "cumple-ana-2026",
+    "date": "2026-04-15",
+    "features": {
+      "quiz": true,
+      "corkboard": true,
+      "secret_box": false
+    }
   }'
 ```
 
@@ -588,64 +590,91 @@ curl -X POST http://localhost:8081/api/quiz/submit \
 
 ```json
 {
-  "score": 8,
-  "message": "Quiz submitted successfully"
+  "id": "c79c5d54-8bb4-4f1c-abf3-0d2c38635e69",
+  "slug": "cumple-ana-2026",
+  "name": "Cumpleaños de Ana",
+  "features": {
+    "quiz": true,
+    "corkboard": true,
+    "secret_box": false
+  },
+  "is_active": true,
+  "created_at": "2026-03-20T02:40:36Z"
 }
 ```
 
-#### **Ranking**
+#### **Themes**
 
 ```http
-GET    /api/ranking          # Obtener ranking completo
+GET    /api/themes/presets    # Listar temas pre-diseñados (público)
+GET    /api/events/:id/theme  # Obtener tema del evento
+PUT    /api/events/:id/theme # Actualizar tema del evento
 ```
 
 **Example Request:**
 
 ```bash
-curl http://localhost:8081/api/ranking
+curl http://localhost:8081/api/themes/presets
 ```
 
 **Response:**
 
 ```json
-[
-  {
-    "position": 1,
-    "player": {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "Juan",
-      "avatar": "👤",
-      "score": 12,
-      "created_at": "2026-02-04T10:00:00Z"
+{
+  "presets": [
+    {
+      "name": "princess",
+      "primaryColor": "#EC4899",
+      "secondaryColor": "#FBCFE8",
+      "displayFont": "Great Vibes",
+      "backgroundStyle": "watercolor"
+    },
+    {
+      "name": "elegant",
+      "primaryColor": "#8B5CF6",
+      "displayFont": "Playfair Display",
+      "backgroundStyle": "minimal"
     }
-  },
-  {
-    "position": 2,
-    "player": {
-      "id": "660e8400-e29b-41d4-a716-446655440001",
-      "name": "María",
-      "avatar": "👸",
-      "score": 10,
-      "created_at": "2026-02-04T10:05:00Z"
-    }
-  }
-]
+  ]
+}
+```
+
+#### **Players**
+
+```http
+POST   /api/players          # Crear jugador
+GET    /api/players/:id      # Obtener jugador por ID
+GET    /api/events/:id/players # Listar jugadores de un evento
+```
+
+#### **Quiz**
+
+```http
+POST   /api/quiz/submit      # Enviar respuestas
+GET    /api/quiz/answers/:playerId # Obtener respuestas
+```
+
+#### **Ranking**
+
+```http
+GET    /api/events/:id/ranking # Obtener ranking del evento
 ```
 
 #### **Postcards**
 
 ```http
-POST   /api/postcards          # Crear postal (multipart: image + message, header: X-Player-ID)
-GET    /api/postcards          # Listar todas las postales (filtra secretas no reveladas)
+POST   /api/postcards         # Crear postal (multipart: image + message)
+GET    /api/postcards         # Listar postales (públicas)
+GET    /api/events/:id/postcards # Listar postcards de un evento
 ```
 
-#### **Secret Box** *(pendiente)*
+#### **Secret Box**
 
 ```http
-POST   /api/postcards/secret   # Crear postal secreta (multipart, header: X-Secret-Token)
-GET    /api/admin/secret-box   # Listar postcards secretas (header: X-Admin-Key)
-POST   /api/admin/reveal       # Revelar Secret Box (header: X-Admin-Key)
-GET    /api/admin/status       # Estado de la Secret Box (header: X-Admin-Key)
+POST   /api/postcards/secret  # Crear postal secreta (header: X-Secret-Token)
+GET    /api/admin/secret-box  # Listar postcards secretas (header: X-Admin-Key)
+POST   /api/admin/reveal     # Revelar Secret Box (header: X-Admin-Key)
+GET    /api/admin/status      # Estado de la Secret Box (header: X-Admin-Key)
 ```
 
 #### **WebSocket**
@@ -654,17 +683,17 @@ GET    /api/admin/status       # Estado de la Secret Box (header: X-Admin-Key)
 GET    /ws                   # WebSocket para ranking, postcards y secret box real-time
 ```
 
-El servidor emite mensajes `ranking_update`, `postcard_new` y `secret_box_reveal` (pendiente). Incluye ping/pong keepalive (54s period, 60s timeout).
+El servidor emite mensajes `ranking_update`, `postcard_new` y `secret_box_reveal`. Incluye ping/pong keepalive.
 
 #### **Health Check**
 
 ```http
-GET    /health               # Health check (NO /api prefix)
+GET    /health              # Health check (NO /api prefix)
 ```
 
 ```bash
 curl http://localhost:8081/health
-# {"status":"ok"}
+# {"status":"ok","websocket_clients":0}
 ```
 
 ---
@@ -697,37 +726,35 @@ chore: tareas de mantenimiento
 
 #### **Completado**
 
+- ✅ **EventHub Platform** — Refactor completo de The Mile Game a plataforma multi-evento
+- ✅ **Landing Page** — Nueva página con branding EventHub
+- ✅ **Event Wizard** — Creación de eventos en 3 pasos (Info → Features → Tema)
+- ✅ **Dashboard** — Grid de eventos con feature badges
+- ✅ **Admin Panel** — Tabs (Config, Questions, Theme, Stats)
+- ✅ **Theme Marketplace** — 6 temas pre-diseñados + personalización
+- ✅ **Event-scoped routes** — `/e/:slug/*` para páginas públicas
+- ✅ **Legacy redirects** — URLs legacy redireccionan automáticamente
 - ✅ Setup Vite + React 19 + TypeScript + Tailwind 4
 - ✅ Backend Go + Gin + PostgreSQL + Docker Compose
-- ✅ Quiz completo (13 preguntas, scoring server-side)
+- ✅ Quiz completo con scoring server-side
 - ✅ Ranking en tiempo real con WebSockets
 - ✅ 3D medals con React Three Fiber
-- ✅ Animaciones Framer Motion + ButterflyBackground
-- ✅ Confetti y celebraciones según puntaje
-- ✅ Error Boundary (global + inline para 3D)
-- ✅ Skeleton loading states
-- ✅ Pull-to-refresh en mobile
-- ✅ Despliegue en servidor local (192.168.100.82:8081)
-- ✅ Implementados `useQuiz.ts` y `quizApi.ts`
-- ✅ Implementados `useRanking.ts` y `rankingApi.ts`
-- ✅ Cartelera de Corcho (postcards real-time + stamps decorativos)
-- ✅ Playwright E2E (35/38 passing) + Vitest unit tests
-- ✅ Feature flags para corkboard
+- ✅ Animaciones Framer Motion
+- ✅ Cartelera de Corcho (postcards real-time)
+- ✅ Secret Box — Postcards sorpresa con animación de caja de regalos
+- ✅ Playwright E2E + Vitest unit tests
+- ✅ Feature flags runtime
 
 #### **En Desarrollo**
 
-- 🔜 **Secret Box** — Postcards sorpresa reveladas con animación de caja de regalos
-  - Fase 1: Backend (migration, handlers, WebSocket)
-  - Fase 2: Frontend Secret Box (ruta de carga con link compartible)
-  - Fase 3: Admin panel (preview + botón reveal)
-  - Fase 4: Animación GiftBox (Framer Motion)
-  - Fase 5: Integración y testing
+- 🔜 **Video de celebración** — Para el ganador
+- 🔜 **Lottie animations** — Decorativas
 
 #### **Pendiente**
-- [ ] Video de celebración para el ganador
-- [ ] Lottie animations decorativas
 - [ ] Soporte de video en postcards (V2)
-- [ ] Sistema de juegos múltiples (no solo quiz)
+- [ ] Sistema de juegos múltiples (arquitectura lista)
+- [ ] Analytics dashboard
+- [ ] Social sharing
 
 ---
 
@@ -749,13 +776,13 @@ Desarrollado para el cumpleaños de Mile ✨
 
 ```bash
 # Verificar que los servicios están corriendo
-docker-compose ps
+docker ps | grep milegame
 
 # Ver logs del backend
-docker-compose logs backend
+docker logs milegame-api
 
 # Verificar health check
-curl http://localhost:8081/health
+curl http://localhost:8080/health
 ```
 
 ### **Error: "CORS policy blocked"**
@@ -769,55 +796,39 @@ CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081
 Luego rebuild el backend:
 
 ```bash
-docker-compose up -d --build backend
+docker build -t the-mile-game_backend ./backend
+docker stop milegame-api
+docker rm milegame-api
+docker run -d --name milegame-api --network the-mile-game_milegame-network -p 8080:8080 the-mile-game_backend
 ```
 
 ### **Error: "Database connection refused"**
 
 ```bash
 # Verificar que postgres está healthy
-docker-compose ps postgres
+docker ps | grep milegame-db
 
 # Ver logs de postgres
-docker-compose logs postgres
+docker logs milegame-db
 
-# Recrear volumen si es necesario (ESTO BORRA DATOS)
-docker-compose down -v
-docker-compose up -d
+# Verificar que el API está en la misma red
+docker network inspect the-mile-game_milegame-network
 ```
 
 ### **Limpiar base de datos (reset de datos)**
 
-#### Opción A — TRUNCATE (recomendada): borra datos, mantiene schema
-
 ```bash
-# 1. Encontrar el nombre del container de postgres
-docker ps | grep postgres
-
-# 2. Borrar todos los datos (jugadores, quiz y postcards)
-docker exec -it <nombre-container> psql -U user -d milegame -c \
-  "TRUNCATE TABLE quiz_answers, postcards, players RESTART IDENTITY CASCADE;"
-```
-
-> Útil en Dokploy u otros entornos donde no tenés acceso directo al `docker-compose.yml`.
-> El schema queda intacto — no necesitás re-aplicar migraciones.
-
-#### Opción B — Nuclear: borra schema + datos (re-ejecuta migraciones)
-
-```bash
-docker-compose down -v   # detiene servicios y elimina volúmenes
-docker-compose up -d     # recrea todo desde cero (las migraciones corren solas)
+# Borrar todos los datos
+docker exec -it milegame-db psql -U user -d milegame -c \
+  "TRUNCATE TABLE events, users, quiz_questions, quiz_answers, postcards, players, refresh_tokens RESTART IDENTITY CASCADE;"
 ```
 
 ### **Frontend no actualiza cambios**
 
 ```bash
 # Rebuild frontend
-docker-compose up -d --build frontend
-
-# O en dev local, hard refresh
-# Ctrl+Shift+R (Windows/Linux)
-# Cmd+Shift+R (Mac)
+cd frontend && npm run build
+docker cp ./dist/. milegame-web:/usr/share/nginx/html/
 ```
 
 ---

@@ -12,6 +12,8 @@ export { ErrorBoundary } from './components/ErrorBoundary';
 export { ThemeToggle } from './components/ThemeToggle';
 export { EventLayout } from './components/EventLayout';
 export { EventLoader } from './components/EventLoader';
+export { LegacyRedirect } from './components/LegacyRedirect';
+export { EventLandingSkeleton, EventQuizSkeleton, RankingSkeletonPage } from './components/EventSkeletons';
 export { LoadingSpinner } from './components/LoadingSpinner';
 export { ProtectedRoute } from './components/ProtectedRoute';
 export { Switch } from './components/Switch';

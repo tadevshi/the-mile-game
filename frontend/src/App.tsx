@@ -10,6 +10,7 @@ import { LandingPage } from '@/features/landing';
 import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
 import { ErrorBoundary, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
+import { LegacyRedirect } from '@/shared/components/LegacyRedirect';
 import type { ReactNode } from 'react';
 
 import { EventWizardPage } from '@/features/event-wizard';
@@ -235,44 +236,28 @@ function LegacyRoutes() {
         }
       />
 
-      {/* QUIZ: Slide desde la derecha (continuación) */}
+      {/* QUIZ LEGACY: Redirige a /e/:slug/quiz */}
       <Route
         path="/quiz"
-        element={
-          <AnimatedPage variants={slideRightVariants}>
-            <QuizPage />
-          </AnimatedPage>
-        }
+        element={<LegacyRedirect target="quiz" />}
       />
 
-      {/* THANK YOU: Zoom celebración especial */}
+      {/* THANK YOU LEGACY: Redirige a /e/:slug/thank-you */}
       <Route
         path="/thank-you"
-        element={
-          <AnimatedPage variants={zoomVariants}>
-            <ThankYouPage />
-          </AnimatedPage>
-        }
+        element={<LegacyRedirect target="thank-you" />}
       />
 
-      {/* RANKING: Fade elegante desde la izquierda */}
+      {/* RANKING LEGACY: Redirige a /e/:slug/ranking */}
       <Route
         path="/ranking"
-        element={
-          <AnimatedPage variants={slideLeftVariants}>
-            <RankingPage />
-          </AnimatedPage>
-        }
+        element={<LegacyRedirect target="ranking" />}
       />
 
-      {/* CORKBOARD */}
+      {/* CORKBOARD LEGACY: Redirige a /e/:slug/corkboard */}
       <Route
         path="/corkboard"
-        element={
-          <AnimatedPage variants={fadeVariants}>
-            <CorkboardPage />
-          </AnimatedPage>
-        }
+        element={<LegacyRedirect target="corkboard" />}
       />
 
       {/* SECRET BOX */}
@@ -354,7 +339,7 @@ function AnimatedRoutes() {
         <Route path="/e/:slug">
           {/* Landing page */}
           <Route index element={
-            <EventLoader>
+            <EventLoader useLandingSkeleton>
               <AnimatedPage variants={fadeVariants}>
                 <EventLandingPage />
               </AnimatedPage>

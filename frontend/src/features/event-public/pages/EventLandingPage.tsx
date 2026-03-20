@@ -142,7 +142,7 @@ function EventLandingContent() {
           className="text-center"
         >
           <p className="text-sm text-gray-400">
-            Powered by The Mile Game ✨
+            Powered by EventHub ✨
           </p>
         </motion.div>
       </div>

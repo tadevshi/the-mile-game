@@ -86,11 +86,14 @@ export function ThemeProvider({ children, eventSlug }: ThemeProviderProps) {
   useEffect(() => {
     const root = document.documentElement;
     
+    // Set primary colors as Tailwind-compatible CSS variables
     root.style.setProperty('--color-primary', theme.primaryColor);
     root.style.setProperty('--color-secondary', theme.secondaryColor);
     root.style.setProperty('--color-accent', theme.accentColor);
     root.style.setProperty('--color-bg', theme.bgColor);
     root.style.setProperty('--color-text', theme.textColor);
+    
+    // Set fonts
     root.style.setProperty('--font-display', `'${theme.displayFont}', cursive`);
     root.style.setProperty('--font-heading', `'${theme.headingFont}', serif`);
     root.style.setProperty('--font-body', `'${theme.bodyFont}', sans-serif`);
@@ -98,8 +101,18 @@ export function ThemeProvider({ children, eventSlug }: ThemeProviderProps) {
     // Apply background style class to body
     document.body.className = `theme-${theme.backgroundStyle}`;
     
+    // Apply theme colors to Tailwind custom properties for direct use
+    // These can be used in Tailwind classes like bg-[var(--color-primary)]
+    root.style.setProperty('--tw-primary', theme.primaryColor);
+    root.style.setProperty('--tw-secondary', theme.secondaryColor);
+    root.style.setProperty('--tw-accent', theme.accentColor);
+    
     return () => {
       document.body.className = '';
+      // Reset to default theme colors
+      root.style.removeProperty('--tw-primary');
+      root.style.removeProperty('--tw-secondary');
+      root.style.removeProperty('--tw-accent');
     };
   }, [theme]);
 

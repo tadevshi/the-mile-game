@@ -1,20 +1,20 @@
-# AGENTS.md - The Mile Game
+# AGENTS.md - EventHub
 
 > Documento de contexto para agentes de IA y colaboradores humanos.
-> Última actualización: 2026-02-25
+> Última actualización: 2026-03-20
 
 ---
 
 ## Visión General
 
-**The Mile Game** es una plataforma de juegos interactivos para eventos y celebraciones. El proyecto inicial es un **quiz para el cumpleaños de Mile**, pero la arquitectura está diseñada para escalar y albergar múltiples juegos diferentes.
+**EventHub** es una plataforma de eventos interactivos para celebraciones. Los usuarios crean eventos, configuran quizzes personalizados, reciben postcards de invitados y comparten sorpresas con la caja secreta.
 
 ### Objetivos del Proyecto
 
-1. **Funcional**: Quiz interactivo con ranking en tiempo real para ~50 usuarios simultáneos
-2. **Educativo**: Aprender React y el ecosistema frontend moderno
-3. **Portafolio**: Demostrar habilidades full-stack con animaciones y 3D
-4. **Escalable**: Arquitectura que permita agregar nuevos juegos fácilmente
+1. **Funcional**: Eventos interactivos con quiz, ranking y postcards para ~50 usuarios simultáneos
+2. **Escalable**: Arquitectura multi-evento que permita crear cualquier tipo de celebración
+3. **Profesional**: UX pulida con animaciones, temas visuales y diseño mobile-first
+4. **Portafolio**: Demostrar habilidades full-stack con React, Go, y arquitectura moderna
 
 ---
 
@@ -66,38 +66,45 @@ Cada feature (juego) es un módulo independiente con su propia estructura de cap
 
 ```
 src/
-├── app/                    # Vacío — router y providers viven en App.tsx directamente
-│
 ├── features/               # Módulos por funcionalidad
-│   ├── quiz/               # Feature: Quiz de Mile
-│   │   ├── hooks/          # useQuiz.ts (lógica del quiz completa)
-│   │   ├── services/       # quizApi.ts (submit, fetch answers)
-│   │   ├── store/          # quizStore.ts (Zustand, persistido en localStorage)
-│   │   ├── types/          # quiz.types.ts
-│   │   ├── pages/          # WelcomePage, RegisterPage, QuizPage, ThankYouPage
-│   │   └── index.ts        # Public API del feature
+│   ├── landing/            # Feature: Landing page EventHub
+│   │   ├── pages/           # LandingPage.tsx
+│   │   ├── components/      # HeroSection, FeaturesGrid, EventCodeForm
+│   │   └── store/          # landingStore.ts
 │   │
-│   ├── ranking/            # Feature: Sistema de ranking
-│   │   ├── hooks/          # useRanking.ts (WebSocket + fetch)
-│   │   ├── services/       # rankingApi.ts (fetch ranking)
-│   │   ├── store/          # rankingStore.ts (solo currentPlayerId)
-│   │   ├── types/          # ranking.types.ts
-│   │   ├── pages/          # RankingPage.tsx (WebSocket live + 3D medals)
-│   │   └── index.ts
+│   ├── auth/                # Feature: Authentication
+│   │   ├── pages/           # LoginPage, RegisterPage
+│   │   └── store/          # authStore.ts (Zustand)
 │   │
-│   ├── postcards/          # Feature: Cartelera de Corcho
-│   │   ├── hooks/          # usePostcards.ts (WebSocket real-time)
-│   │   ├── services/       # postcardApi.ts (image upload + resize)
-│   │   ├── store/          # postcardStore.ts (Zustand)
-│   │   ├── types/          # postcards.types.ts
-│   │   ├── pages/          # CorkboardPage.tsx
-│   │   ├── components/     # PostcardCard, PostcardModal, AddPostcardSheet,
-│   │   │                   # PushPin, StampLayer, StampItem, GiftBox (pendiente)
-│   │   └── index.ts
+│   ├── dashboard/           # Feature: User dashboard
+│   │   ├── pages/           # DashboardPage.tsx
+│   │   ├── components/       # EventCard.tsx, EmptyState.tsx
+│   │   └── store/           # dashboardStore.ts
 │   │
-│   └── admin/              # Feature: Panel Admin (pendiente - Secret Box)
-│       ├── pages/          # AdminPage.tsx (pendiente)
-│       └── index.ts        # (pendiente)
+│   ├── event-wizard/       # Feature: 3-step event creation
+│   │   ├── pages/           # EventWizardPage.tsx
+│   │   └── components/      # Step1_BasicInfo, Step2_Features, Step3_Theme
+│   │
+│   ├── event-admin/         # Feature: Event admin panel
+│   │   ├── pages/           # EventAdminPage.tsx
+│   │   ├── hooks/           # useEventAdmin.ts
+│   │   └── components/      # ConfigTab, QuestionsTab, ThemeTab, StatsTab
+│   │
+│   ├── event-public/        # Feature: Public event pages /e/:slug
+│   │   ├── pages/           # EventLandingPage, EventLayout
+│   │   └── (uses shared components)
+│   │
+│   ├── quiz/               # Feature: Legacy quiz (player-facing)
+│   │   ├── pages/           # QuizPage, RegisterPage
+│   │   └── store/           # quizStore.ts
+│   │
+│   ├── ranking/            # Feature: Ranking
+│   │   ├── pages/          # RankingPage.tsx (WebSocket + 3D medals)
+│   │   └── store/          # rankingStore.ts
+│   │
+│   ├── postcards/           # Feature: Cartelera + Secret Box
+│   │   ├── pages/           # CorkboardPage, SecretBoxPage
+│   │   └── components/      # PostcardCard, GiftBox, etc.
 │
 ├── shared/                 # Código compartido
 │   ├── components/         # Button, Header, PageLayout, ButterflyBackground,
@@ -286,59 +293,37 @@ Los archivos fuente se encuentran en `anexus/design_cumple_mile/`:
 
 ### Completado (Producción)
 
+- [x] **EventHub Platform** — Refactor completo a plataforma multi-evento
+- [x] **Landing Page** — Branding EventHub, hero, features, code entry
+- [x] **Event Wizard** — 3 pasos (Basic Info → Features → Theme Marketplace)
+- [x] **Dashboard** — Grid de eventos con event cards, empty states
+- [x] **Event Admin Panel** — Tabs (Config, Questions, Theme, Stats)
+- [x] **Theme Marketplace** — 6 presets + editor visual
+- [x] **Event-scoped Routes** — `/e/:slug/*` para páginas públicas
+- [x] **Legacy Redirects** — `/quiz`, `/ranking`, `/corkboard` → `/e/:slug/*`
+- [x] **Dark Mode** — Toggle con persistencia en localStorage
 - [x] Setup Vite + React 19 + TypeScript + Tailwind 4
-- [x] Estructura feature-based (quiz, ranking)
-- [x] Todas las páginas implementadas (Welcome, Register, Quiz, ThankYou, Ranking)
 - [x] Backend Go + Gin + PostgreSQL (handlers, services, repository)
-- [x] Scoring server-side con normalización de texto (100% test coverage)
-- [x] WebSockets para ranking en tiempo real (gorilla/websocket, auto-reconnect)
+- [x] JWT Authentication con refresh tokens
+- [x] WebSockets para ranking y postcards en tiempo real
 - [x] 3D medals con React Three Fiber en el podio
 - [x] Animaciones Framer Motion (transiciones por ruta, hover, tap)
-- [x] ButterflyBackground animado (8 mariposas, 15 partículas, 6 sparkles)
-- [x] Confetti adaptativo según puntaje (canvas-confetti)
-- [x] Error Boundary global + inline (fallback emoji para 3D)
-- [x] Skeleton loading states (RankingSkeleton, QuizSkeleton, etc.)
-- [x] Pull-to-refresh hook (móvil)
-- [x] Emoji avatar picker en registro
+- [x] Error Boundary global + inline
+- [x] Skeleton loading states
 - [x] Docker Compose (3 servicios: postgres, backend, frontend/nginx)
-- [x] Nginx: proxy /api → backend, proxy /ws → WebSocket, SPA fallback
-- [x] Despliegue funcional en 192.168.100.82:8081
-- [x] `useQuiz.ts` y `quizApi.ts` implementados (lógica extraída de las pages)
-- [x] `useRanking.ts` y `rankingApi.ts` implementados (lógica extraída de RankingPage)
-- [x] `ThankYou.tsx` eliminado en favor de `ThankYouPage.tsx`
-- [x] `usePullToRefresh.ts` exportado desde `shared/index.ts`
-- [x] `quizStore.ts` actualizado con `correctAnswers` correctos
-- [x] **Cartelera de Corcho** — Feature completo:
-  - [x] Backend: tabla postcards, handlers, WebSocket broadcast
-  - [x] Frontend: CorkboardPage, componentes, WebSocket real-time
-  - [x] Botones de acceso en Welcome, ThankYou, Ranking
-  - [x] Descarga de postales como PNG
-  - [x] StampLayer decorativo (desktop) con descripciones del quiz
-  - [x] Feature flag `VITE_ENABLE_CORKBOARD`
+- [x] **Cartelera de Corcho** — Feature completo con WebSocket
+- [x] **Secret Box** — Postcards sorpresa con animación GiftBox
 - [x] **Testing**:
-  - [x] Playwright E2E configurado (35/38 passing, 3 skipped)
-  - [x] Vitest unit tests frontend implementados
+  - [x] Playwright E2E (35/38 passing)
+  - [x] Vitest unit tests frontend
   - [x] Go tests backend 100% coverage
 
-### Deuda Técnica (No bloqueante)
-- [ ] `app/` directory vacío (se documentó como conteniendo router/providers)
-
-### Completado — Secret Box (Feature Nueva)
-
-> Ver sección [Secret Box — Plan de Implementación](#secret-box--plan-de-implementación) para detalles completos.
-
-- [x] **Fase 1**: Backend — Migration, models, repository, handlers
-- [x] **Fase 2**: Frontend — Ruta `/secret-box`, form de carga, feature flag
-- [x] **Fase 3**: Admin — Ruta `/admin`, preview, botón reveal
-- [x] **Fase 4**: Animación — GiftBox reveal en CorkboardPage
-- [x] **Fase 5**: Integración — WebSocket, merge en corkboard, testing
-
-### Pendiente — Otros
+### Pendiente — Deuda Técnica
 
 - [ ] Video de celebración para el ganador (HTML5 Video)
 - [ ] Lottie animations decorativas
 - [ ] Soporte de video en postcards (V2)
-- [ ] Sistema de múltiples juegos (arquitectura ya preparada)
+- [ ] Analytics dashboard
 
 ---
 
