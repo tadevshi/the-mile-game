@@ -3,6 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useLandingStore } from '../store/landingStore';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { EventCodeForm } from '../components/EventCodeForm';
+import { DemoVideoSection } from '../components/DemoVideoSection';
+import { PricingTable } from '../components/PricingTable';
+import { TestimonialsCarousel } from '../components/TestimonialsCarousel';
+import { LandingFooter } from '../components/LandingFooter';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -300,50 +304,20 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Quote / Testimonial Section */}
-      <section 
-        className="px-4 py-16 my-8"
-        style={{ background: 'linear-gradient(180deg, var(--surface-container-low) 0%, var(--background) 100%)' }}
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="max-w-2xl mx-auto text-center"
-        >
-          <div className="text-5xl mb-6">❝</div>
-          <blockquote 
-            className="text-xl md:text-2xl mb-6 leading-relaxed"
-            style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic' }}
-          >
-            La mejor manera de hacer que tus invitados se sientan parte de la celebración, 
-            incluso cuando no pueden estar presentes.
-          </blockquote>
-          <cite className="not-italic">
-            <span className="font-semibold block">María García</span>
-            <span style={{ color: 'var(--on-surface-variant)' }}>Mamá de Ana, Cumpleaños 2026</span>
-          </cite>
-        </motion.div>
-      </section>
+      {/* Demo Video Section */}
+      <DemoVideoSection />
+
+      {/* Testimonials Carousel */}
+      <TestimonialsCarousel />
+
+      {/* Pricing Table */}
+      <PricingTable />
 
       {/* Event Code Entry */}
       <EventCodeForm />
 
       {/* Footer */}
-      <footer className="py-8 px-4 border-t" style={{ borderColor: 'var(--surface-container)' }}>
-        <div className="max-w-5xl mx-auto text-center">
-          <span 
-            className="text-xl font-bold mb-4 block"
-            style={{ fontFamily: 'var(--font-serif)', color: 'var(--primary)' }}
-          >
-            EventHub
-          </span>
-          <p style={{ color: 'var(--on-surface-variant)' }}>
-            Hecho con ❤️ para celebraciones memorables
-          </p>
-        </div>
-      </footer>
+      <LandingFooter />
 
       {/* Floating Action Button */}
       <button 
