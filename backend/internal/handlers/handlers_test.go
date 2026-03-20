@@ -204,7 +204,7 @@ type mockPostcardRepo struct {
 	createdPostcard *models.Postcard
 }
 
-func (r *mockPostcardRepo) CreateSecret(senderName, imagePath, message string, rotation float64) (*models.Postcard, error) {
+func (r *mockPostcardRepo) CreateSecret(senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
 	return r.createdPostcard, nil
 }
 
@@ -228,10 +228,10 @@ func (r *mockPostcardRepo) RevealPostcard(id uuid.UUID) (*models.Postcard, error
 	return r.createdPostcard, nil
 }
 
-func (r *mockPostcardRepo) Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error) {
+func (r *mockPostcardRepo) Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
 	return r.createdPostcard, nil
 }
-func (r *mockPostcardRepo) CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error) {
+func (r *mockPostcardRepo) CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
 	return r.createdPostcard, nil
 }
 func (r *mockPostcardRepo) GetByID(id uuid.UUID) (*models.Postcard, error) { return nil, nil }

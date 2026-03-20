@@ -13,6 +13,8 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [imageError, setImageError] = useState(false);
 
+  const isVideo = postcard.media_type === 'video';
+
   return (
     <div className="relative pt-4">
       {/* Push pin centrado arriba — z-40 para estar SIEMPRE encima de la postal (hover usa z-30) */}
@@ -36,15 +38,52 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
         {/* Layout postal: foto izquierda, mensaje derecha */}
         {/* Usamos aspect ratio fijo para que siempre mantenga proporción de postal */}
         <div className="flex w-full aspect-[2/1] max-h-[220px]">
-          {/* Foto — lado izquierdo */}
+          {/* Media (imagen o video thumbnail) — lado izquierdo */}
           <div className="w-1/2 relative overflow-hidden bg-pink-50 flex items-center justify-center">
-            <img
-              src={imageError ? '/princess_logo.png' : postcard.image_path}
-              alt={`Postal de ${postcard.player_name}`}
-              className={`absolute inset-0 w-full h-full ${imageError ? 'object-contain p-4 opacity-50' : 'object-cover'}`}
-              loading="lazy"
-              onError={() => setImageError(true)}
-            />
+            {isVideo ? (
+              <>
+                {/* Video thumbnail con play overlay */}
+                <img
+                  src={imageError ? '/princess_logo.png' : (postcard.thumbnail_path || postcard.image_path)}
+                  alt={`Video de ${postcard.player_name}`}
+                  className={`absolute inset-0 w-full h-full ${imageError ? 'object-contain p-4 opacity-50' : 'object-cover'}`}
+                  loading="lazy"
+                  onError={() => setImageError(true)}
+                />
+                {/* Play button overlay */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md">
+                    <svg
+                      className="w-5 h-5 text-pink-500 ml-0.5"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                </div>
+                {/* Duration badge */}
+                {postcard.media_duration_ms && (
+                  <div className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded">
+                    {Math.floor(postcard.media_duration_ms / 1000)}s
+                  </div>
+                )}
+                {/* Video indicator */}
+                <div className="absolute top-1 left-1 bg-pink-500 text-white text-[8px] px-1 py-0.5 rounded flex items-center gap-0.5">
+                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+                  </svg>
+                </div>
+              </>
+            ) : (
+              <img
+                src={imageError ? '/princess_logo.png' : postcard.image_path}
+                alt={`Postal de ${postcard.player_name}`}
+                className={`absolute inset-0 w-full h-full ${imageError ? 'object-contain p-4 opacity-50' : 'object-cover'}`}
+                loading="lazy"
+                onError={() => setImageError(true)}
+              />
+            )}
           </div>
 
           {/* Separador vertical */}
