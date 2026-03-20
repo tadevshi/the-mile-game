@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, AlertCircle } from 'lucide-react';
 import { useWizardStore } from '../store/wizardStore';
-import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 import { api } from '@/shared/lib/api';
 
 function generateSlug(name: string): string {
-  return name
+  const base = name
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -14,17 +13,17 @@ function generateSlug(name: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
+  // Add random suffix for uniqueness
+  const suffix = Math.random().toString(36).substring(2, 6);
+  return `${base}-${suffix}`;
 }
 
 export function Step1_BasicInfo() {
-  const { formData, updateFormData, validationErrors, slugAvailable, setSlugAvailable, setValidationErrors } =
+  const { formData, updateFormData, validationErrors, setValidationErrors } =
     useWizardStore();
 
-  const [isCheckingSlug, setIsCheckingSlug] = useState(false);
-  const [localSlugEdited, setLocalSlugEdited] = useState(false);
-
   useEffect(() => {
-    if (!formData.name || localSlugEdited) return;
+    if (!formData.name) return;
 
     const timer = setTimeout(() => {
       const generated = generateSlug(formData.name);
@@ -32,50 +31,33 @@ export function Step1_BasicInfo() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [formData.name, localSlugEdited]);
+  }, [formData.name]);
 
   useEffect(() => {
     if (!formData.slug || formData.slug.length < 3) {
-      setSlugAvailable(null);
       return;
     }
 
     const checkSlug = async () => {
-      setIsCheckingSlug(true);
       try {
         await api.getEventBySlug(formData.slug);
-        setSlugAvailable(false);
-      } catch (err: unknown) {
-        const axiosErr = err as { response?: { status?: number } };
-        if (axiosErr.response?.status === 404) {
-          setSlugAvailable(true);
-        }
-      } finally {
-        setIsCheckingSlug(false);
+        // Slug exists, regenerate with new suffix
+        const generated = generateSlug(formData.name);
+        updateFormData({ slug: generated });
+      } catch {
+        // 404 means slug is available, keep it
       }
     };
 
     const timer = setTimeout(checkSlug, 300);
     return () => clearTimeout(timer);
-  }, [formData.slug]);
+  }, [formData.slug, formData.name]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     updateFormData({ [name]: value });
     if (validationErrors[name]) {
       setValidationErrors({ ...validationErrors, [name]: '' });
-    }
-    if (name === 'slug') {
-      setLocalSlugEdited(true);
-    }
-  };
-
-  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = generateSlug(e.target.value);
-    updateFormData({ slug: value });
-    setLocalSlugEdited(true);
-    if (validationErrors.slug) {
-      setValidationErrors({ ...validationErrors, slug: '' });
     }
   };
 
@@ -148,49 +130,7 @@ export function Step1_BasicInfo() {
           )}
         </div>
 
-        <div>
-          <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
-            URL personalizada
-          </label>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 text-sm whitespace-nowrap">
-              themile.game/
-            </span>
-            <div className="relative flex-1">
-              <input
-                id="slug"
-                name="slug"
-                type="text"
-                value={formData.slug}
-                onChange={handleSlugChange}
-                className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${
-                  validationErrors.slug
-                    ? 'border-red-300 focus:border-red-400'
-                    : slugAvailable === false
-                    ? 'border-red-300 focus:border-red-400'
-                    : slugAvailable === true
-                    ? 'border-green-300 focus:border-green-400'
-                    : 'border-pink-100 focus:border-pink-300'
-                } bg-white/50`}
-                placeholder="mi-evento"
-              />
-              {isCheckingSlug && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <LoadingSpinner size="sm" />
-                </div>
-              )}
-              {!isCheckingSlug && slugAvailable === true && (
-                <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
-              )}
-            </div>
-          </div>
-          {(validationErrors.slug || slugAvailable === false) && (
-            <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
-              <AlertCircle className="w-4 h-4" />
-              {validationErrors.slug || 'Este URL ya está en uso'}
-            </p>
-          )}
-        </div>
+
 
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">

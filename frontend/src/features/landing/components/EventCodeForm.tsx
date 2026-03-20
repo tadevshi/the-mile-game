@@ -1,14 +1,24 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
+import { Search, AlertCircle, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/shared/lib/api';
 import { useLandingStore } from '../store/landingStore';
-import { Button } from '@/shared/components/Button';
+import { useAuthStore } from '@/features/auth/store/authStore';
 
 export function EventCodeForm() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   const { eventCode, setEventCode, isValidatingCode, codeError, setCodeValidation, trackCTA } = useLandingStore();
+
+  const handleCreateEvent = () => {
+    trackCTA('create');
+    if (isAuthenticated) {
+      navigate('/events/new');
+    } else {
+      navigate('/register');
+    }
+  };
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +67,7 @@ export function EventCodeForm() {
   const isSuccess = hasSubmitted && !isValidatingCode && !codeError;
 
   return (
-    <section className="py-16 px-4 bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <section className="py-16 px-4" style={{ background: 'var(--background)' }}>
       <div className="max-w-xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -71,14 +81,18 @@ export function EventCodeForm() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="inline-block px-4 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-sm font-medium rounded-full mb-4"
+            className="inline-block px-4 py-1 text-sm font-medium rounded-full mb-4"
+            style={{ background: 'var(--surface-container)', color: 'var(--primary)' }}
           >
             Únete a la celebración
           </motion.span>
-          <h2 className="text-2xl md:text-3xl font-display text-gray-800 dark:text-white mb-3">
+          <h2 
+            className="text-2xl md:text-3xl mb-3"
+            style={{ fontFamily: 'var(--font-serif)', color: 'var(--on-background)' }}
+          >
             ¿Ya tenés un código de evento?
           </h2>
-          <p className="text-gray-500 dark:text-gray-400">
+          <p style={{ color: 'var(--on-surface-variant)' }}>
             Ingresá el código que recibiste para unirte a la celebración
           </p>
         </motion.div>
@@ -93,7 +107,9 @@ export function EventCodeForm() {
         >
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <MapPin className="w-5 h-5 text-pink-400 dark:text-pink-500" />
+              <span className="material-symbols-outlined text-xl" style={{ color: 'var(--on-surface-variant)' }}>
+                link
+              </span>
             </div>
             <input
               id="event-code-input"
@@ -104,28 +120,35 @@ export function EventCodeForm() {
               disabled={isValidatingCode || isSuccess}
               className={`
                 w-full pl-12 pr-32 py-4 text-lg rounded-full
-                bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm
-                border-2 transition-all duration-200
-                placeholder:text-gray-400 dark:placeholder:text-gray-500
+                backdrop-blur-sm border-2 transition-all duration-200
+                placeholder:text-gray-400
                 disabled:opacity-60 disabled:cursor-not-allowed
                 ${codeError 
-                  ? 'border-red-300 dark:border-red-700 focus:border-red-400' 
-                  : 'border-pink-200 dark:border-slate-600 focus:border-pink-400 dark:focus:border-pink-500'
+                  ? 'border-red-400 focus:border-red-500' 
+                  : 'border-[var(--surface-container-high)] focus:border-[var(--primary)]'
                 }
-                focus:outline-none focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-800
+                focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20
               `}
+              style={{ 
+                background: 'var(--surface-container-low)',
+                color: 'var(--on-background)'
+              }}
             />
             <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
-              <Button
+              <button
                 type="submit"
                 disabled={isValidatingCode || isSuccess || !eventCode.trim()}
                 className={`
-                  px-6 py-2 rounded-full transition-all duration-300
+                  px-6 py-2 rounded-full transition-all duration-300 font-medium
                   ${isSuccess 
                     ? 'bg-green-500 hover:bg-green-600' 
-                    : 'bg-pink-500 hover:bg-pink-600'
+                    : 'hover:opacity-90'
                   }
                 `}
+                style={{ 
+                  background: isSuccess ? undefined : 'var(--primary)',
+                  color: 'white'
+                }}
               >
                 {isValidatingCode ? (
                   <span className="flex items-center gap-2">
@@ -143,7 +166,7 @@ export function EventCodeForm() {
                     Buscar
                   </span>
                 )}
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -152,7 +175,8 @@ export function EventCodeForm() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-3 flex items-center gap-2 text-red-600 dark:text-red-400 text-sm"
+              className="mt-3 flex items-center gap-2 text-sm"
+              style={{ color: '#ef4444' }}
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{codeError}</span>
@@ -161,7 +185,7 @@ export function EventCodeForm() {
 
           {/* Help text */}
           {!codeError && !isSuccess && (
-            <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 text-center">
+            <p className="mt-3 text-xs text-center" style={{ color: 'var(--on-surface-variant)' }}>
               El código es la última parte de la URL del evento
             </p>
           )}
@@ -175,18 +199,16 @@ export function EventCodeForm() {
           transition={{ delay: 0.4 }}
           className="mt-8 text-center"
         >
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+          <p className="text-sm mb-2" style={{ color: 'var(--on-surface-variant)' }}>
             ¿No tenés un código?
           </p>
-          <a
-            href="#create"
-            className="text-pink-500 hover:text-pink-600 font-medium text-sm underline underline-offset-4"
-            onClick={() => {
-              document.getElementById('create-event-section')?.scrollIntoView({ behavior: 'smooth' });
-            }}
+          <button
+            onClick={handleCreateEvent}
+            className="font-medium text-sm underline underline-offset-4 transition-colors"
+            style={{ color: 'var(--primary)' }}
           >
             Creá tu propio evento
-          </a>
+          </button>
         </motion.div>
       </div>
     </section>

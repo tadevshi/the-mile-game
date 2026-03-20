@@ -1,15 +1,26 @@
 import { motion } from 'framer-motion';
 import { Calendar, Sparkles, ArrowRight } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import { useFeatureEnabled } from '@/shared/store/eventStore';
+import { useFeatureEnabled, useEventStore } from '@/shared/store/eventStore';
 import { EventLayout } from './EventLayout';
-import { useEventStore } from '@/shared/store/eventStore';
+import { useTheme } from '@/shared/theme';
 
 function EventLandingContent() {
   const { slug } = useParams<{ slug: string }>();
   const currentEvent = useEventStore((state) => state.currentEvent);
   const quizEnabled = useFeatureEnabled('quiz');
   const corkboardEnabled = useFeatureEnabled('corkboard');
+  const { theme } = useTheme();
+
+  // Generate theme-based gradient background style
+  const bgStyle = {
+    background: `linear-gradient(135deg, ${theme.bgColor} 0%, ${theme.secondaryColor} 50%, ${theme.bgColor} 100%)`,
+  };
+
+  // Primary button style from theme
+  const primaryButtonStyle = {
+    background: `linear-gradient(135deg, ${theme.primaryColor} 0%, ${theme.accentColor} 100%)`,
+  };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
@@ -23,7 +34,7 @@ function EventLandingContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
+    <div className="min-h-screen" style={bgStyle}>
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -32,13 +43,22 @@ function EventLandingContent() {
           className="text-center"
         >
           <div className="inline-block mb-4">
-            <Sparkles className="w-12 h-12 text-pink-500 mx-auto animate-pulse" />
+            <Sparkles 
+              className="w-12 h-12 mx-auto animate-pulse" 
+              style={{ color: theme.primaryColor }} 
+            />
           </div>
-          <h1 className="text-4xl md:text-5xl font-display text-gray-800 mb-2">
+          <h1 
+            className="text-4xl md:text-5xl font-display mb-2"
+            style={{ color: theme.textColor, fontFamily: `var(--font-display)` }}
+          >
             {currentEvent?.name || 'Evento'}
           </h1>
           {currentEvent?.description && (
-            <p className="text-lg text-gray-600 font-serif italic max-w-md mx-auto">
+            <p 
+              className="text-lg font-serif italic max-w-md mx-auto"
+              style={{ color: theme.textColor, opacity: 0.8 }}
+            >
               {currentEvent.description}
             </p>
           )}
@@ -53,12 +73,15 @@ function EventLandingContent() {
           <div className="space-y-4">
             {currentEvent?.date && (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-pink-600" />
+                <div 
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: `${theme.primaryColor}20` }}
+                >
+                  <Calendar className="w-5 h-5" style={{ color: theme.primaryColor }} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Fecha</p>
-                  <p className="font-medium text-gray-800">
+                  <p className="text-sm" style={{ color: theme.textColor, opacity: 0.6 }}>Fecha</p>
+                  <p className="font-medium" style={{ color: theme.textColor }}>
                     {formatDate(currentEvent.date)}
                   </p>
                 </div>
@@ -79,10 +102,13 @@ function EventLandingContent() {
               whileTap={{ scale: 0.98 }}
             >
               <Link to={`/e/${slug}/quiz`}>
-                <div className="bg-gradient-to-br from-pink-400 to-rose-500 rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full">
+                <div 
+                  className="rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full"
+                  style={primaryButtonStyle}
+                >
                   <div className="text-3xl mb-3">🎯</div>
-                  <h3 className="text-xl font-display mb-1">Jugar Quiz</h3>
-                  <p className="text-sm text-white/80">
+                  <h3 className="text-xl font-display mb-1" style={{ fontFamily: `var(--font-display)` }}>Jugar Quiz</h3>
+                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
                     Demuestra qué tan bien conocés a la cumpleañera
                   </p>
                   <div className="mt-4 flex items-center gap-1 text-sm">
@@ -101,8 +127,8 @@ function EventLandingContent() {
             <Link to={`/e/${slug}/ranking`}>
               <div className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full">
                 <div className="text-3xl mb-3">🏆</div>
-                <h3 className="text-xl font-display mb-1">Ranking</h3>
-                <p className="text-sm text-white/80">
+                <h3 className="text-xl font-display mb-1" style={{ fontFamily: `var(--font-display)` }}>Ranking</h3>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
                   Ver quién conoce más a la cumpleañera
                 </p>
                 <div className="mt-4 flex items-center gap-1 text-sm">
@@ -121,8 +147,8 @@ function EventLandingContent() {
               <Link to={`/e/${slug}/corkboard`}>
                 <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full">
                   <div className="text-3xl mb-3">📌</div>
-                  <h3 className="text-xl font-display mb-1">Cartelera</h3>
-                  <p className="text-sm text-white/80">
+                  <h3 className="text-xl font-display mb-1" style={{ fontFamily: `var(--font-display)` }}>Cartelera</h3>
+                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
                     Dejá tu postal y mensaje para la cumpleañera
                   </p>
                   <div className="mt-4 flex items-center gap-1 text-sm">
@@ -141,7 +167,7 @@ function EventLandingContent() {
           transition={{ duration: 0.6, delay: 0.5 }}
           className="text-center"
         >
-          <p className="text-sm text-gray-400">
+          <p className="text-sm" style={{ color: theme.textColor, opacity: 0.4 }}>
             Powered by EventHub ✨
           </p>
         </motion.div>

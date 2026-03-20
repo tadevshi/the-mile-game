@@ -16,6 +16,8 @@ import type { ReactNode } from 'react';
 import { EventWizardPage } from '@/features/event-wizard';
 import { EventAdminPage } from '@/features/event-admin';
 import { EventLandingPage } from '@/features/event-public';
+import { QuestionEditorPage } from '@/features/admin/pages/QuestionEditorPage';
+import { ThemeEditorPage } from '@/features/admin/pages/ThemeEditorPage';
 
 // === VARIANTES DE TRANSICIÓN ESPECÍFICAS ===
 
@@ -328,6 +330,34 @@ function AnimatedRoutes() {
             <ProtectedRoute>
               <AnimatedPage variants={fadeVariants}>
                 <EventAdminPage />
+              </AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ─────────────────────────────────────────
+           ADMIN ROUTES: /admin/:slug/questions (question editor)
+           ───────────────────────────────────────── */}
+        <Route
+          path="/admin/:slug/questions"
+          element={
+            <ProtectedRoute>
+              <AnimatedPage variants={slideRightVariants}>
+                <QuestionEditorPage />
+              </AnimatedPage>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ─────────────────────────────────────────
+           ADMIN ROUTES: /admin/:slug/theme (theme editor)
+           ───────────────────────────────────────── */}
+        <Route
+          path="/admin/:slug/theme"
+          element={
+            <ProtectedRoute>
+              <AnimatedPage variants={slideRightVariants}>
+                <ThemeEditorPage />
               </AnimatedPage>
             </ProtectedRoute>
           }

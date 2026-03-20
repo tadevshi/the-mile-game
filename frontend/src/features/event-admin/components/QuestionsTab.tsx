@@ -31,7 +31,7 @@ export function QuestionsTab({ slug }: QuestionsTabProps) {
               : `${questions.length} pregunta${questions.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Link to={`/admin/questions/${slug}`}>
+        <Link to={`/admin/${slug}/questions`}>
           <Button
             variant="outline"
             size="sm"
@@ -103,7 +103,7 @@ export function QuestionsTab({ slug }: QuestionsTabProps) {
         </div>
       )}
 
-      <Link to={`/admin/questions/${slug}`} className="block">
+      <Link to={`/admin/${slug}/questions`} className="block">
         <Button variant="primary" fullWidth className="bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-200">
           Gestionar Preguntas
         </Button>

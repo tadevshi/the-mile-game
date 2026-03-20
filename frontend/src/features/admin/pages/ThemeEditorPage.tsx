@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { PageLayout } from '@/shared/components/PageLayout';
 import { Button } from '@/shared/components/Button';
 import { useThemeEditor } from '../hooks/useThemeEditor';
@@ -94,13 +95,21 @@ export function ThemeEditorPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-display text-[var(--color-primary)]">
-              Customize Theme
-            </h1>
-            <p className="text-slate-500 mt-1">
-              Personalize the look and feel of your event
-            </p>
+          <div className="flex items-center gap-4">
+            <Link
+              to={`/admin/${eventSlug}`}
+              className="p-2 rounded-lg hover:bg-pink-100 transition-colors"
+            >
+              <ArrowLeft size={20} className="text-gray-600" />
+            </Link>
+            <div>
+              <h1 className="text-3xl font-display text-[var(--color-primary)]">
+                Customize Theme
+              </h1>
+              <p className="text-slate-500 mt-1">
+                Personalize the look and feel of your event
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {saveSuccess && (
