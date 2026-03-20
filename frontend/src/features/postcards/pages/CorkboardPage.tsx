@@ -8,9 +8,12 @@ import { PostcardModal } from '../components/PostcardModal';
 import { AddPostcardSheet } from '../components/AddPostcardSheet';
 import { StampLayer } from '../components/StampLayer';
 import { GiftBox } from '../components/GiftBox';
-import { Button } from '@/shared';
+import { Button, LottieAnimation } from '@/shared';
 import { useCorkboardCapture } from '../hooks/useCorkboardCapture';
 import type { Postcard } from '../types/postcards.types';
+
+// Lottie animation for empty state
+import emptyAnimation from '@/../public/animations/empty.json';
 
 // Importar textura de corcho como asset estático
 import corkTexture from '@/assets/cartelera.png';
@@ -162,7 +165,15 @@ export function CorkboardPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
           >
-            <p className="text-5xl mb-4">📌</p>
+            <div className="w-40 h-40 mx-auto mb-4">
+              <LottieAnimation
+                animationData={emptyAnimation}
+                height={160}
+                width={160}
+                loop={true}
+                autoplay={true}
+              />
+            </div>
             <p className="text-white/90 font-serif text-lg drop-shadow-sm">
               La cartelera está vacía...
             </p>

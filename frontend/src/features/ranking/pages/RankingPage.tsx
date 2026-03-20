@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { motion } from 'framer-motion';
-import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton, useFeatureEnabled } from '@/shared';
+import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton, useFeatureEnabled, CelebrationAnimation } from '@/shared';
 import { useRanking } from '../hooks/useRanking';
 
 const medalBgColors: Record<string, string> = {
@@ -45,6 +46,27 @@ export function RankingPage() {
     podiumOrder,
     restOfPlayers,
   } = useRanking();
+
+  // Celebration for top 3 players
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationRank, setCelebrationRank] = useState<1 | 2 | 3>(1);
+  const [celebrationName, setCelebrationName] = useState('');
+
+  // Check if current player is in top 3 and show celebration
+  useEffect(() => {
+    if (currentPlayerId && top3.length > 0 && !showCelebration) {
+      const currentPlayer = top3.find(p => p.id === currentPlayerId);
+      if (currentPlayer && currentPlayer.position <= 3) {
+        // Delay celebration to let the page load
+        const timer = setTimeout(() => {
+          setCelebrationRank(currentPlayer.position as 1 | 2 | 3);
+          setCelebrationName(currentPlayer.name);
+          setShowCelebration(true);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentPlayerId, top3, showCelebration]);
 
   // Si está cargando, mostrar skeleton
   if (isLoading) {
@@ -118,6 +140,13 @@ export function RankingPage() {
   return (
     <PageLayout background="watercolor" showSparkles={false}>
       <div className="flex-1 flex flex-col px-6 py-8">
+        {/* Celebration Animation for Top 3 */}
+        <CelebrationAnimation
+          rank={celebrationRank}
+          playerName={celebrationName}
+          isVisible={showCelebration}
+          onComplete={() => setShowCelebration(false)}
+        />
         <div className="max-w-md mx-auto w-full flex flex-col flex-1 space-y-6">
           {/* Header con indicador de conexión */}
           <div className="text-center relative">

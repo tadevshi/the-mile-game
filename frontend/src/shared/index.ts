@@ -21,6 +21,8 @@ export { EmptyState } from './components/EmptyState';
 export { LoadingSkeleton, LoadingSkeletonText, LoadingSkeletonAvatar, LoadingSkeletonCard, DashboardSkeletonPage } from './components/LoadingSkeleton';
 export { WizardStepper } from './components/WizardStepper';
 export { FeatureCard } from './components/FeatureCard';
+export { LottieAnimation } from './components/LottieAnimation';
+export { CelebrationAnimation } from './components/CelebrationAnimation';
 
 // Stores
 export { useThemeStore } from './store/themeStore';
