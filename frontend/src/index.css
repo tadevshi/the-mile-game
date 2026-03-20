@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
-/* Google Fonts — DEBE ir antes de cualquier regla que no sea @import */
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+/* Google Fonts — DEBE ir antes de cualquier regla que no sea @import 
+   Stitch Design: Noto Serif for headlines, Plus Jakarta Sans for body */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
 /* Dynamic Theme Variables - injected by ThemeProvider */
 :root {
@@ -14,6 +15,30 @@
   --font-display: 'Great Vibes', cursive;
   --font-heading: 'Playfair Display', serif;
   --font-body: 'Montserrat', sans-serif;
+
+  /* Stitch Design System - Landing Page (matches /e/* event pages via ThemeProvider) */
+  /* Primary */
+  --primary: #b70049;
+  --primary-container: #ff7290;
+  
+  /* Background & Surface */
+  --background: #fff4f7;
+  --on-background: #48223a;
+  --surface-container: #ffe0ef;
+  --surface-container-low: #ffecf3;
+  --surface-container-high: #ffd8eb;
+  --surface-container-highest: #ffd0e8;
+  
+  /* Text Colors */
+  --on-surface-variant: #7a4e68;
+  
+  /* Secondary & Tertiary */
+  --secondary: #9f345d;
+  --tertiary: #68575e;
+  
+  /* Stitch Typography */
+  --font-serif: 'Noto Serif', serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
 }
 
 /* Tailwind v4: dark mode activado por clase .dark en <html>, NO por media query.
@@ -35,10 +60,31 @@
   --color-bg: var(--color-bg);
   --color-text: var(--color-text);
 
+  /* Stitch Design System Colors */
+  --color-stitch-primary: var(--primary);
+  --color-stitch-primary-container: var(--primary-container);
+  --color-stitch-background: var(--background);
+  --color-stitch-on-background: var(--on-background);
+  --color-stitch-surface-container: var(--surface-container);
+  --color-stitch-surface-low: var(--surface-container-low);
+  --color-stitch-surface-high: var(--surface-container-high);
+  --color-stitch-surface-highest: var(--surface-container-highest);
+  --color-stitch-on-surface-variant: var(--on-surface-variant);
+  --color-stitch-secondary: var(--secondary);
+  --color-stitch-tertiary: var(--tertiary);
+
   /* Dynamic fonts (overridden by ThemeProvider) */
   --font-display: var(--font-display);
   --font-serif: var(--font-heading);
   --font-sans: var(--font-body);
+  
+  /* Stitch Typography */
+  --font-serif: 'Noto Serif', serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+
+  /* Font Families for Tailwind */
+  --font-family-serif: 'Noto Serif', Georgia, serif;
+  --font-family-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
 /* Theme Background Styles */
@@ -67,7 +113,7 @@
 
 /* Base styles */
 body {
-  font-family: var(--font-body);
+  font-family: var(--font-body), 'Plus Jakarta Sans', system-ui, sans-serif;
   color: var(--color-text);
   background-color: var(--color-bg);
   -webkit-font-smoothing: antialiased;
@@ -147,4 +193,128 @@ body {
   -webkit-background-clip: text;
   color: transparent;
   background-image: linear-gradient(to right, var(--color-primary), var(--color-accent));
+}
+
+/* Material Symbols Outlined - Icon Font */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Stitch Design System - Base Styles */
+.stitch-headline {
+  font-family: var(--font-serif), 'Noto Serif', Georgia, serif;
+}
+
+.stitch-body {
+  font-family: var(--font-sans), 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* Stitch Glass Header */
+.stitch-glass-header {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 1.5rem;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Stitch Bottom Navigation */
+.stitch-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.5rem 1rem;
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* Stitch Bento Card */
+.stitch-bento-card {
+  border-radius: 2rem;
+  background: var(--surface-container);
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stitch-bento-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Stitch Primary Button */
+.stitch-btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 20px rgba(183, 0, 73, 0.25);
+  transition: all 0.2s ease;
+}
+
+.stitch-btn-primary:hover {
+  box-shadow: 0 6px 25px rgba(183, 0, 73, 0.35);
+  transform: translateY(-2px);
+}
+
+.stitch-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Stitch Outlined Button */
+.stitch-btn-outline {
+  background: var(--surface-container-low);
+  color: var(--primary);
+  padding: 1rem 2rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid rgba(183, 0, 73, 0.1);
+  transition: all 0.2s ease;
+}
+
+.stitch-btn-outline:hover {
+  background: var(--surface-container);
+  border-color: rgba(183, 0, 73, 0.2);
+}
+
+/* Stitch Floating Action Button */
+.stitch-fab {
+  position: fixed;
+  bottom: 8rem;
+  right: 1.5rem;
+  z-index: 40;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(183, 0, 73, 0.3);
+  transition: all 0.2s ease;
+}
+
+.stitch-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 25px rgba(183, 0, 73, 0.4);
 }

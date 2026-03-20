@@ -12,9 +12,15 @@ export { ErrorBoundary } from './components/ErrorBoundary';
 export { ThemeToggle } from './components/ThemeToggle';
 export { EventLayout } from './components/EventLayout';
 export { EventLoader } from './components/EventLoader';
+export { LegacyRedirect } from './components/LegacyRedirect';
+export { EventLandingSkeleton, EventQuizSkeleton, RankingSkeletonPage } from './components/EventSkeletons';
 export { LoadingSpinner } from './components/LoadingSpinner';
 export { ProtectedRoute } from './components/ProtectedRoute';
 export { Switch } from './components/Switch';
+export { EmptyState } from './components/EmptyState';
+export { LoadingSkeleton, LoadingSkeletonText, LoadingSkeletonAvatar, LoadingSkeletonCard, DashboardSkeletonPage } from './components/LoadingSkeleton';
+export { WizardStepper } from './components/WizardStepper';
+export { FeatureCard } from './components/FeatureCard';
 
 // Stores
 export { useThemeStore } from './store/themeStore';

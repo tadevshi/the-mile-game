@@ -147,7 +147,7 @@ func TestUpdateTheme_Success(t *testing.T) {
 
 	// Middleware to set event and user in context (simulating EventMiddleware + OwnerMiddleware)
 	r.Use(func(c *gin.Context) {
-		c.Set("event", *testEvent)
+		c.Set("event", testEvent) // Use pointer like real middleware does
 		c.Set("user_id", testEvent.ID)
 		c.Next()
 	})
@@ -198,7 +198,7 @@ func TestUpdateTheme_InvalidBody(t *testing.T) {
 
 	// Middleware to set event and user in context
 	r.Use(func(c *gin.Context) {
-		c.Set("event", *testEvent)
+		c.Set("event", testEvent)
 		c.Set("user_id", testEvent.ID)
 		c.Next()
 	})
@@ -227,7 +227,7 @@ func TestUpdateTheme_ServiceError(t *testing.T) {
 
 	// Middleware to set event and user in context
 	r.Use(func(c *gin.Context) {
-		c.Set("event", *testEvent)
+		c.Set("event", testEvent)
 		c.Set("user_id", testEvent.ID)
 		c.Next()
 	})
@@ -265,7 +265,7 @@ func TestApplyPreset_Success(t *testing.T) {
 
 	// Middleware to set event and user in context
 	r.Use(func(c *gin.Context) {
-		c.Set("event", *testEvent)
+		c.Set("event", testEvent)
 		c.Set("user_id", testEvent.ID)
 		c.Next()
 	})
@@ -312,7 +312,7 @@ func TestApplyPreset_MissingPreset(t *testing.T) {
 
 	// Middleware to set event and user in context
 	r.Use(func(c *gin.Context) {
-		c.Set("event", *testEvent)
+		c.Set("event", testEvent)
 		c.Set("user_id", testEvent.ID)
 		c.Next()
 	})
@@ -343,7 +343,7 @@ func TestApplyPreset_ServiceError(t *testing.T) {
 
 	// Middleware to set event and user in context
 	r.Use(func(c *gin.Context) {
-		c.Set("event", *testEvent)
+		c.Set("event", testEvent)
 		c.Set("user_id", testEvent.ID)
 		c.Next()
 	})

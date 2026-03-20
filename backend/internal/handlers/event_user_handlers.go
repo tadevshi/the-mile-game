@@ -71,6 +71,16 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 	}
 
 	// Create event
+	var startsAt, endsAt *time.Time
+	if req.StartsAt != nil {
+		t := req.StartsAt.Time
+		startsAt = &t
+	}
+	if req.EndsAt != nil {
+		t := req.EndsAt.Time
+		endsAt = &t
+	}
+
 	event, err := h.eventRepo.Create(
 		userID.(uuid.UUID),
 		req.Slug,
@@ -78,8 +88,8 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 		req.Description,
 		req.Features,
 		req.Settings,
-		req.StartsAt,
-		req.EndsAt,
+		startsAt,
+		endsAt,
 	)
 	if err != nil {
 		if err == repository.ErrDuplicateSlug {

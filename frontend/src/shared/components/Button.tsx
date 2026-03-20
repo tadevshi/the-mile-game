@@ -24,9 +24,9 @@ const variantStyles: Record<ButtonVariant, string> = {
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: 'py-2 px-4 text-sm',
-  md: 'py-3 px-6 text-base',
-  lg: 'py-5 px-8 text-xl',
+  sm: 'py-2.5 px-4 text-sm min-h-[40px]',
+  md: 'py-3 px-5 text-base min-h-[48px]',
+  lg: 'py-4 px-6 text-lg min-h-[52px]',
 };
 
 export function Button({
@@ -46,12 +46,13 @@ export function Button({
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       className={`
-        relative overflow-hidden rounded-full font-bold
+        relative overflow-hidden rounded-xl font-bold
         transition-all duration-300
         flex items-center justify-center gap-2
+        touch-manipulation select-none
         ${variantStyles[variant]}
         ${sizeStyles[size]}
-        ${fullWidth ? 'w-full' : ''}
+        ${fullWidth ? 'w-full' : 'inline-flex'}
         ${disabled || isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         ${className}
       `}
