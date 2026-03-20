@@ -1,0 +1,88 @@
+import { motion } from 'framer-motion';
+import { useWizardStore } from '../store/wizardStore';
+import { Switch } from '@/shared/components/Switch';
+import type { EventFeatures } from '@/shared/lib/api';
+
+const featureItems: {
+  key: keyof EventFeatures;
+  label: string;
+  description: string;
+  emoji: string;
+  bg: string;
+}[] = [
+  {
+    key: 'quiz',
+    label: 'Quiz (Trivia)',
+    description: 'Juego de preguntas sobre la cumpleañera',
+    emoji: '🧠',
+    bg: 'bg-pink-50/50',
+  },
+  {
+    key: 'corkboard',
+    label: 'Cartelera de Corcho',
+    description: 'Postales y mensajes de invitados',
+    emoji: '📌',
+    bg: 'bg-amber-50/50',
+  },
+  {
+    key: 'secretBox',
+    label: 'Caja Secreta',
+    description: 'Sorpresas de familiares y amigos',
+    emoji: '🎁',
+    bg: 'bg-purple-50/50',
+  },
+];
+
+export function Step2_Features() {
+  const { formData, updateFeatures } = useWizardStore();
+
+  const handleToggle = (key: keyof EventFeatures) => (checked: boolean) => {
+    updateFeatures({ ...formData.features, [key]: checked });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="space-y-6"
+    >
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-display text-gray-800 mb-1">
+          Características
+        </h2>
+        <p className="text-gray-500 text-sm">
+          Activá las features que quieras incluir en tu evento
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {featureItems.map((item) => (
+          <div key={item.key} className={`p-4 rounded-xl ${item.bg}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{item.emoji}</span>
+                <div>
+                  <p className="font-medium text-gray-800">{item.label}</p>
+                  <p className="text-sm text-gray-500">{item.description}</p>
+                </div>
+              </div>
+              <Switch
+                checked={formData.features[item.key]}
+                onChange={handleToggle(item.key)}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+        <p className="font-medium mb-1">💡 Tip</p>
+        <p>
+          Podés cambiar estas configuraciones más tarde desde el panel de
+          administración del evento.
+        </p>
+      </div>
+    </motion.div>
+  );
+}

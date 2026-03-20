@@ -21,7 +21,7 @@ export function DashboardPage() {
   };
 
   const handleCreateEvent = () => {
-    navigate('/events/new');
+    navigate('/wizard/new');
   };
 
   const handleRefresh = () => {
