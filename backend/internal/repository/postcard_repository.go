@@ -117,17 +117,17 @@ func (r *PostcardRepository) Create(playerID uuid.UUID, imagePath, message strin
 	return r.GetByID(id)
 }
 
-// CreateSecret crea una postal secreta (sin player_id)
-func (r *PostcardRepository) CreateSecret(senderName, imagePath, message string, rotation float64) (*models.Postcard, error) {
+// CreateSecret crea una postal secreta (sin player_id, soporta imágenes y videos)
+func (r *PostcardRepository) CreateSecret(senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
 	id := uuid.New()
 	createdAt := time.Now()
 
 	query := `
-		INSERT INTO postcards (id, player_id, image_path, message, rotation, sender_name, is_secret, created_at)
-		VALUES ($1, NULL, $2, $3, $4, $5, TRUE, $6)
+		INSERT INTO postcards (id, player_id, image_path, message, rotation, sender_name, is_secret, created_at, media_type, thumbnail_path, media_duration_ms)
+		VALUES ($1, NULL, $2, $3, $4, $5, TRUE, $6, $7, $8, $9)
 	`
 
-	_, err := r.db.Exec(query, id, imagePath, message, rotation, senderName, createdAt)
+	_, err := r.db.Exec(query, id, imagePath, message, rotation, senderName, createdAt, mediaType, thumbnailPath, mediaDurationMs)
 	if err != nil {
 		return nil, err
 	}
@@ -247,17 +247,17 @@ func (r *PostcardRepository) GetSecretBoxStatus() (*models.SecretBoxStatus, erro
 	return &status, nil
 }
 
-// CreateWithEvent crea una nueva postal scopada a un evento
-func (r *PostcardRepository) CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error) {
+// CreateWithEvent crea una nueva postal scopada a un evento (soporta imágenes y videos)
+func (r *PostcardRepository) CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
 	id := uuid.New()
 	createdAt := time.Now()
 
 	query := `
-		INSERT INTO postcards (id, event_id, player_id, image_path, message, rotation, sender_name, is_secret, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE, $8)
+		INSERT INTO postcards (id, event_id, player_id, image_path, message, rotation, sender_name, is_secret, created_at, media_type, thumbnail_path, media_duration_ms)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE, $8, $9, $10, $11)
 	`
 
-	_, err := r.db.Exec(query, id, eventID, playerID, imagePath, message, rotation, senderName, createdAt)
+	_, err := r.db.Exec(query, id, eventID, playerID, imagePath, message, rotation, senderName, createdAt, mediaType, thumbnailPath, mediaDurationMs)
 	if err != nil {
 		return nil, err
 	}
