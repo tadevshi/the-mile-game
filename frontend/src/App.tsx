@@ -11,6 +11,7 @@ import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
 import { ErrorBoundary, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { LegacyRedirect } from '@/shared/components/LegacyRedirect';
+import { InstallPromptBanner } from '@/shared/components/InstallPromptBanner';
 import type { ReactNode } from 'react';
 
 import { EventWizardPage } from '@/features/event-wizard';
@@ -449,6 +450,7 @@ function App() {
       <BrowserRouter>
         <ThemeToggle />
         <AnimatedRoutes />
+        <InstallPromptBanner />
       </BrowserRouter>
     </ErrorBoundary>
   );
