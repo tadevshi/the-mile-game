@@ -7,12 +7,23 @@ export const postcardService = {
     return api.listPostcards();
   },
 
-  async create(image: File, message: string, senderName?: string): Promise<Postcard> {
-    return api.createPostcard(image, message, senderName);
+  async create(file: File, message: string, senderName?: string): Promise<Postcard> {
+    // Si es video, no redimensionar (videos no se pueden redimensionar igual que imágenes)
+    if (file.type.startsWith('video/')) {
+      return api.createPostcard(file, message, senderName);
+    }
+    // Para imágenes, redimensionar antes de subir
+    const resized = await this.resizeImage(file);
+    return api.createPostcard(resized, message, senderName);
   },
 
-  async createSecret(image: File, message: string, senderName: string, token: string): Promise<Postcard> {
-    return api.createSecretPostcard(image, message, senderName, token);
+  async createSecret(file: File, message: string, senderName: string, token: string): Promise<Postcard> {
+    // Videos no se redimensionan
+    if (file.type.startsWith('video/')) {
+      return api.createSecretPostcard(file, message, senderName, token);
+    }
+    const resized = await this.resizeImage(file);
+    return api.createSecretPostcard(resized, message, senderName, token);
   },
 
   /**
