@@ -9,7 +9,6 @@ import { motion, AnimatePresence } from 'framer-motion';
  * No autoplay per spec requirement.
  */
 export function DemoVideoSection() {
-  const [isPlaying, setIsPlaying] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -23,7 +22,6 @@ export function DemoVideoSection() {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setIsPlaying(false);
   };
 
   return (

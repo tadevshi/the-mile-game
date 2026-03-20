@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface PricingFeature {
   text: string;
@@ -15,8 +15,6 @@ interface PricingTier {
   ctaVariant: 'primary' | 'outline';
   popular?: boolean;
 }
-
-const PREMIUM_PRICE_USD = '$4.99';
 
 const tiers: PricingTier[] = [
   {
