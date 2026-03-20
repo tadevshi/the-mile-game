@@ -47,6 +47,7 @@ export interface Event {
   description?: string;
   date?: string;
   owner_id?: string;
+  theme_id?: string;
   features: EventFeatures;
   is_active: boolean;
 }

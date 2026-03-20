@@ -141,8 +141,8 @@ export function RegisterPage() {
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-serif text-pink-600 mb-2">The Mile Game</h1>
-            <p className="text-gray-500">Crear Cuenta</p>
+            <h1 className="text-3xl font-display text-pink-600 mb-2">EventHub</h1>
+            <p className="text-gray-500 dark:text-gray-400">Crear Cuenta</p>
           </div>
 
           {/* Error Alert */}

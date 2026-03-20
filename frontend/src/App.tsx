@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { WelcomePage, RegisterPage, QuizPage, ThankYouPage } from '@features/quiz';
+import { RegisterPage, QuizPage, ThankYouPage } from '@features/quiz';
 import { RankingPage } from '@features/ranking';
 import { CorkboardPage, SecretBoxPage } from '@features/postcards';
 import { AdminPage } from '@features/admin';
@@ -9,6 +9,7 @@ import { QuestionEditorPage } from '@/features/admin/pages/QuestionEditorPage';
 import { EventSettingsPage } from '@/features/admin/pages/EventSettingsPage';
 import { LoginPage, RegisterPage as AuthRegisterPage } from '@/features/auth';
 import { DashboardPage, CreateEventPage } from '@/features/dashboard';
+import { LandingPage } from '@/features/landing';
 import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
 import { ErrorBoundary, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
@@ -165,12 +166,12 @@ function LegacyRoutes() {
         } 
       />
       
-      {/* WELCOME: Entrada elegante desde abajo */}
+      {/* LANDING PAGE: Nueva página principal de EventHub */}
       <Route 
         path="/" 
         element={
           <AnimatedPage variants={slideUpVariants}>
-            <WelcomePage />
+            <LandingPage />
           </AnimatedPage>
         } 
       />
