@@ -1,7 +1,7 @@
 # AGENTS.md - EventHub
 
 > Documento de contexto para agentes de IA y colaboradores humanos.
-> Última actualización: 2026-03-20
+> Última actualización: 2026-03-20 (Phase 3 Growth & Polish mergeado)
 
 ---
 

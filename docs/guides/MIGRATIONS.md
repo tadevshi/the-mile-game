@@ -79,7 +79,8 @@ CREATE INDEX idx_name ON table_name(field);
 | 003 | `003_secret_box.sql` | Secret box postcards | ✅ Applied |
 | 004 | `004_multi_event.sql` | Multi-event foundation | ✅ Applied |
 | 005 | `005_seed_quiz_questions.sql` | Quiz questions seed | ✅ Applied |
-| 006 | `006_themes.sql` | Theme customization | ✅ Applied |
+| 006 | `006_themes.sql` + `006_video_postcards.sql` | Theme customization + Video postcards | ✅ Applied |
+| 007 | `007_analytics.sql` | Analytics tracking tables | ✅ Applied |
 
 ## 🔄 Rollback Strategy
 

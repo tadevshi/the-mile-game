@@ -262,5 +262,5 @@ The `backgroundStyle` field applies classes to `<body>`:
 
 ## Related Docs
 
-- [Database Migrations](MIGRATIONS.md) - Theme table migration (006)
-- [Frontend Theme System](../setup/THEME_SETUP.md) - Using themes in React
+- [Database Migrations](../guides/MIGRATIONS.md) - Theme table migration (006_themes.sql)
+- [Theme System Guide](../guides/THEME_SYSTEM.md) - Using themes in React

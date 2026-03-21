@@ -177,8 +177,8 @@ Authorization: Bearer <accessToken>
 - **Storage**: localStorage (persisted if "remember me" is enabled)
 - **Rotation**: New refresh token issued on each refresh
 
-> **Note**: Token refresh is not yet implemented. On `401 Unauthorized` responses, the
-> client redirects to `/login` instead of automatically refreshing the token.
+> **Note**: Token refresh is automatically handled by the API client. On `401 Unauthorized` responses,
+> the client automatically refreshes the token and retries the request.
 
 ---
 
