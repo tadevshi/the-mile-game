@@ -722,13 +722,14 @@ Ver [SKILL.md](skills/playwright-cli-e2e/SKILL.md) para documentación completa.
 
 ## Notas para Colaboradores
 
-1. **Mobile First**: Diseñar siempre pensando en móvil primero
-2. **Accesibilidad**: Usar semántica correcta, ARIA cuando sea necesario
-3. **Performance**: Lazy loading para features, code splitting por ruta
-4. **No over-engineer**: Mantener la simplicidad, agregar complejidad solo cuando sea necesario
-5. **Commits**: Conventional commits (`feat:`, `fix:`, `docs:`, etc.)
-6. **Event-scoped**: Todas las rutas públicas van bajo `/e/:slug/` para soporte multi-evento
-7. **Configurable**: El quiz es genérico — el admin define preguntas y temas por evento
+1. **🚨 NUNCA pushear a main directamente**: Siempre crear branch, trabajar en ella, y crear PR para mergear. Solo el PR entra a main.
+2. **Mobile First**: Diseñar siempre pensando en móvil primero
+3. **Accesibilidad**: Usar semántica correcta, ARIA cuando sea necesario
+4. **Performance**: Lazy loading para features, code splitting por ruta
+5. **No over-engineer**: Mantener la simplicidad, agregar complejidad solo cuando sea necesario
+6. **Commits**: Conventional commits (`feat:`, `fix:`, `docs:`, etc.)
+7. **Event-scoped**: Todas las rutas públicas van bajo `/e/:slug/` para soporte multi-evento
+8. **Configurable**: El quiz es genérico — el admin define preguntas y temas por evento
 
 ---
 
