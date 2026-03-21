@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sin conexión - EventHub</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #fff4f7 0%, #ffe0ef 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+      .container {
+        text-align: center;
+        max-width: 400px;
+      }
+      .icon {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+      }
+      h1 {
+        color: #b70049;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+      p {
+        color: #7a4e68;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+      }
+      .btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #b70049 0%, #ff7290 100%);
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 9999px;
+        text-decoration: none;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(183, 0, 73, 0.3);
+        transition: transform 0.2s;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">📡</div>
+      <h1>Sin conexión</h1>
+      <p>
+        No hay conexión a internet. Verificá tu red y volvé a intentar.
+      </p>
+      <a href="/" class="btn" onclick="window.location.reload(); return false;">
+        Reintentar
+      </a>
+    </div>
+  </body>
+</html>

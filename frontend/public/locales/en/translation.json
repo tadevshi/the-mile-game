@@ -1,0 +1,168 @@
+{
+  "common": {
+    "appName": "EventHub",
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "noResults": "No results",
+    "required": "Required",
+    "optional": "Optional"
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Create account",
+    "logout": "Log out",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "loginError": "Login failed",
+    "registerSuccess": "Account created successfully"
+  },
+  "landing": {
+    "hero": {
+      "title": "Create memorable experiences",
+      "subtitle": "The best platform for interactive events with quizzes, rankings and photo boards",
+      "cta": "Create my event",
+      "enterCode": "Enter event code"
+    },
+    "features": {
+      "title": "Everything you need",
+      "quiz": {
+        "title": "Custom Quiz",
+        "description": "Create questions about the birthday person and discover who knows them best"
+      },
+      "corkboard": {
+        "title": "Photo Board",
+        "description": "Your guests upload photos and messages in real-time"
+      },
+      "secretBox": {
+        "title": "Secret Box",
+        "description": "Receive surprises from those who can't be there"
+      },
+      "ranking": {
+        "title": "Live Ranking",
+        "description": "Friendly competition with 3D podium"
+      }
+    },
+    "pricing": {
+      "title": "Plans and pricing",
+      "free": {
+        "name": "Free",
+        "description": "Perfect for trying EventHub"
+      },
+      "premium": {
+        "name": "Premium",
+        "price": "$4.99 USD",
+        "description": "For memorable events"
+      }
+    },
+    "footer": {
+      "about": "About",
+      "contact": "Contact",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "madeWith": "Made with ❤️ for celebrations"
+    }
+  },
+  "quiz": {
+    "title": "Quiz",
+    "register": {
+      "title": "Player registration",
+      "name": "What's your name?",
+      "namePlaceholder": "Your name",
+      "avatar": "Choose your avatar",
+      "cta": "Ready to play!"
+    },
+    "play": {
+      "title": "Let's play!",
+      "subtitle": "Who knows {{name}} best?",
+      "submit": "Submit answers",
+      "question": "Question {{current}} of {{total}}"
+    },
+    "results": {
+      "title": "Thanks for playing!",
+      "score": "Your score",
+      "topThree": "🏆 You're on the podium!"
+    },
+    "questions": {
+      "text": "Free text answer",
+      "multipleChoice": "Multiple choice",
+      "thisOrThat": "This or that"
+    }
+  },
+  "ranking": {
+    "title": "Ranking",
+    "you": "YOU!",
+    "points": "pts",
+    "empty": "No participants yet"
+  },
+  "postcards": {
+    "title": "Cork Board",
+    "add": "New postcard",
+    "addPhoto": "Take photo / Choose image",
+    "addVideo": "Record video",
+    "videoMode": "Video",
+    "photoMode": "Photo",
+    "activateCamera": "Turn on camera",
+    "startRecording": "Start recording",
+    "stopRecording": "Stop",
+    "maxDuration": "Maximum 30 seconds",
+    "message": "Your message",
+    "messagePlaceholder": "Write your message...",
+    "senderName": "Your name",
+    "senderNamePlaceholder": "What's your name?",
+    "download": "Download",
+    "empty": "No postcards yet",
+    "emptySubtitle": "Be the first to leave your mark!",
+    "guestNotice": "You'll be registered automatically"
+  },
+  "secretBox": {
+    "title": "Secret Box",
+    "subtitle": "Leave a surprise for the birthday person",
+    "uploadSuccess": "Surprise sent! Will be revealed at the perfect moment",
+    "uploadError": "Error sending surprise"
+  },
+  "event": {
+    "create": "Create event",
+    "edit": "Edit event",
+    "delete": "Delete event",
+    "name": "Event name",
+    "date": "Date",
+    "slug": "Event URL",
+    "features": "Features",
+    "theme": "Visual theme",
+    "share": "Share event",
+    "copyLink": "Copy link"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "tabs": {
+      "config": "Configuration",
+      "questions": "Questions",
+      "theme": "Theme",
+      "stats": "Statistics"
+    },
+    "participants": "Participants",
+    "quizCompletion": "Completed quiz",
+    "avgScore": "Average score"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "No internet connection",
+    "notFound": "Not found",
+    "unauthorized": "Unauthorized",
+    "serverError": "Server error"
+  }
+}

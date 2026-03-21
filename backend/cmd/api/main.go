@@ -99,6 +99,7 @@ func main() {
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
 	adminEventHandler := handlers.NewAdminEventHandler(eventRepo)
 	eventHandler := handlers.NewEventHandler(eventRepo)
+	analyticsHandler := handlers.NewAnalyticsHandler(db, eventRepo)
 
 	// Configurar router
 	r := gin.Default()
@@ -224,6 +225,13 @@ func main() {
 		// Secret Box
 		api.POST("/postcards/secret", handler.CreateSecretPostcard)
 
+		// Analytics (event-scoped, público para page view tracking)
+		eventsAnalytics := api.Group("/events/:slug")
+		eventsAnalytics.Use(eventMiddleware)
+		{
+			eventsAnalytics.POST("/page-view", analyticsHandler.LogPageView)
+		}
+
 		// Admin routes (legacy - backward compatibility)
 		api.GET("/admin/status", handler.GetSecretBoxStatus)
 		api.GET("/admin/secret-box", handler.ListSecretPostcards)
@@ -250,6 +258,12 @@ func main() {
 
 			// Event Features Admin
 			adminEvents.PUT("/features", adminEventHandler.UpdateEventFeatures)
+
+			// Analytics
+			adminEvents.GET("/analytics", analyticsHandler.GetAnalyticsSummary)
+			adminEvents.GET("/analytics/timeline", analyticsHandler.GetAnalyticsTimeline)
+			adminEvents.GET("/analytics/funnel", analyticsHandler.GetAnalyticsFunnel)
+			adminEvents.GET("/analytics/scores", analyticsHandler.GetScoreDistribution)
 		}
 
 		// Admin routes (question-specific - no event slug needed)

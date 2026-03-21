@@ -22,8 +22,9 @@ func NewPostcardRepository(db *sql.DB, uploadPath string) *PostcardRepository {
 // scanPostcard escanea una fila de postcard con todos los campos nullable manejados.
 // La query que alimenta este scanner DEBE seleccionar columnas en este orden:
 //
-//	p.id, p.event_id, p.player_id, p.sender_name, player_name (computed), player_avatar (computed),
-//	p.image_path, p.message, p.rotation, p.is_secret, p.revealed_at, p.created_at
+//		p.id, p.event_id, p.player_id, p.sender_name, player_name (computed), player_avatar (computed),
+//		p.image_path, p.message, p.rotation, p.is_secret, p.revealed_at, p.created_at,
+//	 p.media_type, p.thumbnail_path, p.media_duration_ms
 func scanPostcard(row interface {
 	Scan(...any) error
 }) (*models.Postcard, error) {
@@ -32,6 +33,8 @@ func scanPostcard(row interface {
 	var playerIDStr sql.NullString
 	var senderNameStr sql.NullString
 	var revealedAt sql.NullTime
+	var thumbnailPath sql.NullString
+	var mediaDurationMs sql.NullInt64
 
 	err := row.Scan(
 		&postcard.ID,
@@ -46,6 +49,9 @@ func scanPostcard(row interface {
 		&postcard.IsSecret,
 		&revealedAt,
 		&postcard.CreatedAt,
+		&postcard.MediaType,
+		&thumbnailPath,
+		&mediaDurationMs,
 	)
 	if err != nil {
 		return nil, err
@@ -69,6 +75,13 @@ func scanPostcard(row interface {
 	if revealedAt.Valid {
 		postcard.RevealedAt = &revealedAt.Time
 	}
+	if thumbnailPath.Valid {
+		postcard.ThumbnailPath = &thumbnailPath.String
+	}
+	if mediaDurationMs.Valid {
+		ms := int(mediaDurationMs.Int64)
+		postcard.MediaDurationMs = &ms
+	}
 
 	return &postcard, nil
 }
@@ -81,21 +94,22 @@ const publicPostcardCols = `
 	p.sender_name,
 	COALESCE(p.sender_name, pl.name, 'Invitado') AS player_name,
 	CASE WHEN p.is_secret = TRUE THEN '🎁' ELSE COALESCE(pl.avatar, '👤') END AS player_avatar,
-	p.image_path, p.message, p.rotation, p.is_secret, p.revealed_at, p.created_at
+	p.image_path, p.message, p.rotation, p.is_secret, p.revealed_at, p.created_at,
+	p.media_type, p.thumbnail_path, p.media_duration_ms
 FROM postcards p
 LEFT JOIN players pl ON p.player_id = pl.id`
 
 // Create crea una nueva postal regular (player_id requerido)
-func (r *PostcardRepository) Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error) {
+func (r *PostcardRepository) Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
 	id := uuid.New()
 	createdAt := time.Now()
 
 	query := `
-		INSERT INTO postcards (id, player_id, image_path, message, rotation, sender_name, is_secret, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7)
+		INSERT INTO postcards (id, player_id, image_path, message, rotation, sender_name, is_secret, created_at, media_type, thumbnail_path, media_duration_ms)
+		VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7, $8, $9, $10)
 	`
 
-	_, err := r.db.Exec(query, id, playerID, imagePath, message, rotation, senderName, createdAt)
+	_, err := r.db.Exec(query, id, playerID, imagePath, message, rotation, senderName, createdAt, mediaType, thumbnailPath, mediaDurationMs)
 	if err != nil {
 		return nil, err
 	}
@@ -103,17 +117,17 @@ func (r *PostcardRepository) Create(playerID uuid.UUID, imagePath, message strin
 	return r.GetByID(id)
 }
 
-// CreateSecret crea una postal secreta (sin player_id)
-func (r *PostcardRepository) CreateSecret(senderName, imagePath, message string, rotation float64) (*models.Postcard, error) {
+// CreateSecret crea una postal secreta (sin player_id, soporta imágenes y videos)
+func (r *PostcardRepository) CreateSecret(senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
 	id := uuid.New()
 	createdAt := time.Now()
 
 	query := `
-		INSERT INTO postcards (id, player_id, image_path, message, rotation, sender_name, is_secret, created_at)
-		VALUES ($1, NULL, $2, $3, $4, $5, TRUE, $6)
+		INSERT INTO postcards (id, player_id, image_path, message, rotation, sender_name, is_secret, created_at, media_type, thumbnail_path, media_duration_ms)
+		VALUES ($1, NULL, $2, $3, $4, $5, TRUE, $6, $7, $8, $9)
 	`
 
-	_, err := r.db.Exec(query, id, imagePath, message, rotation, senderName, createdAt)
+	_, err := r.db.Exec(query, id, imagePath, message, rotation, senderName, createdAt, mediaType, thumbnailPath, mediaDurationMs)
 	if err != nil {
 		return nil, err
 	}
@@ -233,17 +247,17 @@ func (r *PostcardRepository) GetSecretBoxStatus() (*models.SecretBoxStatus, erro
 	return &status, nil
 }
 
-// CreateWithEvent crea una nueva postal scopada a un evento
-func (r *PostcardRepository) CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error) {
+// CreateWithEvent crea una nueva postal scopada a un evento (soporta imágenes y videos)
+func (r *PostcardRepository) CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
 	id := uuid.New()
 	createdAt := time.Now()
 
 	query := `
-		INSERT INTO postcards (id, event_id, player_id, image_path, message, rotation, sender_name, is_secret, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE, $8)
+		INSERT INTO postcards (id, event_id, player_id, image_path, message, rotation, sender_name, is_secret, created_at, media_type, thumbnail_path, media_duration_ms)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE, $8, $9, $10, $11)
 	`
 
-	_, err := r.db.Exec(query, id, eventID, playerID, imagePath, message, rotation, senderName, createdAt)
+	_, err := r.db.Exec(query, id, eventID, playerID, imagePath, message, rotation, senderName, createdAt, mediaType, thumbnailPath, mediaDurationMs)
 	if err != nil {
 		return nil, err
 	}

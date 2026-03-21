@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { Calendar, PartyPopper } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/Button';
+import { LottieAnimation } from '@/shared/components/LottieAnimation';
+import loadingAnimation from '@/../public/animations/empty.json';
 
 interface EmptyStateProps {
   onCreateEvent?: () => void;
@@ -24,19 +26,20 @@ export function EmptyState({ onCreateEvent }: EmptyStateProps) {
       animate={{ opacity: 1, y: 0 }}
       className="text-center py-16 px-4"
     >
-      {/* Illustration */}
+      {/* Lottie Animation Illustration */}
       <motion.div
         initial={{ scale: 0.8 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 15 }}
         className="w-40 h-40 mx-auto mb-8 relative"
       >
-        {/* Decorative circles */}
-        <div className="absolute inset-0 bg-pink-100 dark:bg-pink-900/20 rounded-full" />
-        <div className="absolute inset-4 bg-pink-200 dark:bg-pink-900/30 rounded-full" />
-        <div className="absolute inset-8 bg-pink-300/50 dark:bg-pink-800/40 rounded-full flex items-center justify-center">
-          <Calendar className="w-16 h-16 text-pink-600 dark:text-pink-400" />
-        </div>
+        <LottieAnimation
+          animationData={loadingAnimation}
+          height={160}
+          width={160}
+          loop={true}
+          autoplay={true}
+        />
         
         {/* Floating elements */}
         <motion.div

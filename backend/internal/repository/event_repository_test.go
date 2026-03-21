@@ -427,8 +427,8 @@ func TestListPostcardsByEvent(t *testing.T) {
 	player2, _ := playerRepo.CreateWithEvent(event2.ID, "Player 2", "👤")
 
 	// Crear postcards
-	postcardRepo.CreateWithEvent(event1.ID, &player1.ID, "/uploads/1.jpg", "Message 1", 0, nil)
-	postcardRepo.CreateWithEvent(event2.ID, &player2.ID, "/uploads/2.jpg", "Message 2", 0, nil)
+	postcardRepo.CreateWithEvent(event1.ID, &player1.ID, "/uploads/1.jpg", "Message 1", 0, nil, "image", nil, nil)
+	postcardRepo.CreateWithEvent(event2.ID, &player2.ID, "/uploads/2.jpg", "Message 2", 0, nil, "image", nil, nil)
 
 	// Listar postcards de event1
 	postcards, err := postcardRepo.ListByEvent(event1.ID)

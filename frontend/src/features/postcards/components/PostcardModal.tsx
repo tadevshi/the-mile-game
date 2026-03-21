@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toPng } from 'html-to-image';
 import { PushPin } from './PushPin';
+import { VideoPlayer } from './VideoPlayer';
 import type { Postcard } from '../types/postcards.types';
 
 interface PostcardModalProps {
@@ -13,8 +14,11 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
   const postcardRef = useRef<HTMLDivElement>(null);
   const [imageError, setImageError] = useState(false);
 
+  const isVideo = postcard?.media_type === 'video';
+
   const handleDownload = async () => {
-    if (!postcardRef.current || !postcard) return;
+    // Videos can't be downloaded as PNG easily, so skip download for videos
+    if (isVideo || !postcardRef.current || !postcard) return;
 
     try {
       const dataUrl = await toPng(postcardRef.current, {
@@ -60,26 +64,37 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           >
             {/* Pin centrado — z-30 siempre encima de la postal */}
-            <div className="flex justify-center mb-[-8px] relative z-30 pointer-events-none">
-              <PushPin className="scale-125" />
-            </div>
+            {!isVideo && (
+              <div className="flex justify-center mb-[-8px] relative z-30 pointer-events-none">
+                <PushPin className="scale-125" />
+              </div>
+            )}
 
             {/* Postal expandida — esquinas rectas como postal real */}
             <div
               ref={postcardRef}
               className="bg-white shadow-2xl overflow-hidden border border-gray-200"
             >
-              {/* Mobile: vertical (foto arriba, mensaje abajo) */}
-              {/* Desktop: horizontal (foto izquierda, mensaje derecha) — mismo formato que la card */}
+              {/* Mobile: vertical (media arriba, mensaje abajo) */}
+              {/* Desktop: horizontal (media izquierda, mensaje derecha) */}
               <div className="flex flex-col md:flex-row">
-                {/* Foto — sin absolute, sin object-cover: la imagen se muestra completa */}
+                {/* Media (imagen o video) */}
                 <div className="md:w-1/2 overflow-hidden bg-pink-50 flex items-center justify-center">
-                  <img
-                    src={imageError ? '/princess_logo.png' : postcard.image_path}
-                    alt={`Postal de ${postcard.player_name}`}
-                    className={`w-full h-auto max-h-[60vh] ${imageError ? 'object-contain p-8 opacity-50' : 'object-contain'}`}
-                    onError={() => setImageError(true)}
-                  />
+                  {isVideo ? (
+                    <VideoPlayer
+                      src={postcard.image_path} // video_path para videos
+                      thumbnail={postcard.thumbnail_path}
+                      durationMs={postcard.media_duration_ms}
+                      className="w-full aspect-video md:aspect-square"
+                    />
+                  ) : (
+                    <img
+                      src={imageError ? '/princess_logo.png' : postcard.image_path}
+                      alt={`Postal de ${postcard.player_name}`}
+                      className={`w-full h-auto max-h-[60vh] ${imageError ? 'object-contain p-8 opacity-50' : 'object-contain'}`}
+                      onError={() => setImageError(true)}
+                    />
+                  )}
                 </div>
 
                 {/* Separador */}
@@ -119,14 +134,16 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
 
             {/* Botones debajo de la postal */}
             <div className="flex justify-center gap-3 mt-4">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleDownload}
-                className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium text-gray-700 shadow-lg border border-gray-200 flex items-center gap-2 cursor-pointer"
-              >
-                <span>📥</span> Descargar
-              </motion.button>
+              {!isVideo && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleDownload}
+                  className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium text-gray-700 shadow-lg border border-gray-200 flex items-center gap-2 cursor-pointer"
+                >
+                  <span>📥</span> Descargar
+                </motion.button>
+              )}
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

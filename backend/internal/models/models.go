@@ -59,6 +59,10 @@ type Postcard struct {
 	IsSecret     bool       `json:"is_secret" db:"is_secret"`
 	RevealedAt   *time.Time `json:"revealed_at,omitempty" db:"revealed_at"`
 	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	// Video postcard fields
+	MediaType       string  `json:"media_type" db:"media_type"`                   // "image" | "video"
+	ThumbnailPath   *string `json:"thumbnail_path,omitempty" db:"thumbnail_path"` // para videos
+	MediaDurationMs *int    `json:"media_duration_ms,omitempty" db:"media_duration_ms"`
 }
 
 // CreatePostcardResponse respuesta al crear una postal

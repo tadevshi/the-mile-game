@@ -7,7 +7,10 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -20,9 +23,9 @@ import (
 // PostcardRepo define las operaciones de repositorio usadas por los handlers.
 // Permite inyectar mocks en tests sin necesidad de una base de datos real.
 type PostcardRepo interface {
-	Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error)
-	CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string) (*models.Postcard, error)
-	CreateSecret(senderName, imagePath, message string, rotation float64) (*models.Postcard, error)
+	Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
+	CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
+	CreateSecret(senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
 	GetByID(id uuid.UUID) (*models.Postcard, error)
 	List() ([]models.Postcard, error)
 	ListByEvent(eventID uuid.UUID) ([]models.Postcard, error)
@@ -482,6 +485,258 @@ func truncateMessage(msg string, maxLen int) string {
 	return msg
 }
 
+// MediaResult contiene el resultado de validar y guardar media (imagen o video)
+type MediaResult struct {
+	PublicPath    string  // ruta pública para acceder al archivo
+	DiskPath      string  // ruta en disco
+	MediaType     string  // "image" o "video"
+	ThumbnailPath *string // solo para videos
+	DurationMs    *int    // solo para videos
+}
+
+// validateAndSaveMedia valida y guarda imagen o video.
+// Detecta automáticamente el tipo de archivo por magic bytes.
+// Para videos, genera thumbnail y extrae duración.
+func (h *Handler) validateAndSaveMedia(c *gin.Context) (*MediaResult, *struct {
+	Code    int
+	Message string
+}) {
+	// Intentar obtener "media" primero (nuevo), luego "image" (legacy)
+	file, header, err := c.Request.FormFile("media")
+	if err != nil {
+		// Fallback a "image" para backwards compatibility
+		file, header, err = c.Request.FormFile("image")
+		if err != nil {
+			return nil, &struct {
+				Code    int
+				Message string
+			}{http.StatusBadRequest, "Media file required (field: media or image)"}
+		}
+	}
+	defer file.Close()
+
+	// Leer los primeros 512 bytes para detectar tipo real
+	buffer := make([]byte, 512)
+	if _, err := file.Read(buffer); err != nil && err != io.EOF {
+		return nil, &struct {
+			Code    int
+			Message string
+		}{http.StatusInternalServerError, "Failed to read file"}
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return nil, &struct {
+			Code    int
+			Message string
+		}{http.StatusInternalServerError, "Failed to process file"}
+	}
+
+	// Detectar tipo por magic bytes
+	detectedType := http.DetectContentType(buffer)
+
+	// Tipos de imagen válidos
+	validImageTypes := map[string]bool{
+		"image/jpeg": true,
+		"image/png":  true,
+		"image/webp": true,
+	}
+
+	// Tipos de video válidos (magic bytes)
+	isVideo, videoExt := detectVideoMagicBytes(buffer)
+
+	var mediaType string
+	var publicPath, diskPath string
+	var thumbnailPath *string
+	var durationMs *int
+
+	if isVideo {
+		// Es video
+		mediaType = "video"
+
+		if header.Size > 50*1024*1024 {
+			return nil, &struct {
+				Code    int
+				Message string
+			}{http.StatusRequestEntityTooLarge, "Video too large (max 50MB)"}
+		}
+
+		filename := fmt.Sprintf("%s%s", uuid.New().String(), videoExt)
+
+		uploadsDir := h.uploadsDir
+		if uploadsDir == "" {
+			uploadsDir = "/app/uploads/videos"
+		}
+		if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+			return nil, &struct {
+				Code    int
+				Message string
+			}{http.StatusInternalServerError, "Failed to create uploads directory"}
+		}
+
+		diskPath = filepath.Join(uploadsDir, filename)
+		dst, err := os.Create(diskPath)
+		if err != nil {
+			return nil, &struct {
+				Code    int
+				Message string
+			}{http.StatusInternalServerError, "Failed to save video"}
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, file); err != nil {
+			os.Remove(diskPath)
+			return nil, &struct {
+				Code    int
+				Message string
+			}{http.StatusInternalServerError, "Failed to write video"}
+		}
+
+		publicPath = "/uploads/videos/" + filename
+
+		// Generar thumbnail con ffmpeg
+		thumb, thumbErr := h.generateVideoThumbnail(diskPath)
+		if thumbErr != nil {
+			// Log warning pero no fallar - thumbnail es opcional
+			fmt.Printf("[WARN] Failed to generate thumbnail for %s: %v\n", diskPath, thumbErr)
+		} else {
+			thumbnailPath = &thumb
+		}
+
+		// Extraer duración
+		dur, durErr := extractVideoDuration(diskPath)
+		if durErr != nil {
+			fmt.Printf("[WARN] Failed to extract duration for %s: %v\n", diskPath, durErr)
+		} else {
+			durationMs = &dur
+		}
+
+	} else if validImageTypes[detectedType] {
+		// Es imagen
+		mediaType = "image"
+
+		if header.Size > 10*1024*1024 {
+			return nil, &struct {
+				Code    int
+				Message string
+			}{http.StatusBadRequest, "Image too large (max 10MB)"}
+		}
+
+		ext := ".jpg"
+		if detectedType == "image/png" {
+			ext = ".png"
+		} else if detectedType == "image/webp" {
+			ext = ".webp"
+		}
+		filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
+
+		uploadsDir := h.uploadsDir
+		if uploadsDir == "" {
+			uploadsDir = "/app/uploads/postcards"
+		}
+		if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+			return nil, &struct {
+				Code    int
+				Message string
+			}{http.StatusInternalServerError, "Failed to create uploads directory"}
+		}
+
+		diskPath = filepath.Join(uploadsDir, filename)
+		dst, err := os.Create(diskPath)
+		if err != nil {
+			return nil, &struct {
+				Code    int
+				Message string
+			}{http.StatusInternalServerError, "Failed to save image"}
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, file); err != nil {
+			os.Remove(diskPath)
+			return nil, &struct {
+				Code    int
+				Message string
+			}{http.StatusInternalServerError, "Failed to write image"}
+		}
+
+		publicPath = "/uploads/postcards/" + filename
+
+	} else {
+		return nil, &struct {
+			Code    int
+			Message string
+		}{http.StatusBadRequest, "Invalid file type. Supported: JPEG, PNG, WebP, MP4, WebM, MOV"}
+	}
+
+	return &MediaResult{
+		PublicPath:    publicPath,
+		DiskPath:      diskPath,
+		MediaType:     mediaType,
+		ThumbnailPath: thumbnailPath,
+		DurationMs:    durationMs,
+	}, nil
+}
+
+// detectVideoMagicBytes detecta si el buffer contiene un video y retorna el formato
+func detectVideoMagicBytes(buffer []byte) (bool, string) {
+	// MP4/MOV: starts with ftyp box
+	if len(buffer) >= 8 && buffer[4] == 'f' && buffer[5] == 't' && buffer[6] == 'y' && buffer[7] == 'p' {
+		return true, ".mp4"
+	}
+	// WebM: EBML header (1a 45 df a3)
+	if len(buffer) >= 4 && buffer[0] == 0x1a && buffer[1] == 0x45 && buffer[2] == 0xdf && buffer[3] == 0xa3 {
+		return true, ".webm"
+	}
+	// M4V (iOS video): ftypM4V
+	if len(buffer) >= 8 && buffer[4] == 'M' && buffer[5] == '4' && buffer[6] == 'V' {
+		return true, ".m4v"
+	}
+	return false, ""
+}
+
+// generateVideoThumbnail genera un thumbnail JPEG de un video usando ffmpeg
+func (h *Handler) generateVideoThumbnail(videoPath string) (string, error) {
+	thumbnailDir := filepath.Dir(videoPath)
+	thumbnailPath := filepath.Join(thumbnailDir, "thumbnails", filepath.Base(videoPath)+".jpg")
+
+	// Crear directorio de thumbnails
+	if err := os.MkdirAll(filepath.Dir(thumbnailPath), 0755); err != nil {
+		return "", err
+	}
+
+	// Comando ffmpeg: extraer frame en segundo 1, escalar a 400x400
+	cmd := exec.Command("ffmpeg", "-y", "-i", videoPath, "-ss", "00:00:01", "-vframes", "1", "-vf", "scale='min(400,iw)':min'(400,ih)':force_original_aspect_ratio=decrease", "-q:v", "2", thumbnailPath)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("ffmpeg error: %v, output: %s", err, string(output))
+	}
+
+	// Verificar que el thumbnail se creó
+	if _, err := os.Stat(thumbnailPath); err != nil {
+		return "", fmt.Errorf("thumbnail not created: %v", err)
+	}
+
+	// Retornar ruta pública
+	publicPath := strings.Replace(thumbnailPath, h.uploadsDir, "/uploads", 1)
+	return publicPath, nil
+}
+
+// extractVideoDuration extrae la duración de un video en milisegundos
+func extractVideoDuration(videoPath string) (int, error) {
+	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", videoPath)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return 0, fmt.Errorf("ffprobe error: %v, output: %s", err, string(output))
+	}
+
+	duration, err := strconv.ParseFloat(strings.TrimSpace(string(output)), 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse duration: %v", err)
+	}
+
+	return int(duration * 1000), nil
+}
+
 // ==========================================
 // Postcards (Cartelera de Corcho)
 // ==========================================
@@ -555,7 +810,7 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 		playerID = &player.ID
 	}
 
-	publicPath, diskPath, httpErr := h.validateAndSaveImage(c)
+	mediaResult, httpErr := h.validateAndSaveMedia(c)
 	if httpErr != nil {
 		c.JSON(httpErr.Code, gin.H{"error": httpErr.Message})
 		return
@@ -575,13 +830,13 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	// Si hay event_id en el contexto, usar CreateWithEvent
 	var postcard *models.Postcard
 	if eventID, exists := c.Get("event_id"); exists {
-		postcard, err = h.postcardRepo.CreateWithEvent(eventID.(uuid.UUID), playerID, publicPath, message, rotation, senderName)
+		postcard, err = h.postcardRepo.CreateWithEvent(eventID.(uuid.UUID), playerID, mediaResult.PublicPath, message, rotation, senderName, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
 	} else {
-		postcard, err = h.postcardRepo.Create(*playerID, publicPath, message, rotation, senderName)
+		postcard, err = h.postcardRepo.Create(*playerID, mediaResult.PublicPath, message, rotation, senderName, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
 	}
 
 	if err != nil {
-		os.Remove(diskPath)
+		os.Remove(mediaResult.DiskPath)
 		fmt.Printf("[ERROR] CreatePostcard repo.Create failed: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create postcard"})
 		return
@@ -617,7 +872,7 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 		return
 	}
 
-	publicPath, diskPath, httpErr := h.validateAndSaveImage(c)
+	mediaResult, httpErr := h.validateAndSaveMedia(c)
 	if httpErr != nil {
 		c.JSON(httpErr.Code, gin.H{"error": httpErr.Message})
 		return
@@ -626,9 +881,9 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 	message := truncateMessage(c.Request.FormValue("message"), 500)
 	rotation := (rand.Float64() * 60) - 30
 
-	postcard, err := h.postcardRepo.CreateSecret(senderName, publicPath, message, rotation)
+	postcard, err := h.postcardRepo.CreateSecret(senderName, mediaResult.PublicPath, message, rotation, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
 	if err != nil {
-		os.Remove(diskPath)
+		os.Remove(mediaResult.DiskPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create secret postcard"})
 		return
 	}

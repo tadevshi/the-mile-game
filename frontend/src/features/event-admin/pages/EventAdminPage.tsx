@@ -1,11 +1,12 @@
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Settings, MessageSquare, Palette, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Settings, MessageSquare, Palette, BarChart3, TrendingUp } from 'lucide-react';
 import { useEventAdmin, type AdminTab } from '../hooks/useEventAdmin';
 import { ConfigTab } from '../components/ConfigTab';
 import { QuestionsTab } from '../components/QuestionsTab';
 import { ThemeTab } from '../components/ThemeTab';
 import { StatsTab } from '../components/StatsTab';
+import { AnalyticsDashboard } from '@/features/analytics/pages/AnalyticsDashboard';
 import { Skeleton } from '@/shared/components/Skeleton';
 
 const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
@@ -13,6 +14,7 @@ const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
   { id: 'questions', label: 'Preguntas', icon: <MessageSquare className="w-4 h-4" /> },
   { id: 'theme', label: 'Tema', icon: <Palette className="w-4 h-4" /> },
   { id: 'stats', label: 'Stats', icon: <BarChart3 className="w-4 h-4" /> },
+  { id: 'analytics', label: 'Analytics', icon: <TrendingUp className="w-4 h-4" /> },
 ];
 
 export function EventAdminPage() {
@@ -119,6 +121,7 @@ export function EventAdminPage() {
           {currentTab === 'questions' && <QuestionsTab slug={slug} />}
           {currentTab === 'theme' && <ThemeTab slug={slug} />}
           {currentTab === 'stats' && <StatsTab slug={slug} />}
+          {currentTab === 'analytics' && <AnalyticsDashboard eventSlug={slug} />}
           </motion.div>
         </motion.div>
       </main>

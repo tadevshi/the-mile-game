@@ -292,8 +292,8 @@ El Theme Marketplace ofrece 6 presets pre-diseñados como punto de partida.
 | Monedas 3D girando | React Three Fiber | ✅ Implementado |
 | Gift Box reveal (Secret Box) | Framer Motion | Pendiente |
 | Postcards fly-out del Gift Box | Framer Motion (stagger) | Pendiente |
-| Video de celebración ganador | HTML5 Video | Pendiente |
-| Animaciones Lottie decorativas | Lottie React | Pendiente |
+| Video celebration (top 3) | Lottie Animation | Pendiente (Phase 3) |
+| Animaciones Lottie decorativas | Lottie React | Pendiente (Phase 3) | |
 
 ---
 
@@ -303,6 +303,7 @@ El Theme Marketplace ofrece 6 presets pre-diseñados como punto de partida.
 
 - [x] **EventHub Platform** — Refactor completo a plataforma multi-evento
 - [x] **Landing Page** — Branding EventHub, hero, features, code entry
+- [x] **Landing Page Improvements (Phase 3)** — Demo video, Pricing table, Testimonials carousel, Footer
 - [x] **Event Wizard** — 3 pasos (Basic Info → Features → Theme Marketplace)
 - [x] **Dashboard** — Grid de eventos con event cards, empty states
 - [x] **Event Admin Panel** — Tabs (Config, Questions, Theme, Stats)
@@ -321,18 +322,23 @@ El Theme Marketplace ofrece 6 presets pre-diseñados como punto de partida.
 - [x] Docker Compose (3 servicios: postgres, backend, frontend/nginx)
 - [x] **Cartelera de Corcho** — Feature completo con WebSocket
 - [x] **Secret Box Backend** — API endpoints para postcards secretas y reveal
+- [x] **Video Postcards (Phase 3)** — Upload videos up to 30s, ffmpeg thumbnails, HTML5 player
+- [x] **PWA Support (Phase 3)** — vite-plugin-pwa, manifest, service worker, install prompt
+- [x] **i18n (Phase 3)** — react-i18next with ES/EN translations, language switcher
 - [x] **Testing**:
   - [x] Playwright E2E (35/38 passing)
   - [x] Vitest unit tests frontend
   - [x] Go tests backend 100% coverage
 
+### Pendiente — Phase 3 Growth & Polish
+
+- [ ] Analytics Dashboard — Métricas para organizadores con Recharts
+- [ ] Lottie Animations — Loading states, empty states
+- [ ] Video Celebration — Lottie animation para top 3 en ranking
+
 ### Pendiente — Deuda Técnica
 
 - [ ] Gift Box animation (Secret Box reveal)
-- [ ] Video de celebración para el ganador (HTML5 Video)
-- [ ] Lottie animations decorativas
-- [ ] Soporte de video en postcards (V2)
-- [ ] Analytics dashboard
 
 ---
 
@@ -390,6 +396,7 @@ El admin define preguntas de estos tipos:
    - Cámara frontal para selfie + campo de mensaje
    - Descarga de postales como PNG
    - Actualización en tiempo real vía WebSocket
+   - **Video Postcards**: Soporte para videos de hasta 30 segundos con thumbnail generado por ffmpeg
 
 7. **Secret Box — Carga** (`/e/:slug/secret-box?token=TOKEN`)
    - Acceso vía link compartible con token de autorización
@@ -507,9 +514,11 @@ GET /api/events/:slug/ranking         # Get full ranking for event
 ### Postcards
 
 ```
-POST /api/postcards           # Create postcard (multipart: image + message)
+POST /api/postcards           # Create postcard (multipart: media OR image + message)
+                              # Supports images (JPEG/PNG/WebP, 10MB max) and videos (MP4/WebM/MOV, 50MB max)
+                              # Returns: id, image_path, media_type, thumbnail_path, media_duration_ms
 GET  /api/postcards           # List postcards for event (query: ?event_id=)
-POST /api/postcards/secret    # Create secret postcard (multipart: image + message + sender_name)
+POST /api/postcards/secret    # Create secret postcard (multipart: media OR image + message + sender_name)
 ```
 
 ### Admin Secret Box
@@ -543,16 +552,17 @@ and WebSocket connections. Wildcard origins are NOT supported for WebSocket upgr
 
 ### Flujo de Postcards
 
-1. Recibe imagen → valida tipo/tamaño
-2. Guarda en disco
-3. Genera rotación aleatoria
-4. Guarda en DB con event_id
-5. Broadcast nueva postal vía WebSocket a todos los clientes del evento
+1. Recibe media (imagen o video) → valida tipo/tamaño por magic bytes
+2. Guarda en disco (postcards/ o videos/)
+3. Si es video: genera thumbnail con ffmpeg + extrae duración
+4. Genera rotación aleatoria
+5. Guarda en DB con event_id + media_type
+6. Broadcast nueva postal vía WebSocket a todos los clientes del evento
 
 ### Flujo de Secret Postcards
 
 1. Valida `X-Secret-Token` header
-2. Recibe imagen + mensaje + sender_name
+2. Recibe media (imagen o video) + mensaje + sender_name
 3. Guarda con `is_secret=true`
 4. NO broadcast (se guarda oculta hasta reveal)
 

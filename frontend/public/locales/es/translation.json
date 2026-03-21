@@ -1,0 +1,168 @@
+{
+  "common": {
+    "appName": "EventHub",
+    "loading": "Cargando...",
+    "error": "Error",
+    "retry": "Reintentar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "search": "Buscar",
+    "noResults": "No hay resultados",
+    "required": "Requerido",
+    "optional": "Opcional"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "register": "Crear cuenta",
+    "logout": "Cerrar sesión",
+    "email": "Email",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "noAccount": "¿No tenés cuenta?",
+    "hasAccount": "¿Ya tenés cuenta?",
+    "loginError": "Error al iniciar sesión",
+    "registerSuccess": "Cuenta creada exitosamente"
+  },
+  "landing": {
+    "hero": {
+      "title": "Creá experiencias memorables",
+      "subtitle": "La mejor plataforma para crear eventos interactivos con quiz, ranking y carteleras de fotos",
+      "cta": "Crear mi evento",
+      "enterCode": "Ingresar código de evento"
+    },
+    "features": {
+      "title": "Todo lo que necesitás",
+      "quiz": {
+        "title": "Quiz personalizado",
+        "description": "Creá preguntas sobre el festejado y descubrí quién lo conoce mejor"
+      },
+      "corkboard": {
+        "title": "Cartelera de fotos",
+        "description": "Tus invitados suben fotos y mensajes en tiempo real"
+      },
+      "secretBox": {
+        "title": "Caja secreta",
+        "description": "Recibí sorpresas de quienes no pueden estar"
+      },
+      "ranking": {
+        "title": "Ranking en vivo",
+        "description": "Competencia amistosa con podium 3D"
+      }
+    },
+    "pricing": {
+      "title": "Planes y precios",
+      "free": {
+        "name": "Free",
+        "description": "Ideal para probar EventHub"
+      },
+      "premium": {
+        "name": "Premium",
+        "price": "$4.99 USD",
+        "description": "Para eventos memorables"
+      }
+    },
+    "footer": {
+      "about": "Acerca de",
+      "contact": "Contacto",
+      "privacy": "Privacidad",
+      "terms": "Términos",
+      "madeWith": "Hecho con ❤️ para celebraciones"
+    }
+  },
+  "quiz": {
+    "title": "Quiz",
+    "register": {
+      "title": "Registro de jugador",
+      "name": "¿Cómo te llamás?",
+      "namePlaceholder": "Tu nombre",
+      "avatar": "Elegí tu avatar",
+      "cta": "¡Listos para jugar!"
+    },
+    "play": {
+      "title": "¡Juguemos!",
+      "subtitle": "¿Quién conoce mejor a {{name}}?",
+      "submit": "Enviar respuestas",
+      "question": "Pregunta {{current}} de {{total}}"
+    },
+    "results": {
+      "title": "¡Gracias por participar!",
+      "score": "Tu puntuación",
+      "topThree": "🏆 Estás en el podium!"
+    },
+    "questions": {
+      "text": "Respuesta libre",
+      "multipleChoice": "Opción múltiple",
+      "thisOrThat": "Esto o aquello"
+    }
+  },
+  "ranking": {
+    "title": "Ranking",
+    "you": "¡TÚ!",
+    "points": "pts",
+    "empty": "Aún no hay participantes"
+  },
+  "postcards": {
+    "title": "Cartelera de Corcho",
+    "add": "Nueva postal",
+    "addPhoto": "Tomar foto / Elegir imagen",
+    "addVideo": "Grabar video",
+    "videoMode": "Video",
+    "photoMode": "Foto",
+    "activateCamera": "Activar cámara",
+    "startRecording": "Iniciar grabación",
+    "stopRecording": "Detener",
+    "maxDuration": "Máximo 30 segundos",
+    "message": "Tu mensaje",
+    "messagePlaceholder": "Escribí tu mensaje...",
+    "senderName": "Tu nombre",
+    "senderNamePlaceholder": "¿Cómo te llamás?",
+    "download": "Descargar",
+    "empty": "Aún no hay postales",
+    "emptySubtitle": "¡Sé el primero en dejar tu huella!",
+    "guestNotice": "Vas a quedar registrado/a automáticamente"
+  },
+  "secretBox": {
+    "title": "Caja secreta",
+    "subtitle": "Dejá una sorpresa para el festejado",
+    "uploadSuccess": "¡Sorpresa enviada! Se revelará en el momento perfecto",
+    "uploadError": "Error al enviar la sorpresa"
+  },
+  "event": {
+    "create": "Crear evento",
+    "edit": "Editar evento",
+    "delete": "Eliminar evento",
+    "name": "Nombre del evento",
+    "date": "Fecha",
+    "slug": "URL del evento",
+    "features": "Features",
+    "theme": "Tema visual",
+    "share": "Compartir evento",
+    "copyLink": "Copiar enlace"
+  },
+  "admin": {
+    "title": "Panel de administración",
+    "tabs": {
+      "config": "Configuración",
+      "questions": "Preguntas",
+      "theme": "Tema",
+      "stats": "Estadísticas"
+    },
+    "participants": "Participantes",
+    "quizCompletion": "Completaron el quiz",
+    "avgScore": "Puntuación promedio"
+  },
+  "errors": {
+    "generic": "Algo salió mal. Intentá de nuevo.",
+    "network": "Sin conexión a internet",
+    "notFound": "No encontrado",
+    "unauthorized": "No autorizado",
+    "serverError": "Error del servidor"
+  }
+}

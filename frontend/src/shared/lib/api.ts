@@ -241,7 +241,7 @@ class ApiClient {
   // Postcards (Cartelera de Corcho)
   // ==========================================
 
-  async createPostcard(image: File, message: string, senderName?: string): Promise<Postcard> {
+  async createPostcard(file: File, message: string, senderName?: string): Promise<Postcard> {
     let effectivePlayerId = this.playerId;
 
     // Auto-registro: si no hay jugador y se provee nombre, registrar como invitado
@@ -261,7 +261,9 @@ class ApiClient {
     }
 
     const formData = new FormData();
-    formData.append('image', image);
+    // Usar "media" para videos, "image" para imágenes (compatibilidad hacia atrás)
+    const fieldName = file.type.startsWith('video/') ? 'media' : 'image';
+    formData.append(fieldName, file);
     formData.append('message', message);
     if (senderName?.trim()) {
       formData.append('sender_name', senderName.trim());
@@ -281,9 +283,11 @@ class ApiClient {
     return response.data;
   }
 
-  async createSecretPostcard(image: File, message: string, senderName: string, token: string): Promise<Postcard> {
+  async createSecretPostcard(file: File, message: string, senderName: string, token: string): Promise<Postcard> {
     const formData = new FormData();
-    formData.append('image', image);
+    // Usar "media" para videos, "image" para imágenes (compatibilidad hacia atrás)
+    const fieldName = file.type.startsWith('video/') ? 'media' : 'image';
+    formData.append(fieldName, file);
     formData.append('message', message);
     formData.append('sender_name', senderName.trim());
 
@@ -424,7 +428,7 @@ class ApiClient {
   // Create postcard for a specific event (with inline player registration)
   async createPostcardScoped(
     eventSlug: string, 
-    image: File, 
+    file: File, 
     message: string, 
     options?: { senderName?: string; name?: string; avatar?: string }
   ): Promise<Postcard> {
@@ -453,7 +457,9 @@ class ApiClient {
     }
 
     const formData = new FormData();
-    formData.append('image', image);
+    // Usar "media" para videos, "image" para imágenes (compatibilidad hacia atrás)
+    const fieldName = file.type.startsWith('video/') ? 'media' : 'image';
+    formData.append(fieldName, file);
     formData.append('message', message);
     if (options?.senderName) {
       formData.append('sender_name', options.senderName.trim());

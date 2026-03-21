@@ -1,59 +1,161 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/shared';
 import { useQuizStore } from '@features/quiz/store/quizStore';
 import { api } from '@/shared/lib/api';
 
+type MediaMode = 'photo' | 'video';
+
 interface AddPostcardSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (image: File, message: string, senderName?: string) => Promise<void>;
+  onSubmit: (file: File, message: string, senderName?: string) => Promise<void>;
 }
+
+const MAX_VIDEO_DURATION = 30; // segundos
 
 export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheetProps) {
   const playerName = useQuizStore((s) => s.playerName);
 
   // Guest mode: el usuario llegó a la cartelera sin haber hecho el quiz.
-  // Usamos estado reactivo para que el componente se re-renderice si el playerId
-  // cambia durante el ciclo de vida (por ejemplo, tras el auto-registro).
   const [isGuest, setIsGuest] = useState(!api.getPlayerId());
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [mediaMode, setMediaMode] = useState<MediaMode>('photo');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [senderName, setSenderName] = useState(playerName);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // File input ref
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Video recording refs
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+    };
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: mediaMode === 'video',
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setIsCameraActive(true);
+      }
+    } catch (err) {
+      setError('No se pudo acceder a la cámara');
+    }
+  }, [mediaMode]);
+
+  const stopCamera = useCallback(() => {
+    if (videoRef.current?.srcObject) {
+      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  }, []);
+
+  const startRecording = useCallback(() => {
+    if (!videoRef.current?.srcObject) return;
+
+    const stream = videoRef.current.srcObject as MediaStream;
+    recordedChunksRef.current = [];
+
+    const options = mediaMode === 'video'
+      ? { mimeType: 'video/webm;codecs=vp9' }
+      : undefined;
+
+    try {
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, {
+          type: mediaMode === 'video' ? 'video/webm' : 'image/webp',
+        });
+        const url = URL.createObjectURL(blob);
+        setMediaFile(blob as unknown as File);
+        setMediaPreview(url);
+        stopCamera();
+        setIsRecording(false);
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      timerRef.current = setInterval(() => {
+        setRecordingTime((prev) => {
+          if (prev >= MAX_VIDEO_DURATION - 1) {
+            stopRecording();
+            return MAX_VIDEO_DURATION;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch {
+      setError('No se pudo grabar. Probá con otro navegador.');
+    }
+  }, [mediaMode, stopCamera]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tipo
-    if (!file.type.startsWith('image/')) {
-      setError('Solo se permiten imágenes');
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+
+    if (!isImage && !isVideo) {
+      setError('Solo se permiten imágenes o videos');
       return;
     }
 
     setError(null);
-    setImageFile(file);
-
-    // Preview
+    setMediaFile(file);
     const url = URL.createObjectURL(file);
-    setImagePreview(url);
+    setMediaPreview(url);
   };
 
   const handleSubmit = async () => {
-    if (!imageFile) {
-      setError('Tomá una foto primero');
+    if (!mediaFile) {
+      setError(mediaMode === 'video' ? 'Grabá un video primero' : 'Tomá una foto primero');
       return;
     }
     if (!message.trim()) {
       setError('Escribí un mensaje');
       return;
     }
-    // En guest mode el nombre es obligatorio — lo necesitamos para el auto-registro
     if (isGuest && !senderName.trim()) {
       setError('Escribí tu nombre para poder publicar la postal');
       return;
@@ -63,12 +165,10 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
     setError(null);
 
     try {
-      await onSubmit(imageFile, message.trim(), senderName.trim() || undefined);
-      // Si era guest, el onSubmit habrá disparado el auto-registro — actualizar estado
+      await onSubmit(mediaFile, message.trim(), senderName.trim() || undefined);
       if (isGuest && api.getPlayerId()) {
         setIsGuest(false);
       }
-      // Limpiar y cerrar
       resetForm();
       onClose();
     } catch {
@@ -79,18 +179,36 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
   };
 
   const resetForm = () => {
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
+    setMediaFile(null);
+    if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+    setMediaPreview(null);
     setMessage('');
     setSenderName(playerName);
     setError(null);
+    setMediaMode('photo');
+    setIsRecording(false);
+    setRecordingTime(0);
+    setIsCameraActive(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+    stopCamera();
   };
 
   const handleClose = () => {
     if (!isSubmitting) {
       resetForm();
       onClose();
+    }
+  };
+
+  const handleModeToggle = (mode: MediaMode) => {
+    if (mode !== mediaMode) {
+      setMediaMode(mode);
+      setMediaFile(null);
+      if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+      setMediaPreview(null);
+      setIsRecording(false);
+      setRecordingTime(0);
+      stopCamera();
     }
   };
 
@@ -131,8 +249,35 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                 <h2 className="text-xl font-display text-accent">
                   Nueva Postal
                 </h2>
+                {/* Modo toggle */}
+                <div className="flex justify-center gap-2 mt-2">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleModeToggle('photo')}
+                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                      mediaMode === 'photo'
+                        ? 'bg-pink-100 text-pink-600'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    📷 Foto
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleModeToggle('video')}
+                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                      mediaMode === 'video'
+                        ? 'bg-pink-100 text-pink-600'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}
+                  >
+                    🎬 Video
+                  </motion.button>
+                </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Tomá una foto con la cumpleañera y dejá un mensaje
+                  {mediaMode === 'photo'
+                    ? 'Tomá una foto y dejá un mensaje'
+                    : 'Grabá un video de hasta 30 segundos'}
                 </p>
               </div>
 
@@ -161,45 +306,144 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                 )}
               </div>
 
-              {/* Zona de foto */}
+              {/* Zona de foto/video */}
               <div className="relative">
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
-                  capture="user"
+                  accept={mediaMode === 'video' ? 'video/*' : 'image/*'}
+                  capture={mediaMode === 'photo' ? 'user' : undefined}
                   onChange={handleFileChange}
                   className="hidden"
                 />
 
-                {imagePreview ? (
+                {mediaPreview ? (
                   <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-gray-100">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                    {/* Botón para cambiar foto */}
+                    {mediaMode === 'video' && mediaFile?.type.startsWith('video/') ? (
+                      <video
+                        src={mediaPreview}
+                        className="w-full h-full object-cover"
+                        controls
+                        playsInline
+                      />
+                    ) : (
+                      <img
+                        src={mediaPreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    {/* Botón para cambiar */}
                     <motion.button
                       whileTap={{ scale: 0.9 }}
                       onClick={() => fileInputRef.current?.click()}
                       className="absolute bottom-3 right-3 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium shadow-lg cursor-pointer"
                     >
-                      📷 Cambiar
+                      {mediaMode === 'video' ? '🎬' : '📷'} Cambiar
                     </motion.button>
+                    {/* Video indicator */}
+                    {mediaMode === 'video' && mediaFile?.type.startsWith('video/') && (
+                      <div className="absolute top-3 left-3 bg-pink-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+                        </svg>
+                        VIDEO
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <motion.button
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full aspect-[4/3] rounded-xl border-2 border-dashed border-primary/40 bg-pink-50/50 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors hover:border-primary/60 hover:bg-pink-50"
-                  >
-                    <span className="text-4xl">📸</span>
-                    <span className="text-sm text-gray-500 font-medium">
-                      Tomar foto / Elegir imagen
-                    </span>
-                  </motion.button>
+                  <>
+                    {/* Modo foto */}
+                    {mediaMode === 'photo' ? (
+                      <motion.button
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full aspect-[4/3] rounded-xl border-2 border-dashed border-primary/40 bg-pink-50/50 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors hover:border-primary/60 hover:bg-pink-50"
+                      >
+                        <span className="text-4xl">📸</span>
+                        <span className="text-sm text-gray-500 font-medium">
+                          Tomar foto / Elegir imagen
+                        </span>
+                      </motion.button>
+                    ) : (
+                      /* Modo video con cámara en vivo */
+                      <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-900">
+                        {isCameraActive ? (
+                          <>
+                            <video
+                              ref={videoRef}
+                              className="w-full h-full object-cover mirror"
+                              playsInline
+                              muted
+                            />
+                            {/* Timer overlay */}
+                            <div className="absolute top-3 left-3 bg-black/70 text-white text-sm px-3 py-1 rounded-full font-mono">
+                              {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:
+                              {String(recordingTime % 60).padStart(2, '0')} /
+                              {MAX_VIDEO_DURATION}s
+                            </div>
+                            {/* Recording indicator */}
+                            {isRecording && (
+                              <div className="absolute top-3 right-3 flex items-center gap-1 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                                REC
+                              </div>
+                            )}
+                            {/* Controls */}
+                            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-4">
+                              {!isRecording ? (
+                                <motion.button
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={startRecording}
+                                  className="w-14 h-14 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg"
+                                >
+                                  <span className="text-2xl">●</span>
+                                </motion.button>
+                              ) : (
+                                <motion.button
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={stopRecording}
+                                  className="w-14 h-14 rounded-full bg-white text-red-500 flex items-center justify-center shadow-lg"
+                                >
+                                  <span className="text-xl">■</span>
+                                </motion.button>
+                              )}
+                              <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={stopCamera}
+                                className="w-10 h-10 rounded-full bg-white/80 text-gray-700 flex items-center justify-center"
+                              >
+                                ✕
+                              </motion.button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={startCamera}
+                              className="px-6 py-3 bg-pink-500 text-white rounded-full font-medium shadow-lg flex items-center gap-2"
+                            >
+                              <span>📹</span>
+                              <span>Activar cámara</span>
+                            </motion.button>
+                            <p className="text-gray-400 text-xs">
+                              O elegí un video de tu galería
+                            </p>
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => fileInputRef.current?.click()}
+                              className="text-pink-400 text-sm underline"
+                            >
+                              Seleccionar archivo
+                            </motion.button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -253,7 +497,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                   fullWidth
                   onClick={handleSubmit}
                   isLoading={isSubmitting}
-                  disabled={!imageFile || !message.trim() || (isGuest && !senderName.trim())}
+                  disabled={!mediaFile || !message.trim() || (isGuest && !senderName.trim())}
                 >
                   Enviar Postal
                 </Button>

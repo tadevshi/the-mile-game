@@ -11,6 +11,8 @@ import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
 import { ErrorBoundary, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { LegacyRedirect } from '@/shared/components/LegacyRedirect';
+import { InstallPromptBanner } from '@/shared/components/InstallPromptBanner';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import type { ReactNode } from 'react';
 
 import { EventWizardPage } from '@/features/event-wizard';
@@ -447,8 +449,12 @@ function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <ThemeToggle />
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
         <AnimatedRoutes />
+        <InstallPromptBanner />
       </BrowserRouter>
     </ErrorBoundary>
   );
