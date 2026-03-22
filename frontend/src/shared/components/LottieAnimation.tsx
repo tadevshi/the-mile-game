@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Lottie, { type LottieRefCurrentProps } from 'lottie-react';
+import Lottie from 'lottie-react';
 import { motion } from 'framer-motion';
 
 interface LottieAnimationProps {
@@ -37,7 +37,6 @@ export function LottieAnimation({
         </div>
       )}
       <Lottie
-        lottieRef={{} as LottieRefCurrentProps}
         animationData={animationData}
         loop={loop}
         autoplay={autoplay}

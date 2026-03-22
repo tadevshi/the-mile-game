@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Calendar, PartyPopper } from 'lucide-react';
+import { PartyPopper } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/Button';
 import { LottieAnimation } from '@/shared/components/LottieAnimation';
