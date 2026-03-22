@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MessageSquare, AlertTriangle, ArrowRight } from 'lucide-react';
+import { MessageSquare, AlertTriangle, ArrowRight, Info } from 'lucide-react';
 import { useEventAdmin } from '../hooks/useEventAdmin';
 import { Button } from '@/shared/components/Button';
 import { Skeleton } from '@/shared/components/Skeleton';
@@ -10,13 +10,14 @@ interface QuestionsTabProps {
 }
 
 export function QuestionsTab({ slug }: QuestionsTabProps) {
-  const { questions, isLoadingQuestions } = useEventAdmin(slug);
+  const { event, questions, isLoadingQuestions } = useEventAdmin(slug);
 
   const favoriteCount = questions.filter((q) => q.section === 'favorites').length;
   const prefCount = questions.filter((q) => q.section === 'preferences').length;
   const descCount = questions.filter((q) => q.section === 'description').length;
 
-  const quizEnabled = true;
+  const quizEnabled = event?.features?.quiz ?? false;
+  const hasQuestions = questions.length > 0;
 
   return (
     <div className="space-y-6">
@@ -31,18 +32,27 @@ export function QuestionsTab({ slug }: QuestionsTabProps) {
               : `${questions.length} pregunta${questions.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Link to={`/admin/${slug}/questions`}>
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<ArrowRight className="w-4 h-4" />}
-          >
-            Editar Preguntas
-          </Button>
-        </Link>
+        {quizEnabled ? (
+          hasQuestions && (
+            <Link to={`/admin/${slug}/questions`}>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<ArrowRight className="w-4 h-4" />}
+              >
+                Editar Preguntas
+              </Button>
+            </Link>
+          )
+        ) : (
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <Info className="w-3 h-3" />
+              Quiz deshabilitado
+            </span>
+        )}
       </div>
 
-      {quizEnabled && questions.length === 0 && (
+      {quizEnabled && !hasQuestions && !isLoadingQuestions && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}

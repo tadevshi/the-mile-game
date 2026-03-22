@@ -17,7 +17,7 @@ export function WizardNavigation({ onSubmit }: WizardNavigationProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center justify-between pt-6 border-t border-pink-100"
+      className="flex items-center justify-between gap-4 pt-6 border-t border-pink-100"
     >
       <div>
         {currentStep > 0 && (

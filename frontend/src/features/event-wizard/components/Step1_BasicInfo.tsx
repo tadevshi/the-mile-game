@@ -117,8 +117,8 @@ export function Step1_BasicInfo() {
               className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${
                 validationErrors.date
                   ? 'border-red-300 focus:border-red-400'
-                  : 'border-pink-100 focus:border-pink-300'
-              } bg-white/50`}
+                  : 'border-pink-200 focus:border-pink-400 bg-white/70'
+              }`}
             />
             <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
           </div>
