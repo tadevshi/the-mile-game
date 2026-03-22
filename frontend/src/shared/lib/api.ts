@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance, type AxiosError } from 'axios';
+import axios, { type AxiosInstance, type AxiosError, type AxiosRequestConfig } from 'axios';
 import type { Postcard, SecretBoxStatus } from '@features/postcards/types/postcards.types';
 import type { QuizQuestion, CreateQuestionRequest, UpdateQuestionRequest, ReorderUpdate } from '@features/admin/types/questions.types';
 import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, User } from '@features/auth/types/auth.types';
@@ -96,19 +96,58 @@ class ApiClient {
       (error) => Promise.reject(error)
     );
 
-    // Response interceptor - handle 401
+    // Response interceptor - handle 401 with token refresh
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
-        // If 401, clear auth and redirect to login
+        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean; headers?: Record<string, string> };
+        
+        // If 401 and haven't tried refresh yet, try to refresh token
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          
+          try {
+            const refreshToken = localStorage.getItem('auth-refresh');
+            if (refreshToken) {
+              console.log('Token expired, attempting refresh...');
+              const tokens = await this.refreshToken(refreshToken);
+              
+              // Store new tokens
+              localStorage.setItem('auth-token', tokens.accessToken);
+              localStorage.setItem('auth-refresh', tokens.refreshToken);
+              
+              // Retry original request with new token
+              if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
+              }
+              return this.client(originalRequest);
+            }
+          } catch (refreshError) {
+            console.warn('Token refresh failed, redirecting to login...');
+            // Refresh failed, clear auth and redirect
+            try {
+              localStorage.removeItem('auth-token');
+              localStorage.removeItem('auth-refresh');
+              localStorage.removeItem('auth-user');
+            } catch {
+              // localStorage unavailable
+            }
+            // Use replace to avoid history stack buildup
+            window.location.replace('/login');
+            return Promise.reject(refreshError);
+          }
+        }
+        
+        // If 401 and already retried or no refresh token, clear auth
         if (error.response?.status === 401) {
           try {
             localStorage.removeItem('auth-token');
+            localStorage.removeItem('auth-refresh');
             localStorage.removeItem('auth-user');
           } catch {
             // localStorage unavailable
           }
-          window.location.href = '/login';
+          window.location.replace('/login');
         }
         return Promise.reject(error);
       }

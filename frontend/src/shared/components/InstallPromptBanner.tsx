@@ -1,12 +1,12 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAutoPWAInstall } from '@/shared/hooks/usePWAInstall';
+import { usePWAInstall } from '@/shared/hooks/usePWAInstall';
 
 /**
  * Banner que aparece en mobile prompting "Add to Home Screen".
  * Se muestra automáticamente después de 30 segundos (via useAutoPWAInstall).
  */
 export function InstallPromptBanner() {
-  const { isInstallable, isInstalled } = useAutoPWAInstall();
+  const { isInstallable, isInstalled, dismiss } = usePWAInstall();
 
   // Don't show if already installed or not installable
   if (isInstalled || !isInstallable) {
@@ -34,6 +34,17 @@ export function InstallPromptBanner() {
               Agregá la app a tu pantalla de inicio
             </p>
           </div>
+          
+          {/* Close button */}
+          <button
+            onClick={dismiss}
+            className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+            aria-label="Cerrar banner"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       </motion.div>
     </AnimatePresence>
