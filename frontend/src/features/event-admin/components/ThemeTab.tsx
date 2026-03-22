@@ -5,19 +5,11 @@ import { motion } from 'framer-motion';
 import { Button } from '@/shared/components/Button';
 import { useEventAdmin } from '../hooks/useEventAdmin';
 import { api } from '@/shared/lib/api';
+import { THEME_PRESETS } from '@/shared/theme';
 
 interface ThemeTabProps {
   slug: string;
 }
-
-const PRESET_COLORS: Record<string, { from: string; to: string; name: string }> = {
-  princess: { from: 'from-pink-400', to: 'to-rose-500', name: 'Princess' },
-  elegant: { from: 'from-slate-400', to: 'to-slate-600', name: 'Elegant' },
-  party: { from: 'from-purple-500', to: 'to-pink-500', name: 'Party' },
-  corporate: { from: 'from-blue-500', to: 'to-indigo-600', name: 'Corporate' },
-  kids: { from: 'from-yellow-400', to: 'to-orange-500', name: 'Kids' },
-  dark: { from: 'from-slate-700', to: 'to-slate-900', name: 'Dark' },
-};
 
 export function ThemeTab({ slug }: ThemeTabProps) {
   const { event, refetchEvent } = useEventAdmin(slug);
@@ -30,8 +22,9 @@ export function ThemeTab({ slug }: ThemeTabProps) {
   // Map theme_id to preset name (theme_id equals the preset key like "princess", "elegant", etc.)
   const getPresetByThemeId = (themeId: string | null | undefined): string | null => {
     if (!themeId) return null;
-    // Check if theme_id matches any preset key
-    if (themeId in PRESET_COLORS) {
+    // Check if theme_id matches any preset name
+    const presetExists = THEME_PRESETS.some(p => p.name === themeId);
+    if (presetExists) {
       return themeId;
     }
     return null;
@@ -66,16 +59,16 @@ export function ThemeTab({ slug }: ThemeTabProps) {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {Object.entries(PRESET_COLORS).map(([key, colors]) => {
-          const isSelected = selectedPreset === key || getPresetByThemeId(currentThemeId) === key;
+        {THEME_PRESETS.map((preset) => {
+          const isSelected = selectedPreset === preset.name || getPresetByThemeId(currentThemeId) === preset.name;
           return (
             <motion.button
-              key={key}
+              key={preset.name}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => handlePresetClick(key)}
+              onClick={() => handlePresetClick(preset.name)}
               disabled={isApplying}
-              className={`h-24 rounded-xl bg-gradient-to-br ${colors.from} ${colors.to} flex items-center justify-center relative cursor-pointer transition-all ${
+              className={`h-24 rounded-xl bg-gradient-to-br ${preset.gradientFrom} ${preset.gradientTo} flex items-center justify-center relative cursor-pointer transition-all ${
                 isApplying ? 'opacity-50 cursor-not-allowed' : ''
               } ${
                 isSelected 
@@ -93,7 +86,7 @@ export function ThemeTab({ slug }: ThemeTabProps) {
                 </motion.div>
               )}
               <span className="text-white font-medium text-sm drop-shadow">
-                {colors.name}
+                {preset.label}
               </span>
             </motion.button>
           );

@@ -3,16 +3,7 @@ import { motion } from 'framer-motion';
 import { useWizardStore } from '../store/wizardStore';
 import { api } from '@/shared/lib/api';
 import type { ThemePreset } from '@/shared/theme';
-
-const PRESET_COLORS: Record<string, { from: string; to: string }> = {
-  princess: { from: 'from-pink-400', to: 'to-rose-500' },
-  elegant: { from: 'from-slate-400', to: 'to-slate-600' },
-  party: { from: 'from-purple-500', to: 'to-pink-500' },
-  corporate: { from: 'from-blue-500', to: 'to-indigo-600' },
-  kids: { from: 'from-yellow-400', to: 'to-orange-500' },
-  dark: { from: 'from-slate-700', to: 'to-slate-900' },
-  default: { from: 'from-pink-400', to: 'to-rose-500' },
-};
+import { THEME_PRESETS } from '@/shared/theme';
 
 export function Step3_Theme() {
   const { formData, updateFormData } = useWizardStore();
@@ -82,7 +73,7 @@ export function Step3_Theme() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {presets.map((preset) => {
-            const colors = PRESET_COLORS[preset.name] || PRESET_COLORS.default;
+            const presetData = THEME_PRESETS.find(p => p.name === preset.name);
             const isSelected = selectedThemeId === preset.name;
 
             return (
@@ -100,7 +91,7 @@ export function Step3_Theme() {
                 `}
               >
                 <div
-                  className={`h-20 rounded-lg mb-3 bg-gradient-to-br ${colors.from} ${colors.to}`}
+                  className={`h-20 rounded-lg mb-3 bg-gradient-to-br ${presetData?.gradientFrom || 'from-pink-400'} ${presetData?.gradientTo || 'to-rose-500'}`}
                 />
                 <p className="text-sm font-medium text-gray-700 capitalize">
                   {preset.name}

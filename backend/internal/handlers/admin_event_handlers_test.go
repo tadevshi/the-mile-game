@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -88,7 +89,7 @@ func TestUpdateEventFeatures_Success(t *testing.T) {
 	})
 	mockUpdater.AddEvent(event)
 
-	handler := NewAdminEventHandler(mockUpdater)
+	handler := NewAdminEventHandler(mockUpdater, "")
 
 	t.Run("enable quiz feature", func(t *testing.T) {
 		// Create router with event in context
@@ -172,7 +173,7 @@ func TestUpdateEventFeatures_InvalidKey(t *testing.T) {
 	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
 	mockUpdater.AddEvent(event)
 
-	handler := NewAdminEventHandler(mockUpdater)
+	handler := NewAdminEventHandler(mockUpdater, "")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -204,7 +205,7 @@ func TestUpdateEventFeatures_EventNotFound(t *testing.T) {
 
 	// No events in mock
 
-	handler := NewAdminEventHandler(mockUpdater)
+	handler := NewAdminEventHandler(mockUpdater, "")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -235,7 +236,7 @@ func TestUpdateEventFeatures_InvalidJSON(t *testing.T) {
 	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
 	mockUpdater.AddEvent(event)
 
-	handler := NewAdminEventHandler(mockUpdater)
+	handler := NewAdminEventHandler(mockUpdater, "")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -271,7 +272,7 @@ func TestUpdateEventFeatures_NonOwnerUser(t *testing.T) {
 	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
 	mockUpdater.AddEvent(event)
 
-	handler := NewAdminEventHandler(mockUpdater)
+	handler := NewAdminEventHandler(mockUpdater, "")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -312,7 +313,7 @@ func TestUpdateEventFeatures_UpdateError(t *testing.T) {
 	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
 	// Note: event is NOT added to failUpdater
 
-	handler := NewAdminEventHandler(failUpdater)
+	handler := NewAdminEventHandler(failUpdater, "")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -336,4 +337,166 @@ func TestUpdateEventFeatures_UpdateError(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Contains(t, w.Body.String(), "Failed to update")
+}
+
+// ============== UploadMedia TESTS ==============
+
+func TestUploadMedia_InvalidType(t *testing.T) {
+	mockUpdater := newMockEventUpdater()
+
+	ownerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
+	mockUpdater.AddEvent(event)
+
+	handler := NewAdminEventHandler(mockUpdater, "/tmp/uploads")
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.Use(func(c *gin.Context) {
+		eventCopy := &models.Event{}
+		*eventCopy = *event
+		c.Set("event", eventCopy)
+		c.Next()
+	})
+
+	r.POST("/api/admin/events/:slug/media", handler.UploadMedia)
+
+	// Create multipart form without type
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", "test.jpg")
+	part.Write([]byte("fake image content"))
+	writer.Close()
+
+	req, _ := http.NewRequest("POST", "/api/admin/events/test-event/media", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid type")
+}
+
+func TestUploadMedia_NoFile(t *testing.T) {
+	mockUpdater := newMockEventUpdater()
+
+	ownerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
+	mockUpdater.AddEvent(event)
+
+	handler := NewAdminEventHandler(mockUpdater, "/tmp/uploads")
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.Use(func(c *gin.Context) {
+		eventCopy := &models.Event{}
+		*eventCopy = *event
+		c.Set("event", eventCopy)
+		c.Next()
+	})
+
+	r.POST("/api/admin/events/:slug/media", handler.UploadMedia)
+
+	// Create multipart form without file
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("type", "logo")
+	writer.Close()
+
+	req, _ := http.NewRequest("POST", "/api/admin/events/test-event/media", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "File required")
+}
+
+func TestUploadMedia_EventNotFound(t *testing.T) {
+	mockUpdater := newMockEventUpdater()
+	// No events added
+
+	handler := NewAdminEventHandler(mockUpdater, "/tmp/uploads")
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	// No event middleware - simulating event not found
+	r.POST("/api/admin/events/:slug/media", handler.UploadMedia)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("type", "logo")
+	writer.Close()
+
+	req, _ := http.NewRequest("POST", "/api/admin/events/nonexistent/media", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// ============== DeleteMedia TESTS ==============
+
+func TestDeleteMedia_InvalidType(t *testing.T) {
+	mockUpdater := newMockEventUpdater()
+
+	ownerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
+	event.Settings.LogoURL = "/uploads/logos/test.jpg"
+	mockUpdater.AddEvent(event)
+
+	handler := NewAdminEventHandler(mockUpdater, "/tmp/uploads")
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.Use(func(c *gin.Context) {
+		eventCopy := &models.Event{}
+		*eventCopy = *event
+		c.Set("event", eventCopy)
+		c.Next()
+	})
+
+	r.DELETE("/api/admin/events/:slug/media", handler.DeleteMedia)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("type", "invalid")
+	writer.Close()
+
+	req, _ := http.NewRequest("DELETE", "/api/admin/events/test-event/media", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid type")
+}
+
+func TestDeleteMedia_EventNotFound(t *testing.T) {
+	mockUpdater := newMockEventUpdater()
+	// No events added
+
+	handler := NewAdminEventHandler(mockUpdater, "/tmp/uploads")
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+
+	r.DELETE("/api/admin/events/:slug/media", handler.DeleteMedia)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("type", "logo")
+	writer.Close()
+
+	req, _ := http.NewRequest("DELETE", "/api/admin/events/nonexistent/media", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }

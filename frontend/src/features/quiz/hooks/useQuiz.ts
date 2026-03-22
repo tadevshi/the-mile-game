@@ -2,12 +2,16 @@ import { useState } from 'react';
 import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { useQuizStore } from '../store/quizStore';
 import { quizService } from '../services/quizApi';
-import { TOTAL_QUESTIONS, FAVORITE_QUESTIONS, PREFERENCE_QUESTIONS } from '../types/quiz.constants';
+import { useEventStore } from '@/shared/store/eventStore';
+import { api } from '@/shared/lib/api';
+import type { QuizQuestionResponse } from '../types/quiz-player.types';
+import type { AxiosError } from 'axios';
 
-export function useQuiz() {
+export function useQuiz(questions: QuizQuestionResponse[] = []) {
   const navigate = useEventNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const { currentEvent } = useEventStore();
 
   // Store state
   const answers = useQuizStore((state) => state.answers);
@@ -18,20 +22,23 @@ export function useQuiz() {
   const setScore = useQuizStore((state) => state.setScore);
   const setCompleted = useQuizStore((state) => state.setCompleted);
 
-  // Derived: progress
-  // IMPORTANTE: el total es FIJO — no se calcula desde las keys del objeto answers
-  // porque ese objeto crece a medida que el usuario responde, haciendo que el
-  // total cambie dinámicamente y el progreso muestre "1 de 2", "2 de 3", etc.
-  const answeredFavorites = FAVORITE_QUESTIONS.filter(
-    (q) => (answers.favorites[q.id] ?? '').trim() !== ''
+  // Derived: progress basado en preguntas REALES de la API
+  const favoriteQuestions = questions.filter((q) => q.section === 'favorites');
+  const preferenceQuestions = questions.filter((q) => q.section === 'preferences');
+  const hasDescription = questions.some((q) => q.section === 'description');
+
+  const answeredFavorites = favoriteQuestions.filter(
+    (q) => (answers.favorites[q.key] ?? '').trim() !== ''
   ).length;
-  const answeredPreferences = PREFERENCE_QUESTIONS.filter(
-    (q) => (answers.preferences[q.id] ?? '') !== ''
+  const answeredPreferences = preferenceQuestions.filter(
+    (q) => (answers.preferences[q.key] ?? '') !== ''
   ).length;
   const answeredDescription = answers.description.trim() !== '' ? 1 : 0;
+  const totalQuestions = favoriteQuestions.length + preferenceQuestions.length + (hasDescription ? 1 : 0);
+
   const progress = {
     current: answeredFavorites + answeredPreferences + answeredDescription,
-    total: TOTAL_QUESTIONS,
+    total: totalQuestions || 1,
   };
 
   const submitQuiz = async () => {
@@ -39,9 +46,32 @@ export function useQuiz() {
     setError('');
 
     try {
-      const response = await quizService.submitAnswers({
-        favorites: answers.favorites,
-        preferences: answers.preferences,
+      const eventSlug = currentEvent?.slug;
+      if (!eventSlug) {
+        setError('No se encontró el evento. Intenta recargar la página.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Construir payload con las keys de las preguntas reales
+      const favorites: Record<string, string> = {};
+      const preferences: Record<string, string> = {};
+
+      favoriteQuestions.forEach((q) => {
+        if (answers.favorites[q.key]) {
+          favorites[q.key] = answers.favorites[q.key];
+        }
+      });
+
+      preferenceQuestions.forEach((q) => {
+        if (answers.preferences[q.key]) {
+          preferences[q.key] = answers.preferences[q.key];
+        }
+      });
+
+      const response = await quizService.submitAnswersScoped(eventSlug, {
+        favorites,
+        preferences,
         description: answers.description,
       });
 
@@ -51,6 +81,23 @@ export function useQuiz() {
       navigate('/thank-you');
     } catch (err) {
       console.error('Error submitting quiz:', err);
+      
+      // Manejar error 403 específico: player no pertenece al evento
+      const axiosError = err as AxiosError<{ error?: string }>;
+      if (axiosError.response?.status === 403) {
+        const errorMessage = axiosError.response?.data?.error || '';
+        if (errorMessage.includes('Player does not belong to this event')) {
+          // Limpiar player y redirigir a registro
+          api.clearPlayerId();
+          useQuizStore.getState().resetQuiz();
+          setError('Parece que no estás registrado para este evento. Necesitás registrarte para jugar.');
+          setTimeout(() => {
+            navigate('/register');
+          }, 2000);
+          return;
+        }
+      }
+      
       setError('Error al enviar respuestas. Intenta de nuevo.');
     } finally {
       setIsLoading(false);

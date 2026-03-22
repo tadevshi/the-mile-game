@@ -7,13 +7,18 @@ import type { Postcard } from '../types/postcards.types';
 interface PostcardCardProps {
   postcard: Postcard;
   onSelect: (postcard: Postcard) => void;
+  eventLogoUrl?: string;  // Logo del evento para fallback en videos
 }
 
-export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
+export function PostcardCard({ postcard, onSelect, eventLogoUrl }: PostcardCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [imageError, setImageError] = useState(false);
 
   const isVideo = postcard.media_type === 'video';
+  
+  // Fallback para thumbnails: thumbnail_path -> eventLogoUrl -> placeholder por defecto
+  const videoFallback = eventLogoUrl || '/princess_logo.png';
+  const imageFallback = eventLogoUrl || '/princess_logo.png';
 
   return (
     <div className="relative pt-4">
@@ -44,7 +49,7 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
               <>
                 {/* Video thumbnail con play overlay */}
                 <img
-                  src={imageError ? '/princess_logo.png' : (postcard.thumbnail_path || postcard.image_path)}
+                  src={imageError ? videoFallback : (postcard.thumbnail_path || videoFallback)}
                   alt={`Video de ${postcard.player_name}`}
                   className={`absolute inset-0 w-full h-full ${imageError ? 'object-contain p-4 opacity-50' : 'object-cover'}`}
                   loading="lazy"
@@ -77,7 +82,7 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
               </>
             ) : (
               <img
-                src={imageError ? '/princess_logo.png' : postcard.image_path}
+                src={imageError ? imageFallback : postcard.image_path}
                 alt={`Postal de ${postcard.player_name}`}
                 className={`absolute inset-0 w-full h-full ${imageError ? 'object-contain p-4 opacity-50' : 'object-cover'}`}
                 loading="lazy"

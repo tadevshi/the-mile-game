@@ -64,14 +64,14 @@ function EventLandingContent() {
           )}
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50 p-6"
-        >
-          <div className="space-y-4">
-            {currentEvent?.date && (
+        {currentEvent?.date && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50 p-6"
+          >
+            <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div 
                   className="w-10 h-10 rounded-full flex items-center justify-center"
@@ -86,9 +86,9 @@ function EventLandingContent() {
                   </p>
                 </div>
               </div>
-            )}
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

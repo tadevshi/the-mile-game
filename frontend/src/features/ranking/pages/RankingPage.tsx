@@ -51,10 +51,12 @@ export function RankingPage() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationRank, setCelebrationRank] = useState<1 | 2 | 3>(1);
   const [celebrationName, setCelebrationName] = useState('');
+  const [hasCelebrated, setHasCelebrated] = useState(false);
 
   // Check if current player is in top 3 and show celebration
+  // Only show once per ranking load to prevent infinite loop
   useEffect(() => {
-    if (currentPlayerId && top3.length > 0 && !showCelebration) {
+    if (currentPlayerId && top3.length > 0 && !showCelebration && !hasCelebrated) {
       const currentPlayer = top3.find(p => p.id === currentPlayerId);
       if (currentPlayer && currentPlayer.position <= 3) {
         // Delay celebration to let the page load
@@ -62,11 +64,19 @@ export function RankingPage() {
           setCelebrationRank(currentPlayer.position as 1 | 2 | 3);
           setCelebrationName(currentPlayer.name);
           setShowCelebration(true);
+          setHasCelebrated(true); // Mark as celebrated to prevent re-trigger
         }, 1500);
         return () => clearTimeout(timer);
       }
     }
-  }, [currentPlayerId, top3, showCelebration]);
+  }, [currentPlayerId, top3, showCelebration, hasCelebrated]);
+
+  // Reset flag when player changes (allows celebration again)
+  useEffect(() => {
+    if (currentPlayerId) {
+      setHasCelebrated(false);
+    }
+  }, [currentPlayerId]);
 
   // Si está cargando, mostrar skeleton
   if (isLoading) {

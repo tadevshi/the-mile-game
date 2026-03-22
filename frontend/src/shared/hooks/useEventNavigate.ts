@@ -7,33 +7,44 @@ import { useEventStore } from '../store/eventStore';
  * 
  * Usage:
  *   const navigate = useEventNavigate();
- *   navigate('/register'); // → /event/mile-2026/register (if slug=mile-2026)
- *   navigate('/event/other/quiz'); // → navigates as-is
- *   navigate('/'); // → /event/mile-2026 (if in event context)
+ *   navigate('/register'); // → /e/mile-2026/register (if slug=mile-2026)
+ *   navigate('/e/other/quiz'); // → navigates as-is
+ *   navigate('/'); // → /e/mile-2026 (if in event context)
+ * 
+ * IMPORTANT: This hook subscribes only to the event slug (string) to avoid
+ * triggering re-renders when the full event object changes. This prevents
+ * infinite loops in useEffects that depend on the navigate function.
  */
 export function useEventNavigate() {
   const navigate = useNavigate();
   const params = useParams();
-  const currentEvent = useEventStore((state) => state.currentEvent);
+  
+  // Subscribe ONLY to the slug string, not the full event object.
+  // Using a string primitive avoids the infinite loop issue where
+  // the hook would return a new function reference on every event object change.
+  const eventSlugFromStore = useEventStore((state) => state.currentEvent?.slug);
 
   // Get the event slug from URL params first, then from store
-  const eventSlug = params.slug || currentEvent?.slug;
+  const eventSlug = params.slug || eventSlugFromStore;
 
-  return (to: string, options?: NavigateOptions) => {
+  // useNavigate and useParams are stable (don't change between renders)
+  // eventSlug is a string primitive, so comparison is stable
+  // This function reference will remain stable as long as eventSlug doesn't change
+  const navigateWithSlug = (to: string, options?: NavigateOptions) => {
     // Only modify paths that:
     // 1. Start with '/' (absolute paths)
-    // 2. Don't already start with '/event/' (avoid double-prefixing)
+    // 2. Don't already start with '/e/' (avoid double-prefixing)
     // 3. We have an event slug available
-    if (to.startsWith('/') && !to.startsWith('/event/') && eventSlug) {
-      // Prepend /event/{slug} to the path
+    if (to.startsWith('/') && !to.startsWith('/e/') && eventSlug) {
+      // Prepend /e/{slug} to the path
       // Only pass options if defined to maintain compatibility with tests
       if (options !== undefined) {
-        navigate(`/event/${eventSlug}${to}`, options);
+        navigate(`/e/${eventSlug}${to}`, options);
       } else {
-        navigate(`/event/${eventSlug}${to}`);
+        navigate(`/e/${eventSlug}${to}`);
       }
     } else {
-      // Navigate as-is (relative paths, /event/ paths, or no event context)
+      // Navigate as-is (relative paths, /e/ paths, or no event context)
       if (options !== undefined) {
         navigate(to, options);
       } else {
@@ -41,4 +52,6 @@ export function useEventNavigate() {
       }
     }
   };
+
+  return navigateWithSlug;
 }

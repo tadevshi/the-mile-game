@@ -89,9 +89,12 @@ export function usePostcards() {
       setError(null);
 
       try {
-        // Redimensionar antes de subir
-        const resized = await postcardService.resizeImage(imageFile);
-        const newPostcard = await postcardService.create(resized, message, senderName);
+        // Si es video, no redimensionar (videos no se pueden redimensionar como imágenes)
+        let fileToUpload = imageFile;
+        if (!imageFile.type.startsWith('video/')) {
+          fileToUpload = await postcardService.resizeImage(imageFile);
+        }
+        const newPostcard = await postcardService.create(fileToUpload, message, senderName);
 
         // Agregar localmente (el WebSocket también la enviará,
         // pero addPostcard deduplica por ID)

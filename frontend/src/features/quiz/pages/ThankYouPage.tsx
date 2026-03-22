@@ -3,9 +3,9 @@ import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card, ScrollReveal, ScrollStagger, ScrollStaggerItem, useFeatureEnabled } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
+import { useEventStore } from '@/shared/store/eventStore';
 import { ConfettiEffect } from '@/shared/components/Confetti';
 import { rankingService } from '../../ranking/services/rankingApi';
-import { MAX_SCORE } from '../types/quiz.constants';
 import type { Player } from '@/shared/lib/api';
 
 // Variantes de animación
@@ -50,15 +50,15 @@ const scoreVariants = {
 
 export function ThankYouPage() {
   const navigate = useEventNavigate();
-  
+
   // Datos reales del store
   const playerName = useQuizStore((state) => state.playerName);
   const score = useQuizStore((state) => state.score);
   const hasCompleted = useQuizStore((state) => state.hasCompleted);
+  const { currentEvent } = useEventStore();
 
   // Runtime feature flags
-  // Default to true for backward compatibility in legacy routes (no event loaded)
-  const isCorkboardEnabled = useFeatureEnabled('corkboard') ?? true;
+  const isCorkboardEnabled = useFeatureEnabled('corkboard');
 
   // Participantes reales desde la API
   const [otherPlayers, setOtherPlayers] = useState<Player[]>([]);
@@ -71,13 +71,12 @@ export function ThankYouPage() {
   }, [hasCompleted, navigate]);
 
   // Fetchear ranking real y filtrar al jugador actual.
-  // isMounted evita llamar setOtherPlayers si el usuario navega antes de que resuelva la promise.
   useEffect(() => {
-    if (!hasCompleted) return;
+    if (!hasCompleted || !currentEvent?.slug) return;
 
     let isMounted = true;
 
-    rankingService.getOtherPlayers(5).then((others) => {
+    rankingService.getOtherPlayers(5, currentEvent.slug).then((others) => {
       if (!isMounted) return;
       setOtherPlayers(others);
     }).catch(() => {
@@ -85,15 +84,15 @@ export function ThankYouPage() {
     });
 
     return () => { isMounted = false; };
-  }, [hasCompleted]);
+  }, [hasCompleted, currentEvent?.slug]);
 
-  // Mensaje según puntaje
+  // Mensaje según puntaje (genérico, sin hardcodear nombres)
   const getMessage = () => {
-    if (score === 13) return '¡PERFECTO! Conocés a Mile mejor que nadie 🌟';
-    if (score >= 10) return '¡Excelente! Sos muy cercano/a a Mile ✨';
-    if (score >= 7) return '¡Muy bien! Conocés bastante a Mile 👏';
-    if (score >= 4) return 'No está mal, pero podés conocerla mejor 😊';
-    return '¡A conocer más a Mile! 🤗';
+    const name = currentEvent?.name ?? 'el festejado';
+    if (score >= 10) return `¡PERFECTO! Conocés a ${name} mejor que nadie 🌟`;
+    if (score >= 7) return `¡Excelente! Sos muy cercano/a a ${name} ✨`;
+    if (score >= 4) return `¡Muy bien! Conocés bastante a ${name} 👏`;
+    return `¡A conocer más a ${name}! 🤗`;
   };
 
   return (
@@ -152,7 +151,7 @@ export function ThankYouPage() {
                 >
                   {score}
                 </motion.span>
-                <span className="text-xl text-slate-500"> /{MAX_SCORE}</span>
+                <span className="text-xl text-slate-500"> pts</span>
               </motion.div>
               
               <motion.p 

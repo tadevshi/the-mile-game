@@ -10,12 +10,18 @@ const languages = [
 ];
 
 export function LanguageSwitcher({ className = '' }: LanguageSwitcherProps) {
+  console.log('LanguageSwitcher component rendered');
   const { i18n } = useTranslation();
 
   const currentLang = languages.find((l) => l.code === i18n.language) || languages[0];
 
   const handleChange = (langCode: string) => {
-    i18n.changeLanguage(langCode);
+    console.log(`Attempting to change language to: ${langCode}`);
+    i18n.changeLanguage(langCode).then(() => {
+      console.log(`Language changed to: ${langCode}`);
+    }).catch(err => {
+      console.error(`Failed to change language to ${langCode}:`, err);
+    });
   };
 
   return (

@@ -445,16 +445,36 @@ function AnimatedRoutes() {
   );
 }
 
-function App() {
+// Helper to detect public event routes (should hide theme/language controls)
+function isPublicEventRoute(pathname: string): boolean {
+  return pathname.startsWith('/e/');
+}
+
+// Componente interno que SÍ tiene acceso al contexto del Router
+function AppContent() {
+  const location = useLocation();
+  const isPublicRoute = isPublicEventRoute(location.pathname);
+
   return (
-    <ErrorBoundary>
-      <BrowserRouter>
+    <>
+      {/* Only show theme/language controls on non-public routes */}
+      {!isPublicRoute && (
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
           <LanguageSwitcher />
           <ThemeToggle />
         </div>
-        <AnimatedRoutes />
-        <InstallPromptBanner />
+      )}
+      <AnimatedRoutes />
+      <InstallPromptBanner />
+    </>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppContent />
       </BrowserRouter>
     </ErrorBoundary>
   );

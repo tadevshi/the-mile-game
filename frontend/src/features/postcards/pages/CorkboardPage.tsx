@@ -11,6 +11,8 @@ import { GiftBox } from '../components/GiftBox';
 import { Button, LottieAnimation } from '@/shared';
 import { useCorkboardCapture } from '../hooks/useCorkboardCapture';
 import type { Postcard } from '../types/postcards.types';
+import { api } from '@/shared/lib/api';
+import { useParams } from 'react-router-dom';
 
 // Lottie animation for empty state
 import emptyAnimation from '@/../public/animations/empty.json';
@@ -19,6 +21,7 @@ import emptyAnimation from '@/../public/animations/empty.json';
 import corkTexture from '@/assets/cartelera.png';
 
 export function CorkboardPage() {
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useEventNavigate();
   const [searchParams] = useSearchParams();
   const {
@@ -30,6 +33,23 @@ export function CorkboardPage() {
     createPostcard,
     addRevealedPostcards,
   } = usePostcards();
+  
+  // Event data for custom background and logo
+  const [eventLogoUrl, setEventLogoUrl] = useState<string | undefined>();
+  const [backgroundUrl, setBackgroundUrl] = useState<string | undefined>();
+  
+  // Fetch event data for customization
+  useEffect(() => {
+    if (!slug) return;
+    
+    api.getEventBySlug(slug).then((event) => {
+      // Access logo_url and background_url from nested settings
+      setEventLogoUrl(event.settings?.logo_url);
+      setBackgroundUrl(event.settings?.background_url);
+    }).catch(() => {
+      // Silently fail - use defaults
+    });
+  }, [slug]);
 
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -59,11 +79,16 @@ export function CorkboardPage() {
 
   return (
     <div ref={corkboardRef} className="min-h-screen relative">
-      {/* Fondo de corcho — fixed para que no scrollee con el contenido */}
+      {/* Fondo — custom si está configurado, sino textura de corcho por defecto */}
       <div
         data-cork-bg="true"
         className="fixed inset-0 -z-10"
-        style={{
+        style={backgroundUrl ? {
+          backgroundImage: `url(${backgroundUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        } : {
           backgroundImage: `url(${corkTexture})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -210,6 +235,7 @@ export function CorkboardPage() {
                 <PostcardCard
                   postcard={postcard}
                   onSelect={setSelectedPostcard}
+                  eventLogoUrl={eventLogoUrl}
                 />
               </motion.div>
             ))}

@@ -41,7 +41,7 @@ i18n
     
     // Lazy load translations
     react: {
-      useSuspense: true,
+      useSuspense: false,
     },
   });
 

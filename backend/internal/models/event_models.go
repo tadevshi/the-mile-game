@@ -42,6 +42,8 @@ type EventSettings struct {
 	Theme           string `json:"theme,omitempty"`
 	PrimaryColor    string `json:"primary_color,omitempty"`
 	BackgroundImage string `json:"background_image,omitempty"`
+	LogoURL         string `json:"logo_url,omitempty"`       // URL del logo/imagen representativa del evento
+	BackgroundURL   string `json:"background_url,omitempty"` // URL del fondo custom del corkboard
 }
 
 // QuizQuestion representa una pregunta del quiz configurable por evento
