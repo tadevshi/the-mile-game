@@ -429,7 +429,7 @@ class ApiClient {
   // Create a new event
   async createEvent(data: {
     name: string;
-    slug: string;
+    slug?: string;
     date?: string;
     description?: string;
     features?: EventFeatures;
@@ -437,9 +437,13 @@ class ApiClient {
     // Transform camelCase to snake_case for backend compatibility
     const payload: Record<string, unknown> = {
       name: data.name,
-      slug: data.slug,
       description: data.description || '',
     };
+    
+    // Only include slug if provided (backend will auto-generate if empty)
+    if (data.slug) {
+      payload.slug = data.slug;
+    }
     
     if (data.date) {
       payload.starts_at = data.date;
@@ -459,6 +463,24 @@ class ApiClient {
 
   async getEventBySlug(slug: string): Promise<Event> {
     const response = await this.client.get<Event>(`/events/${slug}`);
+    return response.data;
+  }
+
+  // Get theme for an event
+  async getEventTheme(slug: string): Promise<{
+    id: string;
+    eventId: string;
+    primaryColor: string;
+    secondaryColor: string;
+    accentColor: string;
+    bgColor: string;
+    textColor: string;
+    displayFont: string;
+    headingFont: string;
+    bodyFont: string;
+    backgroundStyle: string;
+  }> {
+    const response = await this.client.get(`/events/${slug}/theme`);
     return response.data;
   }
 

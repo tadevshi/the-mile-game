@@ -7,8 +7,8 @@ import { AdminPage } from '@features/admin';
 import { LoginPage, RegisterPage as AuthRegisterPage } from '@/features/auth';
 import { DashboardPage, CreateEventPage } from '@/features/dashboard';
 import { LandingPage } from '@/features/landing';
-import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
-import { ErrorBoundary, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
+import { ProtectedRoute, ErrorBoundary, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
+import { ThemeProvider } from '@/shared/theme';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { LegacyRedirect } from '@/shared/components/LegacyRedirect';
 import { InstallPromptBanner } from '@/shared/components/InstallPromptBanner';
@@ -479,9 +479,11 @@ function AppContent() {
 function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

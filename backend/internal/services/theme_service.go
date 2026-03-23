@@ -1,6 +1,9 @@
 package services
 
 import (
+	"fmt"
+
+	"github.com/google/uuid"
 	"github.com/the-mile-game/backend/internal/models"
 	"github.com/the-mile-game/backend/internal/repository"
 )
@@ -47,7 +50,7 @@ func (s *ThemeService) GetThemeBySlug(slug string) (*models.Theme, error) {
 	return s.GetThemeForEvent(event.ID.String())
 }
 
-// ApplyPresetToEvent applies a preset theme to an event
+// ApplyPreset applies a preset theme to an event
 func (s *ThemeService) ApplyPresetToEvent(eventID string, presetName string) (*models.Theme, error) {
 	// Get preset
 	preset, found := models.GetPresetByName(presetName)
@@ -80,7 +83,32 @@ func (s *ThemeService) ApplyPresetToEvent(eventID string, presetName string) (*m
 		return nil, err
 	}
 
+	// Also update event.settings.theme to store the preset name
+	// This allows the frontend to know which preset is applied via event.settings.theme
+	if err := s.updateEventThemeSetting(eventID, presetName); err != nil {
+		// Log but don't fail - the theme was saved successfully
+		fmt.Printf("Warning: failed to update event settings.theme: %v\n", err)
+	}
+
 	return theme, nil
+}
+
+// updateEventThemeSetting updates event.settings.theme with the preset name
+func (s *ThemeService) updateEventThemeSetting(eventID string, presetName string) error {
+	eventUUID, err := uuid.Parse(eventID)
+	if err != nil {
+		return err
+	}
+
+	event, err := s.eventRepo.GetByID(eventUUID)
+	if err != nil {
+		return err
+	}
+
+	// Update the Theme field in settings
+	event.Settings.Theme = presetName
+
+	return s.eventRepo.Update(event)
 }
 
 // UpdateTheme updates specific theme fields

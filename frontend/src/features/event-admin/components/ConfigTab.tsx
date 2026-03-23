@@ -1,19 +1,30 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, CheckCircle, Save, Share2, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Copy, CheckCircle, Save, Share2, Upload, Trash2, Image as ImageIcon, Eye } from 'lucide-react';
 import { Button } from '@/shared/components/Button';
 import { Switch } from '@/shared/components/Switch';
 import { useEventAdmin, type AdminTab } from '../hooks/useEventAdmin';
 import type { EventFeatures } from '@/shared/lib/api';
 import { api } from '@/shared/lib/api';
+import type { PreviewTheme } from '@/themes';
 
 interface ConfigTabProps {
   slug: string;
   currentTab: AdminTab;
+  previewTheme?: PreviewTheme;
 }
 
-export function ConfigTab({ slug }: ConfigTabProps) {
+export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
   const { event, refetchEvent } = useEventAdmin(slug);
+  
+  // Use preview theme colors or fallbacks
+  const theme = previewTheme || {
+    primaryColor: '#EC4899',
+    secondaryColor: '#FBCFE8',
+    accentColor: '#DB2777',
+    bgColor: '#FFF5F7',
+    textColor: '#1E293B',
+  };
   const [features, setFeatures] = useState<EventFeatures>({
     quiz: true,
     corkboard: true,
@@ -158,31 +169,53 @@ export function ConfigTab({ slug }: ConfigTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* Preview Banner - Shows when theme preview is active */}
+      {previewTheme && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-3 rounded-xl flex items-center gap-2"
+          style={{ 
+            backgroundColor: `${theme.primaryColor}15`,
+            border: `1px solid ${theme.primaryColor}30`
+          }}
+        >
+          <Eye className="w-4 h-4" style={{ color: theme.primaryColor }} />
+          <p className="text-sm" style={{ color: theme.textColor }}>
+            <span className="font-medium" style={{ color: theme.primaryColor }}>Vista previa activa:</span>{' '}
+            Así se verá tu evento con el tema seleccionado
+          </p>
+        </motion.div>
+      )}
+
       <div>
-        <h2 className="text-lg font-display text-gray-800 mb-1">
+        <h2 className="text-lg font-display mb-1" style={{ color: theme.textColor }}>
           Configuración General
         </h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm" style={{ color: `${theme.textColor}80` }}>
           {event?.name || slug}
         </p>
       </div>
 
       {event?.description && (
-        <div className="bg-pink-50/50 rounded-xl p-4 border border-pink-100">
-          <p className="text-sm text-gray-600">{event.description}</p>
+        <div className="rounded-xl p-4 border" style={{ 
+          backgroundColor: `${theme.secondaryColor}30`,
+          borderColor: `${theme.secondaryColor}50`
+        }}>
+          <p className="text-sm" style={{ color: theme.textColor }}>{event.description}</p>
         </div>
       )}
 
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+        <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: `${theme.textColor}80` }}>
           Características
         </h3>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-4 bg-pink-50/50 rounded-xl">
+          <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: `${theme.secondaryColor}30` }}>
             <div>
-              <p className="font-medium text-gray-800">Quiz</p>
-              <p className="text-sm text-gray-500">Trivia sobre la cumpleañera</p>
+              <p className="font-medium" style={{ color: theme.textColor }}>Quiz</p>
+              <p className="text-sm" style={{ color: `${theme.textColor}80` }}>Trivia sobre la cumpleañera</p>
             </div>
             <Switch
               checked={features.quiz}

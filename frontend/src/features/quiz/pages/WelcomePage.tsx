@@ -61,7 +61,7 @@ export function WelcomePage() {
               whileTap={{ scale: 0.95 }}
             >
               <img
-                src={currentEvent?.name ? `/princess_logo.png` : '/princess_logo.png'}
+                src={currentEvent?.settings?.logo_url || currentEvent?.name ? `/logo.png` : '/logo.png'}
                 alt={currentEvent?.name ?? 'Evento'}
                 className="w-full h-full object-cover"
                 loading="eager"

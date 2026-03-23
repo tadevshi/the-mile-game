@@ -115,6 +115,144 @@ export const THEME_PRESETS: ThemePresetData[] = [
     gradientFrom: 'from-green-400',
     gradientTo: 'to-emerald-500',
   },
+  // ============================================
+  // Phase 2: New Presets (Tareas 5-7)
+  // ============================================
+
+  /**
+   * Task 5: Ethereal Gala
+   * "The Digital Gala" - Sophisticated rose and blush tones
+   * Design: intentional asymmetry, tonal depth, glassmorphism
+   */
+  {
+    name: 'ethereal-gala',
+    label: 'Ethereal Gala',
+    primaryColor: '#b70049',
+    secondaryColor: '#ff7290',
+    accentColor: '#48223a',
+    bgColor: '#fff4f7',
+    textColor: '#48223a',
+    displayFont: 'Great Vibes',
+    headingFont: 'Playfair Display',
+    bodyFont: 'Montserrat',
+    backgroundStyle: 'watercolor',
+    gradientFrom: 'from-pink-600',
+    gradientTo: 'to-rose-400',
+  },
+
+  /**
+   * Task 6: Autumnal Vows
+   * "The Tactile Keepsake" - Earth tones: terracotta & sage
+   * Design: organic asymmetry, editorial warmth
+   */
+  {
+    name: 'autumnal-vows',
+    label: 'Autumnal Vows',
+    primaryColor: '#813a29',
+    secondaryColor: '#58624b',
+    accentColor: '#9f513e',
+    bgColor: '#fdf9f3',
+    textColor: '#1c1c18',
+    displayFont: 'Cormorant Garamond',
+    headingFont: 'Noto Serif',
+    bodyFont: 'Manrope',
+    backgroundStyle: 'minimal',
+    gradientFrom: 'from-amber-700',
+    gradientTo: 'to-orange-600',
+  },
+
+  /**
+   * Task 7: Kids Carnival
+   * "The Kinetic Playground" - Gold, lime, sky blue
+   * Design: high energy, whimsical, bouncy interactions
+   */
+  {
+    name: 'kids-carnival',
+    label: 'Kids Carnival',
+    primaryColor: '#705d00',
+    secondaryColor: '#cae6ff',
+    accentColor: '#bb0054',
+    bgColor: '#eeffdd',
+    textColor: '#092100',
+    displayFont: 'Fredoka One',
+    headingFont: 'Baloo 2',
+    bodyFont: 'Be Vietnam Pro',
+    backgroundStyle: 'party',
+    gradientFrom: 'from-yellow-600',
+    gradientTo: 'to-lime-400',
+  },
+
+  /**
+   * Task 9: Monolith Editorial
+   * "The Silent Authority" - B&W Brutalist
+   * Colores: black #09090B, grayscale
+   * Tipografía: Inter (todo)
+   * Border-radius: 0px (NONE)
+   * Estilo brutalist/minimalista
+   */
+  {
+    name: 'monolith-editorial',
+    label: 'Monolith Editorial',
+    primaryColor: '#FAFAFA',
+    secondaryColor: '#A1A1AA',
+    accentColor: '#71717A',
+    bgColor: '#09090B',
+    textColor: '#FAFAFA',
+    displayFont: 'Inter',
+    headingFont: 'Inter',
+    bodyFont: 'Inter',
+    backgroundStyle: 'minimal',
+    gradientFrom: 'from-zinc-800',
+    gradientTo: 'to-zinc-950',
+  },
+
+  /**
+   * Task 10: Nocturne Elegance
+   * "The Midnight Curator" - Dark/Gold
+   * Colores: dark #0C0A1D, gold #FACC15
+   * Tipografía: Cinzel, Playfair Display, Crimson Pro
+   * Dark mode por defecto
+   * Glassmorphism dorado
+   */
+  {
+    name: 'nocturne-elegance',
+    label: 'Nocturne Elegance',
+    primaryColor: '#FACC15',
+    secondaryColor: '#FBBF24',
+    accentColor: '#C084FC',
+    bgColor: '#0C0A1D',
+    textColor: '#FEF3C7',
+    displayFont: 'Cinzel',
+    headingFont: 'Playfair Display',
+    bodyFont: 'Crimson Pro',
+    backgroundStyle: 'dark',
+    gradientFrom: 'from-amber-500',
+    gradientTo: 'to-yellow-700',
+  },
+
+  /**
+   * Task 11: Executive Suite
+   * "The Digital Concierge" - Navy/Corporate
+   * Colores: navy #1E3A8A, emerald accents
+   * Tipografía: Raleway, Source Sans 3
+   * Estilo corporate/profesional
+   * Corner radius: 0.5rem default
+   */
+  {
+    name: 'executive-suite',
+    label: 'Executive Suite',
+    primaryColor: '#1E3A8A',
+    secondaryColor: '#0EA5E9',
+    accentColor: '#6366F1',
+    bgColor: '#F0F5FF',
+    textColor: '#1E293B',
+    displayFont: 'Montserrat',
+    headingFont: 'Raleway',
+    bodyFont: 'Source Sans 3',
+    backgroundStyle: 'minimal',
+    gradientFrom: 'from-blue-700',
+    gradientTo: 'to-sky-500',
+  },
 ];
 
 /**
@@ -130,3 +268,15 @@ export function getPresetByName(name: string): ThemePresetData | undefined {
 export function getDefaultPreset(): ThemePresetData {
   return THEME_PRESETS[0];
 }
+
+/**
+ * Task 8: Theme Presets Index
+ * Export all presets as a keyed object for easy lookup
+ */
+export const themePresets: Record<string, ThemePresetData> = THEME_PRESETS.reduce(
+  (acc, preset) => {
+    acc[preset.name] = preset;
+    return acc;
+  },
+  {} as Record<string, ThemePresetData>
+);

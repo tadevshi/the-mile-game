@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -54,6 +55,31 @@ func (h *EventHandler) GetUserEvents(c *gin.Context) {
 	c.JSON(http.StatusOK, events)
 }
 
+// generateSlug creates a URL-friendly slug from a name
+func generateSlug(name string) string {
+	// Convert to lowercase
+	slug := strings.ToLower(name)
+	// Replace spaces with hyphens
+	slug = strings.ReplaceAll(slug, " ", "-")
+	// Remove special characters (keep only alphanumeric and hyphens)
+	var result strings.Builder
+	for _, r := range slug {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+			result.WriteRune(r)
+		}
+	}
+	slug = result.String()
+	// Remove consecutive hyphens
+	for strings.Contains(slug, "--") {
+		slug = strings.ReplaceAll(slug, "--", "-")
+	}
+	// Trim hyphens from start and end
+	slug = strings.Trim(slug, "-")
+	// Add a short unique suffix
+	suffix := uuid.New().String()[:6]
+	return slug + "-" + suffix
+}
+
 // CreateEvent creates a new event for the authenticated user
 func (h *EventHandler) CreateEvent(c *gin.Context) {
 	// Get user_id from context (set by AuthMiddleware)
@@ -70,6 +96,13 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 		return
 	}
 
+	// Generate slug if not provided or empty
+	slug := req.Slug
+	if slug == nil || strings.TrimSpace(*slug) == "" {
+		generated := generateSlug(req.Name)
+		slug = &generated
+	}
+
 	// Create event
 	var startsAt, endsAt *time.Time
 	if req.StartsAt != nil {
@@ -83,7 +116,7 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 
 	event, err := h.eventRepo.Create(
 		userID.(uuid.UUID),
-		req.Slug,
+		*slug,
 		req.Name,
 		req.Description,
 		req.Features,

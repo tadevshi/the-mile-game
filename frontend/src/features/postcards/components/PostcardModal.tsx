@@ -8,9 +8,10 @@ import type { Postcard } from '../types/postcards.types';
 interface PostcardModalProps {
   postcard: Postcard | null;
   onClose: () => void;
+  eventLogoUrl?: string;
 }
 
-export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
+export function PostcardModal({ postcard, onClose, eventLogoUrl }: PostcardModalProps) {
   const postcardRef = useRef<HTMLDivElement>(null);
   const [imageError, setImageError] = useState(false);
 
@@ -89,7 +90,7 @@ export function PostcardModal({ postcard, onClose }: PostcardModalProps) {
                     />
                   ) : (
                     <img
-                      src={imageError ? '/princess_logo.png' : postcard.image_path}
+                      src={imageError ? (eventLogoUrl || '/logo.png') : postcard.image_path}
                       alt={`Postal de ${postcard.player_name}`}
                       className={`w-full h-auto max-h-[60vh] ${imageError ? 'object-contain p-8 opacity-50' : 'object-contain'}`}
                       onError={() => setImageError(true)}

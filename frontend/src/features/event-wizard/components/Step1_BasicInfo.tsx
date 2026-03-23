@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, AlertCircle } from 'lucide-react';
+import { Calendar, AlertCircle, RefreshCw, Globe } from 'lucide-react';
 import { useWizardStore } from '../store/wizardStore';
 import { api } from '@/shared/lib/api';
 
@@ -59,6 +59,12 @@ export function Step1_BasicInfo() {
     if (validationErrors[name]) {
       setValidationErrors({ ...validationErrors, [name]: '' });
     }
+  };
+
+  const handleRegenerateSlug = () => {
+    const generated = generateSlug(formData.name);
+    updateFormData({ slug: generated });
+    setValidationErrors({ ...validationErrors, slug: '' });
   };
 
   return (
@@ -145,6 +151,47 @@ export function Step1_BasicInfo() {
             className="w-full px-4 py-3 rounded-xl border-2 border-pink-100 focus:border-pink-300 bg-white/50 resize-none transition-all duration-200 focus:outline-none"
             placeholder="Una descripción breve de tu evento..."
           />
+        </div>
+
+        <div>
+          <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
+            URL del evento
+          </label>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                id="slug"
+                name="slug"
+                type="text"
+                value={formData.slug}
+                onChange={handleChange}
+                className={`w-full pl-10 pr-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${
+                  validationErrors.slug
+                    ? 'border-red-300 focus:border-red-400'
+                    : 'border-pink-200 focus:border-pink-400 bg-white/70'
+                }`}
+                placeholder="mi-evento-abc123"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleRegenerateSlug}
+              className="p-3 rounded-xl border-2 border-pink-200 hover:border-pink-400 hover:bg-pink-50 transition-all duration-200"
+              title="Generar nuevo URL"
+            >
+              <RefreshCw className="w-5 h-5 text-pink-500" />
+            </button>
+          </div>
+          {validationErrors.slug && (
+            <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {validationErrors.slug}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-gray-500">
+            URL pública de tu evento: <span className="font-mono text-pink-600">/e/{formData.slug || '...'}</span>
+          </p>
         </div>
       </div>
     </motion.div>

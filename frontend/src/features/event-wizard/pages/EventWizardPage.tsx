@@ -43,7 +43,7 @@ export function EventWizardPage() {
     try {
       const newEvent = await api.createEvent({
         name: formData.name,
-        slug: formData.slug,
+        slug: formData.slug || undefined,
         date: formData.date,
         description: formData.description,
         features: formData.features,

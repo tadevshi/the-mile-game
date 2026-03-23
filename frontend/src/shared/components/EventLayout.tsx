@@ -2,6 +2,7 @@ import { Outlet, useParams, useLocation, Link } from 'react-router-dom';
 import { useEventStore, useFeatureEnabled } from '@/shared/store/eventStore';
 import { Button } from '@/shared/components/Button';
 import { ThemeProvider } from '@/shared/theme';
+import { MobileBottomNav } from './MobileBottomNav';
 
 interface EventLayoutProps {
   children?: React.ReactNode;
@@ -12,7 +13,10 @@ interface EventLayoutProps {
  * 
  * NOTA: Este layout NO impone fondo, header ni estilos a las páginas hijas.
  * Cada página mantiene su diseño original (PageLayout con watercolor, etc.).
- * Solo proporciona una barra de navegación compacta en la parte superior.
+ * 
+ * Estrategia de navegación:
+ * - Mobile: Bottom navigation bar con iconos + labels (MobileBottomNav)
+ * - Desktop: Barra superior compacta con iconos
  */
 export function EventLayout({ children }: EventLayoutProps) {
   const { slug } = useParams<{ slug: string }>();
@@ -32,73 +36,80 @@ export function EventLayout({ children }: EventLayoutProps) {
   return (
     <ThemeProvider eventSlug={slug}>
       <div className="relative">
-      {/* Barra de navegación minimalista - z-50 para estar por encima del contenido */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-b border-pink-100/50 dark:border-slate-700/50">
-        <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-3">
-          <div className="flex items-center justify-between gap-2 sm:gap-4">
-            {/* Navegación izquierda */}
-            <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
-              <Link to="/">
-                <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:text-accent hover:border-accent px-2 sm:px-3 text-xs sm:text-sm">
-                  ←
-                </Button>
-              </Link>
-              
-              <div className="w-px h-4 bg-slate-200 mx-0.5 sm:mx-1" />
-              
-              {quizEnabled && (
-                <Link to={`/e/${slug}/quiz`}>
+        {/* Desktop Header - hidden on mobile, visible on md+ */}
+        <header className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-b border-pink-100/50 dark:border-slate-700/50">
+          <div className="max-w-4xl mx-auto px-4 py-3">
+            <div className="flex items-center justify-between gap-4">
+              {/* Navegación izquierda */}
+              <nav className="flex items-center gap-2">
+                <Link to="/">
                   <Button 
-                    variant={isQuiz ? 'primary' : 'outline'} 
-                    size="sm"
-                    className="whitespace-nowrap px-2 sm:px-3 text-xs sm:text-sm"
+                    variant="outline" 
+                    size="sm" 
+                    className="border-slate-300 text-slate-600 hover:text-accent hover:border-accent"
                   >
-                    🎯
+                    ←
                   </Button>
                 </Link>
-              )}
-              
-              <Link to={`/e/${slug}/ranking`}>
-                <Button 
-                  variant={isRanking ? 'primary' : 'outline'} 
-                  size="sm"
-                  className="whitespace-nowrap px-2 sm:px-3 text-xs sm:text-sm"
-                >
-                  🏆
-                </Button>
-              </Link>
-              
-              {corkboardEnabled && (
-                <Link to={`/e/${slug}/corkboard`}>
+                
+                <div className="w-px h-4 bg-slate-200 mx-1" />
+                
+                {quizEnabled && (
+                  <Link to={`/e/${slug}/quiz`}>
+                    <Button 
+                      variant={isQuiz ? 'primary' : 'outline'} 
+                      size="sm"
+                      className="whitespace-nowrap"
+                    >
+                      🎯 Quiz
+                    </Button>
+                  </Link>
+                )}
+                
+                <Link to={`/e/${slug}/ranking`}>
                   <Button 
-                    variant={isCorkboard ? 'primary' : 'outline'} 
+                    variant={isRanking ? 'primary' : 'outline'} 
                     size="sm"
-                    className="whitespace-nowrap px-2 sm:px-3 text-xs sm:text-sm"
+                    className="whitespace-nowrap"
                   >
-                    📌
+                    🏆 Ranking
                   </Button>
                 </Link>
-              )}
-            </nav>
+                
+                {corkboardEnabled && (
+                  <Link to={`/e/${slug}/corkboard`}>
+                    <Button 
+                      variant={isCorkboard ? 'primary' : 'outline'} 
+                      size="sm"
+                      className="whitespace-nowrap"
+                    >
+                      📌 Cartelera
+                    </Button>
+                  </Link>
+                )}
+              </nav>
 
-            {/* Título del evento (truncado) */}
-            {currentEvent?.name && (
-              <span className="hidden md:block text-sm font-serif text-slate-500 truncate max-w-[150px] lg:max-w-[200px]">
-                {currentEvent.name}
-              </span>
-            )}
+              {/* Título del evento (truncado) */}
+              {currentEvent?.name && (
+                <span className="text-sm font-serif text-slate-500 truncate max-w-[200px]">
+                  {currentEvent.name}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Spacer para compensar la barra fija */}
-      <div className="h-12 sm:h-14" />
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav slug={slug} />
 
-      {/* Main Content - sin wrapper adicional, las páginas manejan su propio layout */}
-      <main>
-        {children || <Outlet context={{ event: currentEvent }} />}
-      </main>
-    </div>
+        {/* Spacer para compensar la barra fija (desktop) */}
+        <div className="hidden md:block h-14" />
+
+        {/* Main Content - sin wrapper adicional, las páginas manejan su propio layout */}
+        <main className="pb-20 md:pb-0">
+          {children || <Outlet context={{ event: currentEvent }} />}
+        </main>
+      </div>
     </ThemeProvider>
   );
 }

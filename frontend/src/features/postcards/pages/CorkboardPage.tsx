@@ -10,6 +10,7 @@ import { StampLayer } from '../components/StampLayer';
 import { GiftBox } from '../components/GiftBox';
 import { Button, LottieAnimation } from '@/shared';
 import { useCorkboardCapture } from '../hooks/useCorkboardCapture';
+import { useTheme } from '@/shared/theme/useTheme';
 import type { Postcard } from '../types/postcards.types';
 import { api } from '@/shared/lib/api';
 import { useParams } from 'react-router-dom';
@@ -24,6 +25,7 @@ export function CorkboardPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useEventNavigate();
   const [searchParams] = useSearchParams();
+  const { currentTheme: theme } = useTheme();
   const {
     postcards,
     isLoading,
@@ -33,6 +35,10 @@ export function CorkboardPage() {
     createPostcard,
     addRevealedPostcards,
   } = usePostcards();
+  
+  // Theme colors for dynamic styling
+  const primaryColor = theme.primaryColor;
+  const textColor = theme.textColor;
   
   // Event data for custom background and logo
   const [eventLogoUrl, setEventLogoUrl] = useState<string | undefined>();
@@ -111,7 +117,12 @@ export function CorkboardPage() {
       {/* Botón guardar recuerdo — arriba a la derecha */}
       <div data-export-hide="true" className="fixed top-4 right-4 z-40">
         <motion.button
-          className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 text-sm font-medium shadow-lg border border-gray-200 cursor-pointer disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-2 rounded-full backdrop-blur-sm text-sm font-medium shadow-lg border cursor-pointer disabled:opacity-50"
+          style={{ 
+            backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+            color: textColor,
+            borderColor: 'rgba(0, 0, 0, 0.1)'
+          }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={downloadCorkboard}
@@ -128,7 +139,8 @@ export function CorkboardPage() {
         <AnimatePresence>
           {captureError && (
             <motion.p
-              className="mt-2 px-3 py-2 rounded-lg bg-red-500/90 text-white text-xs text-center shadow-lg max-w-[200px]"
+              className="mt-2 px-3 py-2 rounded-lg text-white text-xs text-center shadow-lg max-w-[200px]"
+              style={{ backgroundColor: '#EF4444' }}
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -236,6 +248,7 @@ export function CorkboardPage() {
                   postcard={postcard}
                   onSelect={setSelectedPostcard}
                   eventLogoUrl={eventLogoUrl}
+                  theme={theme}
                 />
               </motion.div>
             ))}
@@ -246,7 +259,11 @@ export function CorkboardPage() {
       {/* FAB — Agregar postal (visible para todos, con o sin quiz) */}
       <motion.button
         data-export-hide="true"
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-accent text-white shadow-xl shadow-accent/30 flex items-center justify-center text-2xl cursor-pointer border-2 border-white/20"
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center text-2xl cursor-pointer border-2 border-white/20"
+        style={{ 
+          backgroundColor: primaryColor,
+          boxShadow: `0 10px 15px -3px ${primaryColor}30`
+        }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsAddOpen(true)}
@@ -269,7 +286,12 @@ export function CorkboardPage() {
             variant="outline"
             size="sm"
             onClick={() => navigate('/')}
-            className="!bg-white/90 backdrop-blur-sm !border-gray-300 !text-gray-700 !shadow-lg"
+            className="backdrop-blur-sm shadow-lg"
+            style={{ 
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              borderColor: 'rgba(0, 0, 0, 0.1)',
+              color: textColor
+            }}
           >
             ← Volver
           </Button>

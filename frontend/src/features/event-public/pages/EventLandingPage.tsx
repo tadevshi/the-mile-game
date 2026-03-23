@@ -10,7 +10,7 @@ function EventLandingContent() {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const quizEnabled = useFeatureEnabled('quiz');
   const corkboardEnabled = useFeatureEnabled('corkboard');
-  const { theme } = useTheme();
+  const { currentTheme: theme } = useTheme();
 
   // Generate theme-based gradient background style
   const bgStyle = {

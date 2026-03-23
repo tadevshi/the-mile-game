@@ -39,6 +39,11 @@ export function EventLoader({ children, fallback, useLandingSkeleton }: EventLoa
         // Transform backend response to match our Event type.
         // Backend sends snake_case (secret_box), frontend uses camelCase (secretBox).
         const rawFeatures = event.features as unknown as Record<string, boolean>;
+        
+        // Extract themeId from settings.theme (backend stores preset name there when a preset is applied)
+        // The backend now updates event.settings.theme when ApplyPreset is called
+        const themeIdFromSettings = event.settings?.theme || undefined;
+        
         const transformedEvent: Event = {
           id: event.id,
           slug: event.slug,
@@ -46,13 +51,14 @@ export function EventLoader({ children, fallback, useLandingSkeleton }: EventLoa
           description: event.description,
           date: event.date,
           ownerId: event.owner_id,
-          themeId: event.theme_id,
+          themeId: themeIdFromSettings,
           features: {
             quiz: rawFeatures.quiz ?? false,
             corkboard: rawFeatures.corkboard ?? false,
             secretBox: rawFeatures.secret_box ?? rawFeatures.secretBox ?? false,
           },
           isActive: event.is_active,
+          settings: event.settings,
         };
         
         setEvent(transformedEvent);

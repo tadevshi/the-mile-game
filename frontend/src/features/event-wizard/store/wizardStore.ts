@@ -98,12 +98,13 @@ export function validateStep(step: number, formData: WizardFormData): Record<str
     if (!formData.date) {
       errors.date = 'La fecha del evento es requerida';
     }
-    if (!formData.slug.trim()) {
-      errors.slug = 'El URL del evento es requerido';
-    } else if (formData.slug.length < 3) {
-      errors.slug = 'El URL debe tener al menos 3 caracteres';
-    } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-      errors.slug = 'Solo letras minúsculas, números y guiones';
+    // Slug is optional - if provided, validate format
+    if (formData.slug.trim()) {
+      if (formData.slug.length < 3) {
+        errors.slug = 'El URL debe tener al menos 3 caracteres';
+      } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
+        errors.slug = 'Solo letras minúsculas, números y guiones';
+      }
     }
   }
 

@@ -85,7 +85,7 @@ func (d *DateOnly) UnmarshalJSON(data []byte) error {
 
 // CreateEventRequest body para crear evento
 type CreateEventRequest struct {
-	Slug        string        `json:"slug" binding:"required"`
+	Slug        *string       `json:"slug"` // Opcional - si está vacío se autogenera
 	Name        string        `json:"name" binding:"required"`
 	Description string        `json:"description"`
 	Features    EventFeatures `json:"features"`

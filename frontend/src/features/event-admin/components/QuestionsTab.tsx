@@ -4,13 +4,28 @@ import { MessageSquare, AlertTriangle, ArrowRight, Info, Star, Brain, Edit3 } fr
 import { useEventAdmin } from '../hooks/useEventAdmin';
 import { Button } from '@/shared/components/Button';
 import { Skeleton } from '@/shared/components/Skeleton';
+import type { PreviewTheme } from '@/themes';
 
 interface QuestionsTabProps {
   slug: string;
+  previewTheme?: PreviewTheme;
 }
 
-export function QuestionsTab({ slug }: QuestionsTabProps) {
+export function QuestionsTab({ slug, previewTheme }: QuestionsTabProps) {
   const { event, questions, isLoadingQuestions } = useEventAdmin(slug);
+
+  // Use preview theme colors or fallbacks
+  const theme: PreviewTheme = previewTheme || {
+    primaryColor: '#EC4899',
+    secondaryColor: '#FBCFE8',
+    accentColor: '#DB2777',
+    bgColor: '#FFF5F7',
+    textColor: '#1E293B',
+    displayFont: 'Great Vibes',
+    headingFont: 'Playfair Display',
+    bodyFont: 'Montserrat',
+    backgroundStyle: 'watercolor',
+  };
 
   const favoriteCount = questions.filter((q) => q.section === 'favorites').length;
   const prefCount = questions.filter((q) => q.section === 'preferences').length;
@@ -23,10 +38,10 @@ export function QuestionsTab({ slug }: QuestionsTabProps) {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-lg font-display text-gray-800 mb-1">
+          <h2 className="text-lg font-display mb-1" style={{ color: theme.textColor }}>
             Preguntas del Quiz
           </h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm" style={{ color: `${theme.textColor}80` }}>
             {isLoadingQuestions
               ? 'Cargando...'
               : `${questions.length} pregunta${questions.length !== 1 ? 's' : ''}`}
@@ -45,7 +60,7 @@ export function QuestionsTab({ slug }: QuestionsTabProps) {
             </Link>
           )
         ) : (
-            <span className="text-xs text-gray-400 flex items-center gap-1">
+            <span className="text-xs flex items-center gap-1" style={{ color: `${theme.textColor}50` }}>
               <Info className="w-3 h-3" />
               Quiz deshabilitado
             </span>
@@ -56,14 +71,18 @@ export function QuestionsTab({ slug }: QuestionsTabProps) {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl"
+          className="flex items-start gap-3 p-4 rounded-xl"
+          style={{ 
+            backgroundColor: `${theme.primaryColor}15`,
+            border: `1px solid ${theme.primaryColor}30`
+          }}
         >
-          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: theme.primaryColor }} />
           <div>
-            <p className="text-sm font-medium text-amber-800">
+            <p className="text-sm font-medium" style={{ color: theme.textColor }}>
               Habilitaste Quiz pero no hay preguntas
             </p>
-            <p className="text-xs text-amber-700 mt-0.5">
+            <p className="text-xs mt-0.5" style={{ color: `${theme.textColor}80` }}>
               Agregá preguntas al quiz para que funcione correctamente.
             </p>
           </div>
@@ -73,49 +92,49 @@ export function QuestionsTab({ slug }: QuestionsTabProps) {
       {isLoadingQuestions ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white/60 rounded-xl p-4">
+            <div key={i} className="rounded-xl p-4" style={{ backgroundColor: `${theme.secondaryColor}30` }}>
               <Skeleton height="16px" width="60%" className="mb-2" />
               <Skeleton height="12px" width="40%" />
             </div>
           ))}
         </div>
       ) : questions.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">
+        <div className="text-center py-8" style={{ color: `${theme.textColor}50` }}>
           <MessageSquare className="w-10 h-10 mx-auto mb-2 opacity-50" />
           <p>No hay preguntas configuradas</p>
         </div>
       ) : (
         <div className="space-y-3">
           {favoriteCount > 0 && (
-            <div className="bg-white/60 rounded-xl p-4 flex items-center justify-between">
+            <div className="rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: `${theme.secondaryColor}30` }}>
               <div>
-                <p className="font-medium text-gray-800 flex items-center gap-2">
-                  <Star className="w-4 h-4 text-yellow-500" />
+                <p className="font-medium flex items-center gap-2" style={{ color: theme.textColor }}>
+                  <Star className="w-4 h-4" style={{ color: theme.primaryColor }} />
                   Favoritos
                 </p>
-                <p className="text-sm text-gray-500">{favoriteCount} preguntas</p>
+                <p className="text-sm" style={{ color: `${theme.textColor}80` }}>{favoriteCount} preguntas</p>
               </div>
             </div>
           )}
           {prefCount > 0 && (
-            <div className="bg-white/60 rounded-xl p-4 flex items-center justify-between">
+            <div className="rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: `${theme.secondaryColor}30` }}>
               <div>
-                <p className="font-medium text-gray-800 flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-purple-500" />
+                <p className="font-medium flex items-center gap-2" style={{ color: theme.textColor }}>
+                  <Brain className="w-4 h-4" style={{ color: theme.accentColor }} />
                   Preferencias
                 </p>
-                <p className="text-sm text-gray-500">{prefCount} preguntas</p>
+                <p className="text-sm" style={{ color: `${theme.textColor}80` }}>{prefCount} preguntas</p>
               </div>
             </div>
           )}
           {descCount > 0 && (
-            <div className="bg-white/60 rounded-xl p-4 flex items-center justify-between">
+            <div className="rounded-xl p-4 flex items-center justify-between" style={{ backgroundColor: `${theme.secondaryColor}30` }}>
               <div>
-                <p className="font-medium text-gray-800 flex items-center gap-2">
-                  <Edit3 className="w-4 h-4 text-pink-500" />
+                <p className="font-medium flex items-center gap-2" style={{ color: theme.textColor }}>
+                  <Edit3 className="w-4 h-4" style={{ color: theme.primaryColor }} />
                   Descripción
                 </p>
-                <p className="text-sm text-gray-500">{descCount} preguntas</p>
+                <p className="text-sm" style={{ color: `${theme.textColor}80` }}>{descCount} preguntas</p>
               </div>
             </div>
           )}
@@ -123,7 +142,14 @@ export function QuestionsTab({ slug }: QuestionsTabProps) {
       )}
 
       <Link to={`/admin/${slug}/questions`} className="block">
-        <Button variant="primary" fullWidth className="bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-200">
+        <Button 
+          variant="primary" 
+          fullWidth 
+          style={{ 
+            backgroundColor: theme.primaryColor,
+            boxShadow: `0 4px 14px ${theme.primaryColor}30`
+          }}
+        >
           Gestionar Preguntas
         </Button>
       </Link>
