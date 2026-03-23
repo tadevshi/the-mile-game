@@ -88,7 +88,7 @@ Returns all available theme presets.
 #### Update Theme
 
 ```http
-PUT /api/admin/events/:id/theme
+PUT /api/admin/events/:slug/theme
 ```
 
 Updates the theme for an event. Creates a new theme if one doesn't exist.
@@ -126,7 +126,7 @@ Updates the theme for an event. Creates a new theme if one doesn't exist.
 #### Apply Preset
 
 ```http
-POST /api/admin/events/:id/theme/preset
+POST /api/admin/events/:slug/theme/preset
 ```
 
 Applies a predefined theme preset to an event.

@@ -482,10 +482,7 @@ POST /api/auth/logout     # Logout and revoke refresh token
 ```
 GET  /api/users/me/events   # Get authenticated user's events
 POST /api/events            # Create new event
-GET  /api/events/:id        # Get event details
-GET  /api/events/by-slug/:slug  # Get event by slug
-PUT  /api/events/:id        # Update event
-DELETE /api/events/:id     # Delete event
+GET  /api/events/:slug      # Get event by slug
 GET  /api/themes/presets    # Get available theme presets
 ```
 
@@ -523,6 +520,10 @@ POST /api/postcards/secret    # Create secret postcard (multipart: media OR imag
 
 ### Admin Secret Box
 
+```
+GET  /api/admin/events/:slug/secret-box      # List secret postcards (auth: event owner)
+POST /api/admin/events/:slug/reveal           # Reveal Secret Box (auth: event owner)
+GET  /api/admin/events/:slug/secret-box-status  # Secret Box status
 ```
 GET  /api/events/:slug/admin/secret-box      # List secret postcards (auth: event owner)
 POST /api/events/:slug/admin/reveal           # Reveal Secret Box (auth: event owner)
