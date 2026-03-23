@@ -13,6 +13,7 @@ import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { LegacyRedirect } from '@/shared/components/LegacyRedirect';
 import { InstallPromptBanner } from '@/shared/components/InstallPromptBanner';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { MobileMenu } from '@/shared/components/MobileMenu';
 import type { ReactNode } from 'react';
 
 import { EventWizardPage } from '@/features/event-wizard';
@@ -459,10 +460,15 @@ function AppContent() {
     <>
       {/* Only show theme/language controls on non-public routes */}
       {!isPublicRoute && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-          <LanguageSwitcher />
-          <ThemeToggle />
-        </div>
+        <>
+          {/* Mobile: menú desplegable */}
+          <MobileMenu />
+          {/* Desktop: toggles visibles directamente (MobileMenu retorna null en desktop) */}
+          <div className="hidden md:flex fixed top-4 right-4 z-50 items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
+        </>
       )}
       <AnimatedRoutes />
       <InstallPromptBanner />

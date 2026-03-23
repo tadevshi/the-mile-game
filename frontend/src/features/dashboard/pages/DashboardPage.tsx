@@ -34,14 +34,14 @@ export function DashboardPage() {
       {/* Header */}
       <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-pink-100 dark:border-slate-700 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Avatar */}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center text-white font-semibold text-lg">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <div>
-              <p className="font-medium text-gray-800 dark:text-white">{user?.name || 'Usuario'}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
+            <div className="min-w-0">
+              <p className="font-medium text-gray-800 dark:text-white truncate">{user?.name || 'Usuario'}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
             </div>
           </div>
 

@@ -8,6 +8,7 @@ export interface Event {
   description?: string;
   date?: string;
   ownerId?: string;
+  themeId?: string;
   features: EventFeatures;
   isActive: boolean;
 }

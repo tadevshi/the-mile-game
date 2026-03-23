@@ -51,11 +51,11 @@ function ProgressBarMinimal({ current, total }: { current: number; total: number
 }
 
 // Empty state cuando no hay preguntas configuradas
-function NoQuestionsState() {
+function NoQuestionsState({ themeId }: { themeId?: string }) {
   const navigate = useEventNavigate();
 
   return (
-    <PageLayout background="butterfly-animated" showSparkles={false}>
+    <PageLayout background="butterfly-animated" showSparkles={false} themeId={themeId}>
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center min-h-[70vh]">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
@@ -169,7 +169,7 @@ export function QuizPage() {
   // Si las preguntas están cargando, mostrar loading
   if (loadingQuestions) {
     return (
-      <PageLayout background="butterfly-animated" showSparkles={false}>
+      <PageLayout background="butterfly-animated" showSparkles={false} themeId={currentEvent?.themeId}>
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
           <div className="animate-pulse flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-primary/20" />
@@ -184,7 +184,7 @@ export function QuizPage() {
 
   // Si no hay preguntas, mostrar estado vacío
   if (questions.length === 0) {
-    return <NoQuestionsState />;
+    return <NoQuestionsState themeId={currentEvent?.themeId} />;
   }
 
   // Separar preguntas por sección
@@ -194,7 +194,7 @@ export function QuizPage() {
   const totalQuestions = favoriteQuestions.length + preferenceQuestions.length + (questions.some((q) => q.section === 'description') ? 1 : 0);
 
   return (
-    <PageLayout background="butterfly-animated" showSparkles={false}>
+    <PageLayout background="butterfly-animated" showSparkles={false} themeId={currentEvent?.themeId}>
       {/* Progress bar minimalista sticky */}
       <ProgressBarMinimal current={progress.current} total={totalQuestions || 1} />
 

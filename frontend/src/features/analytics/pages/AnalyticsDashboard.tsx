@@ -38,7 +38,7 @@ export function AnalyticsDashboard({ eventSlug, eventName }: AnalyticsDashboardP
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           title="Participantes"
           value={summary?.total_participants ?? 0}
@@ -49,7 +49,7 @@ export function AnalyticsDashboard({ eventSlug, eventName }: AnalyticsDashboardP
         <StatCard
           title="Quiz Completados"
           value={summary?.quiz_completed ?? 0}
-          subtitle={`${summary?.quiz_completion_rate ?? 0}% del total`}
+          subtitle={`${summary?.quiz_completion_rate ?? 0}%`}
           icon="✅"
           color="green"
           loading={summaryLoading}
@@ -57,7 +57,7 @@ export function AnalyticsDashboard({ eventSlug, eventName }: AnalyticsDashboardP
         <StatCard
           title="Score Promedio"
           value={summary?.avg_score ? `${summary.avg_score.toFixed(1)}%` : '-'}
-          subtitle={summary?.min_score !== undefined ? `Rango: ${summary.min_score}-${summary.max_score}%` : ''}
+          subtitle={summary?.min_score !== undefined ? `${summary.min_score}-${summary.max_score}` : ''}
           icon="🏆"
           color="purple"
           loading={summaryLoading}
@@ -65,7 +65,7 @@ export function AnalyticsDashboard({ eventSlug, eventName }: AnalyticsDashboardP
         <StatCard
           title="Postales"
           value={summary?.total_postcards ?? 0}
-          subtitle={`${summary?.postcards_viewed ?? 0} vistas`}
+          subtitle={`${summary?.postcards_viewed ?? 0}`}
           icon="💌"
           color="blue"
           loading={summaryLoading}
@@ -73,30 +73,30 @@ export function AnalyticsDashboard({ eventSlug, eventName }: AnalyticsDashboardP
       </div>
 
       {/* Additional Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          title="Visitas Totales"
+          title="Visitas"
           value={summary?.total_page_views ?? 0}
           icon="👁️"
           color="blue"
           loading={summaryLoading}
         />
         <StatCard
-          title="Visitantes Únicos"
+          title="Visitantes"
           value={summary?.unique_visitors ?? 0}
           icon="🧑"
           color="purple"
           loading={summaryLoading}
         />
         <StatCard
-          title="Tiempo Promedio"
+          title="Tiempo"
           value={formatTime(summary?.avg_time_spent_seconds)}
           icon="⏱️"
           color="green"
           loading={summaryLoading}
         />
         <StatCard
-          title="Quiz Iniciados"
+          title="Quiz"
           value={summary?.quiz_started ?? 0}
           icon="▶️"
           color="pink"

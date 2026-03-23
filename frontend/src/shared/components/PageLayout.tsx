@@ -6,6 +6,8 @@ interface PageLayoutProps {
   background?: 'watercolor' | 'butterfly' | 'butterfly-animated' | 'none';
   showSparkles?: boolean;
   className?: string;
+  /** Theme ID del evento para validar si mostrar animaciones condicionales */
+  themeId?: string;
 }
 
 export function PageLayout({
@@ -13,6 +15,7 @@ export function PageLayout({
   background = 'watercolor',
   showSparkles = true,
   className = '',
+  themeId,
 }: PageLayoutProps) {
   const bgClasses = {
     watercolor: 'watercolor-bg',
@@ -21,10 +24,13 @@ export function PageLayout({
     none: '',
   };
 
+  // Solo mostrar蝴蝶Background si el tema es 'princess'
+  const showButterflyAnimation = background === 'butterfly-animated' && themeId === 'princess';
+
   return (
     <div className="relative h-full min-h-full bg-background-light dark:bg-background-dark overflow-x-hidden flex flex-col">
-      {/* Fondo animado con mariposas */}
-      {background === 'butterfly-animated' && <ButterflyBackground />}
+      {/* Fondo animado con mariposas - solo para tema princess */}
+      {showButterflyAnimation && <ButterflyBackground />}
 
       {/* Fondo decorativo CSS (legacy) */}
       {background !== 'none' && background !== 'butterfly-animated' && (

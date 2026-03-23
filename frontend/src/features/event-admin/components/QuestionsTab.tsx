@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MessageSquare, AlertTriangle, ArrowRight, Info } from 'lucide-react';
+import { MessageSquare, AlertTriangle, ArrowRight, Info, Star, Brain, Edit3 } from 'lucide-react';
 import { useEventAdmin } from '../hooks/useEventAdmin';
 import { Button } from '@/shared/components/Button';
 import { Skeleton } from '@/shared/components/Skeleton';
@@ -89,7 +89,10 @@ export function QuestionsTab({ slug }: QuestionsTabProps) {
           {favoriteCount > 0 && (
             <div className="bg-white/60 rounded-xl p-4 flex items-center justify-between">
               <div>
-                <p className="font-medium text-gray-800">⭐ Favoritos</p>
+                <p className="font-medium text-gray-800 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  Favoritos
+                </p>
                 <p className="text-sm text-gray-500">{favoriteCount} preguntas</p>
               </div>
             </div>
@@ -97,7 +100,10 @@ export function QuestionsTab({ slug }: QuestionsTabProps) {
           {prefCount > 0 && (
             <div className="bg-white/60 rounded-xl p-4 flex items-center justify-between">
               <div>
-                <p className="font-medium text-gray-800">🤔 Preferencias</p>
+                <p className="font-medium text-gray-800 flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-purple-500" />
+                  Preferencias
+                </p>
                 <p className="text-sm text-gray-500">{prefCount} preguntas</p>
               </div>
             </div>
@@ -105,7 +111,10 @@ export function QuestionsTab({ slug }: QuestionsTabProps) {
           {descCount > 0 && (
             <div className="bg-white/60 rounded-xl p-4 flex items-center justify-between">
               <div>
-                <p className="font-medium text-gray-800">✍️ Descripción</p>
+                <p className="font-medium text-gray-800 flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-pink-500" />
+                  Descripción
+                </p>
                 <p className="text-sm text-gray-500">{descCount} preguntas</p>
               </div>
             </div>

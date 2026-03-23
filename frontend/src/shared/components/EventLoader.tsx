@@ -46,6 +46,7 @@ export function EventLoader({ children, fallback, useLandingSkeleton }: EventLoa
           description: event.description,
           date: event.date,
           ownerId: event.owner_id,
+          themeId: event.theme_id,
           features: {
             quiz: rawFeatures.quiz ?? false,
             corkboard: rawFeatures.corkboard ?? false,

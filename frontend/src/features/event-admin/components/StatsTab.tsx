@@ -17,27 +17,27 @@ interface StatCardProps {
 function StatCard({ icon, label, value, color, loading }: StatCardProps) {
   if (loading) {
     return (
-      <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-pink-100">
-        <div className="flex items-center gap-3 mb-3">
-          <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center`}>
-            <Skeleton width="20px" height="20px" />
+      <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-pink-100">
+        <div className="flex items-center gap-2 mb-2">
+          <div className={`w-9 h-9 rounded-lg ${color} flex items-center justify-center shrink-0`}>
+            <Skeleton width="18px" height="18px" />
           </div>
-          <Skeleton height="14px" width="60%" />
+          <Skeleton height="12px" width="70%" />
         </div>
-        <Skeleton height="32px" width="50%" />
+        <Skeleton height="28px" width="40%" />
       </div>
     );
   }
 
   return (
-    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-5 border border-pink-100">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center`}>
+    <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-pink-100">
+      <div className="flex items-center gap-2 mb-2">
+        <div className={`w-9 h-9 rounded-lg ${color} flex items-center justify-center shrink-0`}>
           {icon}
         </div>
-        <span className="text-sm font-medium text-gray-500">{label}</span>
+        <span className="text-xs font-medium text-gray-500 truncate">{label}</span>
       </div>
-      <p className="text-3xl font-bold text-gray-800">{value}</p>
+      <p className="text-2xl font-bold text-gray-800 leading-tight">{value}</p>
     </div>
   );
 }

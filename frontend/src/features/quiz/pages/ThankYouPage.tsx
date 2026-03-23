@@ -96,7 +96,7 @@ export function ThankYouPage() {
   };
 
   return (
-    <PageLayout background="butterfly-animated" showSparkles={false}>
+    <PageLayout background="butterfly-animated" showSparkles={false} themeId={currentEvent?.themeId}>
       {/* Efecto confetti basado en puntaje */}
       <ConfettiEffect score={score} isActive={hasCompleted} />
       
