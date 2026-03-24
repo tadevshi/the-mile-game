@@ -171,8 +171,8 @@ export function CorkboardPage() {
         </motion.p>
       </div>
 
-      {/* Contenido principal */}
-      <div className="relative z-10 px-4 pb-28 pointer-events-none">
+      {/* Contenido principal - pb-36 en mobile para no quedar tapado por el FAB y bottom nav */}
+      <div className="relative z-10 px-4 pb-36 md:pb-28 pointer-events-none">
         {/* Estado: cargando */}
         {isLoading && postcards.length === 0 && (
           <div className="flex justify-center items-center py-20">
@@ -259,7 +259,7 @@ export function CorkboardPage() {
       {/* FAB — Agregar postal (visible para todos, con o sin quiz) */}
       <motion.button
         data-export-hide="true"
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center text-2xl cursor-pointer border-2 border-white/20"
+        className="fixed md:bottom-6 bottom-24 right-6 z-40 w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center text-2xl cursor-pointer border-2 border-white/20"
         style={{ 
           backgroundColor: primaryColor,
           boxShadow: `0 10px 15px -3px ${primaryColor}30`
@@ -276,7 +276,7 @@ export function CorkboardPage() {
       </motion.button>
 
       {/* Botón volver — abajo izquierda */}
-      <div data-export-hide="true" className="fixed bottom-6 left-6 z-40">
+      <div data-export-hide="true" className="fixed md:bottom-6 bottom-24 left-6 z-40">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -286,12 +286,7 @@ export function CorkboardPage() {
             variant="outline"
             size="sm"
             onClick={() => navigate('/')}
-            className="backdrop-blur-sm shadow-lg"
-            style={{ 
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              borderColor: 'rgba(0, 0, 0, 0.1)',
-              color: textColor
-            }}
+            className="backdrop-blur-sm shadow-lg bg-white/90"
           >
             ← Volver
           </Button>

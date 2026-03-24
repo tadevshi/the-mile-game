@@ -88,18 +88,15 @@ function loadGoogleFont(fontName: string): void {
  * Cargar todas las Google Fonts del tema
  */
 function loadThemeFonts(displayFont: string, headingFont: string, bodyFont: string): void {
-  // Load fonts that are not the defaults (Great Vibes, Playfair Display, Montserrat)
-  const defaultFonts = ['Great Vibes', 'Playfair Display', 'Montserrat'];
+  // Always load all theme fonts - the loadGoogleFont function
+  // already skips fonts that are already loaded (by link ID)
+  const fonts = [displayFont, headingFont, bodyFont].filter(Boolean);
   
-  if (displayFont && !defaultFonts.includes(displayFont)) {
-    loadGoogleFont(displayFont);
-  }
-  if (headingFont && !defaultFonts.includes(headingFont)) {
-    loadGoogleFont(headingFont);
-  }
-  if (bodyFont && !defaultFonts.includes(bodyFont)) {
-    loadGoogleFont(bodyFont);
-  }
+  fonts.forEach(font => {
+    if (font) {
+      loadGoogleFont(font);
+    }
+  });
 }
 
 /**

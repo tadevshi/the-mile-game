@@ -7,6 +7,7 @@ import { useEventAdmin, type AdminTab } from '../hooks/useEventAdmin';
 import type { EventFeatures } from '@/shared/lib/api';
 import { api } from '@/shared/lib/api';
 import type { PreviewTheme } from '@/themes';
+import { useTheme } from '@/shared/theme/useTheme';
 
 interface ConfigTabProps {
   slug: string;
@@ -16,15 +17,10 @@ interface ConfigTabProps {
 
 export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
   const { event, refetchEvent } = useEventAdmin(slug);
+  const { currentTheme } = useTheme();
   
-  // Use preview theme colors or fallbacks
-  const theme = previewTheme || {
-    primaryColor: '#EC4899',
-    secondaryColor: '#FBCFE8',
-    accentColor: '#DB2777',
-    bgColor: '#FFF5F7',
-    textColor: '#1E293B',
-  };
+  // Use preview theme colors if provided, otherwise use the event's current theme
+  const theme = previewTheme || currentTheme;
   const [features, setFeatures] = useState<EventFeatures>({
     quiz: true,
     corkboard: true,
@@ -390,13 +386,20 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
       )}
 
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+        <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: `${theme.textColor}80` }}>
           Enlaces
         </h3>
 
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-pink-50 rounded-xl px-4 py-3 text-sm text-gray-600 truncate font-mono">
+            <div 
+              className="flex-1 rounded-xl px-4 py-3 text-sm truncate font-mono"
+              style={{ 
+                backgroundColor: `${theme.primaryColor}15`,
+                color: theme.textColor,
+                border: `1px solid ${theme.primaryColor}30`
+              }}
+            >
               {eventUrl}
             </div>
             <Button
@@ -410,7 +413,14 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-purple-50 rounded-xl px-4 py-3 text-sm text-gray-600 truncate font-mono">
+            <div 
+              className="flex-1 rounded-xl px-4 py-3 text-sm truncate font-mono"
+              style={{ 
+                backgroundColor: `${theme.secondaryColor}30`,
+                color: theme.textColor,
+                border: `1px solid ${theme.secondaryColor}50`
+              }}
+            >
               {adminUrl}
             </div>
             <Button
@@ -452,7 +462,10 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
         isLoading={isSaving}
         fullWidth
         icon={<Save className="w-4 h-4" />}
-        className="bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-200"
+        style={{
+          background: `linear-gradient(135deg, ${theme.primaryColor}, ${theme.accentColor})`,
+          boxShadow: `0 10px 15px -3px ${theme.primaryColor}40`,
+        }}
       >
         Guardar Cambios
       </Button>

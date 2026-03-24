@@ -30,8 +30,8 @@ export function ThemeTab({ slug, onPreview, onSave, previewTheme }: ThemeTabProp
     textColor: '#1E293B',
   };
 
-  // Get current theme_id from event
-  const currentThemeId = event?.theme_id || null;
+  // Get current theme from event settings (backend stores preset name in settings.theme)
+  const currentThemeId = event?.settings?.theme || null;
 
   // Map theme_id to preset name (theme_id equals the preset key like "princess", "elegant", etc.)
   const getPresetByThemeId = (themeId: string | null | undefined): string | null => {
@@ -100,6 +100,30 @@ export function ThemeTab({ slug, onPreview, onSave, previewTheme }: ThemeTabProp
           Personalizá los colores y tipografías de tu evento
         </p>
       </div>
+
+      {/* Active Theme Indicator */}
+      {event?.settings?.theme && (
+        <div 
+          className="p-3 rounded-xl flex items-center gap-3"
+          style={{ 
+            backgroundColor: `${theme.primaryColor}15`,
+            border: `1px solid ${theme.primaryColor}30`
+          }}
+        >
+          <div 
+            className="w-8 h-8 rounded-full flex-shrink-0" 
+            style={{ backgroundColor: theme.primaryColor }}
+          />
+          <div>
+            <p className="text-sm font-medium" style={{ color: theme.textColor }}>
+              Tema activo
+            </p>
+            <p className="text-xs" style={{ color: `${theme.textColor}80` }}>
+              {event.settings.theme}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Preview message */}
       {previewing && (

@@ -65,8 +65,10 @@ export function EventAdminPage() {
 
   // Initialize preview theme from event data when it loads
   useEffect(() => {
-    if (event?.theme_id) {
-      const preset = getPresetByName(event.theme_id);
+    // Theme is stored in settings.theme (backend stores preset name there when applied)
+    const themeIdFromSettings = event?.settings?.theme;
+    if (themeIdFromSettings) {
+      const preset = getPresetByName(themeIdFromSettings);
       if (preset) {
         const themeFromPreset: PreviewTheme = {
           primaryColor: preset.primaryColor,
@@ -83,7 +85,7 @@ export function EventAdminPage() {
         applyThemeToCSS(themeFromPreset);
       }
     }
-  }, [event?.theme_id, applyThemeToCSS]);
+  }, [event?.settings?.theme, applyThemeToCSS]);
 
   // Cleanup CSS variables when leaving admin page
   useEffect(() => {
@@ -192,26 +194,44 @@ export function EventAdminPage() {
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="flex-1 min-w-0">
-              {isLoadingEvent ? (
-                <>
-                  <Skeleton height="20px" width="160px" className="mb-1" />
-                  <Skeleton height="12px" width="100px" />
-                </>
-              ) : (
-                <>
-                  <h1 
-                    className="font-display text-xl truncate"
-                    style={{ color: previewTheme.textColor }}
-                  >
-                    {event?.name || slug}
-                  </h1>
-                  <p className="text-xs" style={{ color: `${previewTheme.textColor}80` }}>
-                    Panel de administración
-                  </p>
-                </>
-              )}
-            </div>
+              <div className="flex-1 min-w-0">
+                {isLoadingEvent ? (
+                  <>
+                    <Skeleton height="20px" width="160px" className="mb-1" />
+                    <Skeleton height="12px" width="100px" />
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <h1 
+                        className="font-display text-xl truncate"
+                        style={{ color: previewTheme.textColor }}
+                      >
+                        {event?.name || slug}
+                      </h1>
+                      {/* Active Theme Badge */}
+                      {event?.settings?.theme && (
+                        <span 
+                          className="px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1"
+                          style={{ 
+                            backgroundColor: `${previewTheme.primaryColor}20`,
+                            color: previewTheme.primaryColor 
+                          }}
+                        >
+                          <div 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: previewTheme.primaryColor }}
+                          />
+                          {event.settings.theme}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs" style={{ color: `${previewTheme.textColor}80` }}>
+                      Panel de administración
+                    </p>
+                  </>
+                )}
+              </div>
           </div>
         </div>
       </header>

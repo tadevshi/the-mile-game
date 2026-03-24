@@ -406,25 +406,23 @@ export function adjustColor(hex: string, percent: number): string {
 
 /**
  * Get contrasting color (black or white) for text on colored background
- * Uses WCAG 2.1 relative luminance formula for accurate contrast calculation
+ * Uses WCAG 2.1 relative luminance formula
  * 
- * Returns #1E293B (dark) for light backgrounds, #FFFFFF (light) for dark backgrounds.
- * The threshold of ~0.18 is where black-on-color and white-on-color contrast ratios
- * cross, ensuring optimal readability for all color values.
+ * Returns #1E293B (dark) for light backgrounds (luminance > 0.5),
+ * #FFFFFF (light) for dark backgrounds (luminance <= 0.5).
+ * 
+ * WCAG AA requires 4.5:1 contrast ratio for normal text.
+ * WCAG AAA requires 7:1 for normal text.
  */
 export function getContrastColor(hex: string): string {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
   const g = parseInt(hex.slice(3, 5), 16) / 255;
   const b = parseInt(hex.slice(5, 7), 16) / 255;
 
-  // WCAG 2.1 relative luminance formula with gamma correction
-  const toLinear = (c: number) =>
-    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  // WCAG relative luminance formula
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
-  const luminance =
-    0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-
-  // Threshold ~0.18 is the crossover point where black-on-color contrast
-  // equals white-on-color contrast. Above this, black text reads better.
-  return luminance > 0.179 ? '#1E293B' : '#FFFFFF';
+  // Threshold 0.5: above this, background is considered "light" → use dark text
+  // Below this, background is "dark" → use light text
+  return luminance > 0.5 ? '#1E293B' : '#FFFFFF';
 }

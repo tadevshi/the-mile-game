@@ -35,7 +35,7 @@ export function EventLayout({ children }: EventLayoutProps) {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="border-slate-300 text-slate-600 hover:text-pink-600 hover:border-pink-300"
+                    className="border-pink-300 text-pink-700 hover:text-pink-600 hover:border-pink-400"
                   >
                     ← Inicio
                   </Button>
