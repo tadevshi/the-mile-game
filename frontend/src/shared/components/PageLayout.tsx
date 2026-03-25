@@ -1,34 +1,61 @@
 import type { ReactNode } from 'react';
 import { ButterflyBackground } from './ButterflyBackground';
+import { useTheme } from '@/shared/theme/useTheme';
 
 interface PageLayoutProps {
   children: ReactNode;
-  background?: 'watercolor' | 'butterfly' | 'butterfly-animated' | 'none';
+  /** Override background style. If not provided, uses theme.backgroundStyle */
+  background?: 'watercolor' | 'butterfly' | 'butterfly-animated' | 'none' | 'theme';
   showSparkles?: boolean;
   className?: string;
+  /** @deprecated Theme ID - kept for backwards compatibility but not used */
+  themeId?: string;
 }
 
 export function PageLayout({
   children,
-  background = 'watercolor',
+  background = 'theme',
   showSparkles = true,
   className = '',
+  themeId: _themeId, // eslint-disable-line @typescript-eslint/no-unused-vars
 }: PageLayoutProps) {
-  const bgClasses = {
-    watercolor: 'watercolor-bg',
-    butterfly: 'butterfly-bg',
-    'butterfly-animated': '',
-    none: '',
+  const { currentTheme: theme } = useTheme();
+  
+  // Determine background class based on prop or theme
+  const getBackgroundClass = (): string => {
+    if (background === 'none' || background === 'butterfly-animated') {
+      return '';
+    }
+    if (background === 'theme') {
+      return `theme-${theme.backgroundStyle || 'watercolor'}`;
+    }
+    const bgClasses: Record<string, string> = {
+      watercolor: 'watercolor-bg',
+      butterfly: 'butterfly-bg',
+    };
+    return bgClasses[background] || `theme-${theme.backgroundStyle || 'watercolor'}`;
   };
 
-  return (
-    <div className="relative h-full min-h-full bg-background-light dark:bg-background-dark overflow-x-hidden flex flex-col">
-      {/* Fondo animado con mariposas */}
-      {background === 'butterfly-animated' && <ButterflyBackground />}
+  // Solo mostrar蝴蝶Background si background es butterfly-animated
+  // No condicionar a un tema específico - el background style ya lo determina
+  const showButterflyAnimation = background === 'butterfly-animated';
 
-      {/* Fondo decorativo CSS (legacy) */}
+  // Get background color from theme
+  const bgStyle = background === 'none' 
+    ? {} 
+    : { backgroundColor: theme.bgColor };
+
+  return (
+    <div 
+      className="relative h-full min-h-full overflow-x-hidden flex flex-col"
+      style={bgStyle}
+    >
+      {/* Fondo animado con mariposas - solo para tema princess */}
+      {showButterflyAnimation && <ButterflyBackground />}
+
+      {/* Fondo decorativo CSS */}
       {background !== 'none' && background !== 'butterfly-animated' && (
-        <div className={`absolute inset-0 ${bgClasses[background]} pointer-events-none`} />
+        <div className={`absolute inset-0 ${getBackgroundClass()} pointer-events-none`} />
       )}
 
       {/* Sparkles decorativos adicionales */}

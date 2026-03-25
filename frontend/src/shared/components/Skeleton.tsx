@@ -17,10 +17,10 @@ export function Skeleton({
 }: SkeletonProps) {
   return (
     <motion.div
-      className={`bg-pink-200/50 dark:bg-slate-700/50 relative overflow-hidden ${
+      className={`dark:bg-slate-700/50 relative overflow-hidden ${
         circle ? 'rounded-full' : 'rounded-lg'
       } ${className}`}
-      style={{ width, height }}
+      style={{ width, height, backgroundColor: 'color-mix(in srgb, var(--color-primary) 30%, transparent)' }}
       initial={{ opacity: 0.5 }}
       animate={{ opacity: [0.5, 0.8, 0.5] }}
       transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}

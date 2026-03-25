@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance, type AxiosError } from 'axios';
+import axios, { type AxiosInstance, type AxiosError, type AxiosRequestConfig } from 'axios';
 import type { Postcard, SecretBoxStatus } from '@features/postcards/types/postcards.types';
 import type { QuizQuestion, CreateQuestionRequest, UpdateQuestionRequest, ReorderUpdate } from '@features/admin/types/questions.types';
 import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, User } from '@features/auth/types/auth.types';
@@ -40,6 +40,14 @@ export interface EventFeatures {
   secretBox: boolean;
 }
 
+export interface EventSettings {
+  theme?: string;
+  primary_color?: string;
+  background_image?: string;
+  logo_url?: string;       // URL del logo/imagen representativa
+  background_url?: string; // URL del fondo custom del corkboard
+}
+
 export interface Event {
   id: string;
   slug: string;
@@ -50,25 +58,30 @@ export interface Event {
   theme_id?: string;
   features: EventFeatures;
   is_active: boolean;
+  settings?: EventSettings;  // Ajustado: los campos están anidados en settings
 }
 
 // Cliente API
 const PLAYER_ID_KEY = 'mile-game-player-id';
+const PLAYER_EVENT_KEY = 'mile-game-player-event'; // Guardar el eventSlug del player
 
 class ApiClient {
   private client: AxiosInstance;
   private playerId: string | null = null;
+  private playerEventSlug: string | null = null; // Evento al que pertenece el player
 
   constructor() {
     // URL del backend (desde variables de entorno o default)
     const baseURL = import.meta.env.VITE_API_URL || '/api';
 
-    // Recuperar playerId de localStorage (sobrevive refresh/memory pressure)
+    // Recuperar playerId y playerEventSlug de localStorage (sobrevive refresh/memory pressure)
     try {
       this.playerId = localStorage.getItem(PLAYER_ID_KEY);
+      this.playerEventSlug = localStorage.getItem(PLAYER_EVENT_KEY);
     } catch {
       // localStorage puede no estar disponible (incognito, etc.)
       this.playerId = null;
+      this.playerEventSlug = null;
     }
 
     this.client = axios.create({
@@ -96,19 +109,58 @@ class ApiClient {
       (error) => Promise.reject(error)
     );
 
-    // Response interceptor - handle 401
+    // Response interceptor - handle 401 with token refresh
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
-        // If 401, clear auth and redirect to login
+        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean; headers?: Record<string, string> };
+        
+        // If 401 and haven't tried refresh yet, try to refresh token
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          
+          try {
+            const refreshToken = localStorage.getItem('auth-refresh');
+            if (refreshToken) {
+              console.log('Token expired, attempting refresh...');
+              const tokens = await this.refreshToken(refreshToken);
+              
+              // Store new tokens
+              localStorage.setItem('auth-token', tokens.accessToken);
+              localStorage.setItem('auth-refresh', tokens.refreshToken);
+              
+              // Retry original request with new token
+              if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
+              }
+              return this.client(originalRequest);
+            }
+          } catch (refreshError) {
+            console.warn('Token refresh failed, redirecting to login...');
+            // Refresh failed, clear auth and redirect
+            try {
+              localStorage.removeItem('auth-token');
+              localStorage.removeItem('auth-refresh');
+              localStorage.removeItem('auth-user');
+            } catch {
+              // localStorage unavailable
+            }
+            // Use replace to avoid history stack buildup
+            window.location.replace('/login');
+            return Promise.reject(refreshError);
+          }
+        }
+        
+        // If 401 and already retried or no refresh token, clear auth
         if (error.response?.status === 401) {
           try {
             localStorage.removeItem('auth-token');
+            localStorage.removeItem('auth-refresh');
             localStorage.removeItem('auth-user');
           } catch {
             // localStorage unavailable
           }
-          window.location.href = '/login';
+          window.location.replace('/login');
         }
         return Promise.reject(error);
       }
@@ -129,10 +181,15 @@ class ApiClient {
   }
 
   // Guardar player ID para requests posteriores (persiste en localStorage)
-  setPlayerId(id: string) {
+  setPlayerId(id: string, eventSlug?: string) {
     this.playerId = id;
     try {
       localStorage.setItem(PLAYER_ID_KEY, id);
+      // También guardar el eventSlug del player si se provee
+      if (eventSlug) {
+        this.playerEventSlug = eventSlug;
+        localStorage.setItem(PLAYER_EVENT_KEY, eventSlug);
+      }
     } catch {
       // Silently fail if localStorage is unavailable
     }
@@ -142,10 +199,21 @@ class ApiClient {
     return this.playerId;
   }
 
+  getPlayerEventSlug(): string | null {
+    return this.playerEventSlug;
+  }
+
+  // Verificar si el player actual pertenece al evento dado
+  isPlayerForEvent(eventSlug: string): boolean {
+    return this.playerEventSlug === eventSlug && this.playerId !== null;
+  }
+
   clearPlayerId() {
     this.playerId = null;
+    this.playerEventSlug = null;
     try {
       localStorage.removeItem(PLAYER_ID_KEY);
+      localStorage.removeItem(PLAYER_EVENT_KEY);
     } catch {
       // Silently fail if localStorage is unavailable
     }
@@ -361,7 +429,7 @@ class ApiClient {
   // Create a new event
   async createEvent(data: {
     name: string;
-    slug: string;
+    slug?: string;
     date?: string;
     description?: string;
     features?: EventFeatures;
@@ -369,9 +437,13 @@ class ApiClient {
     // Transform camelCase to snake_case for backend compatibility
     const payload: Record<string, unknown> = {
       name: data.name,
-      slug: data.slug,
       description: data.description || '',
     };
+    
+    // Only include slug if provided (backend will auto-generate if empty)
+    if (data.slug) {
+      payload.slug = data.slug;
+    }
     
     if (data.date) {
       payload.starts_at = data.date;
@@ -394,14 +466,38 @@ class ApiClient {
     return response.data;
   }
 
+  // Get theme for an event
+  async getEventTheme(slug: string): Promise<{
+    id: string;
+    eventId: string;
+    primaryColor: string;
+    secondaryColor: string;
+    accentColor: string;
+    bgColor: string;
+    textColor: string;
+    displayFont: string;
+    headingFont: string;
+    bodyFont: string;
+    backgroundStyle: string;
+  }> {
+    const response = await this.client.get(`/events/${slug}/theme`);
+    return response.data;
+  }
+
   // Create player scoped to an event
   async createPlayerScoped(eventSlug: string, data: CreatePlayerRequest): Promise<Player> {
     const response = await this.client.post<Player>(`/events/${eventSlug}/players`, data);
-    this.setPlayerId(response.data.id);
+    this.setPlayerId(response.data.id, eventSlug);
     return response.data;
   }
 
   // Submit quiz for a specific event
+  // Get quiz questions for a specific event (player-facing, no correct_answers)
+  async getQuizQuestionsScoped(eventSlug: string): Promise<{ questions: QuizQuestion[] }> {
+    const response = await this.client.get<{ questions: QuizQuestion[] }>(`/events/${eventSlug}/quiz/questions`);
+    return response.data;
+  }
+
   async submitQuizScoped(eventSlug: string, data: SubmitQuizRequest): Promise<SubmitQuizResponse> {
     if (!this.playerId) {
       throw new Error('No player ID set. Call createPlayer first.');
@@ -506,6 +602,42 @@ class ApiClient {
     const response = await this.client.put<Event>(
       `/admin/events/${eventSlug}/features`,
       { features: snakeFeatures }
+    );
+    return response.data;
+  }
+
+  // Upload event media (logo or background image)
+  async uploadEventMedia(eventSlug: string, type: 'logo' | 'background', file: File): Promise<{ type: string; url: string; event: Event }> {
+    const formData = new FormData();
+    formData.append('type', type);
+    formData.append('file', file);
+
+    const response = await this.client.post<{ type: string; url: string; event: Event }>(
+      `/admin/events/${eventSlug}/media`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000,
+      }
+    );
+    return response.data;
+  }
+
+  // Delete event media (logo or background image)
+  async deleteEventMedia(eventSlug: string, type: 'logo' | 'background'): Promise<{ type: string; event: Event }> {
+    const formData = new FormData();
+    formData.append('type', type);
+
+    const response = await this.client.delete<{ type: string; event: Event }>(
+      `/admin/events/${eventSlug}/media`,
+      {
+        data: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
     );
     return response.data;
   }

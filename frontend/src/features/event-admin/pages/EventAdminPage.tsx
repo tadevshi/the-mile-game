@@ -1,6 +1,7 @@
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Settings, MessageSquare, Palette, BarChart3, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Settings, MessageSquare, Palette, BarChart3, TrendingUp, Eye } from 'lucide-react';
 import { useEventAdmin, type AdminTab } from '../hooks/useEventAdmin';
 import { ConfigTab } from '../components/ConfigTab';
 import { QuestionsTab } from '../components/QuestionsTab';
@@ -8,6 +9,9 @@ import { ThemeTab } from '../components/ThemeTab';
 import { StatsTab } from '../components/StatsTab';
 import { AnalyticsDashboard } from '@/features/analytics/pages/AnalyticsDashboard';
 import { Skeleton } from '@/shared/components/Skeleton';
+import { api } from '@/shared/lib/api';
+import { getPresetByName } from '@/shared/theme';
+import type { PreviewTheme } from '@/themes';
 
 const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
   { id: 'config', label: 'Config', icon: <Settings className="w-4 h-4" /> },
@@ -17,34 +21,136 @@ const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
   { id: 'analytics', label: 'Analytics', icon: <TrendingUp className="w-4 h-4" /> },
 ];
 
+// Admin preview theme state - allows immediate preview of theme changes
+const defaultAdminTheme: PreviewTheme = {
+  primaryColor: '#EC4899',
+  secondaryColor: '#FBCFE8',
+  accentColor: '#DB2777',
+  bgColor: '#FFF5F7',
+  textColor: '#1E293B',
+  displayFont: 'Great Vibes',
+  headingFont: 'Playfair Display',
+  bodyFont: 'Montserrat',
+  backgroundStyle: 'watercolor',
+};
+
 export function EventAdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const params = useParams<{ slug: string }>();
   const slug = params.slug ?? '';
   const tabParam = searchParams.get('tab') as AdminTab | null;
+  
+  // Preview theme state - allows immediate theme preview without saving
+  const [previewTheme, setPreviewTheme] = useState<PreviewTheme>(defaultAdminTheme);
+  const [showPreviewBadge, setShowPreviewBadge] = useState(false);
 
   const currentTab: AdminTab = TABS.find((t) => t.id === tabParam)?.id ?? 'config';
 
-  const { event, isLoadingEvent, errorEvent } = useEventAdmin(slug);
+  const { event, isLoadingEvent, errorEvent, refetchEvent } = useEventAdmin(slug);
+
+  // Apply theme to CSS variables for preview
+  const applyThemeToCSS = useCallback((theme: PreviewTheme) => {
+    const root = document.documentElement;
+    root.style.setProperty('--color-primary', theme.primaryColor);
+    root.style.setProperty('--color-secondary', theme.secondaryColor);
+    root.style.setProperty('--color-accent', theme.accentColor);
+    root.style.setProperty('--color-bg', theme.bgColor);
+    root.style.setProperty('--color-text', theme.textColor);
+    root.style.setProperty('--font-display', `'${theme.displayFont}', cursive`);
+    root.style.setProperty('--font-heading', `'${theme.headingFont}', serif`);
+    root.style.setProperty('--font-body', `'${theme.bodyFont}', sans-serif`);
+    document.body.className = `theme-${theme.backgroundStyle}`;
+  }, []);
+
+  // Initialize preview theme from event data when it loads
+  useEffect(() => {
+    // Theme is stored in settings.theme (backend stores preset name there when applied)
+    const themeIdFromSettings = event?.settings?.theme;
+    if (themeIdFromSettings) {
+      const preset = getPresetByName(themeIdFromSettings);
+      if (preset) {
+        const themeFromPreset: PreviewTheme = {
+          primaryColor: preset.primaryColor,
+          secondaryColor: preset.secondaryColor,
+          accentColor: preset.accentColor,
+          bgColor: preset.bgColor,
+          textColor: preset.textColor,
+          displayFont: preset.displayFont,
+          headingFont: preset.headingFont,
+          bodyFont: preset.bodyFont,
+          backgroundStyle: preset.backgroundStyle,
+        };
+        setPreviewTheme(themeFromPreset);
+        applyThemeToCSS(themeFromPreset);
+      }
+    }
+  }, [event?.settings?.theme, applyThemeToCSS]);
+
+  // Cleanup CSS variables when leaving admin page
+  useEffect(() => {
+    return () => {
+      const root = document.documentElement;
+      root.style.removeProperty('--color-primary');
+      root.style.removeProperty('--color-secondary');
+      root.style.removeProperty('--color-accent');
+      root.style.removeProperty('--color-bg');
+      root.style.removeProperty('--color-text');
+      root.style.removeProperty('--font-display');
+      root.style.removeProperty('--font-heading');
+      root.style.removeProperty('--font-body');
+      document.body.className = '';
+    };
+  }, []);
 
   const handleTabChange = (tab: AdminTab) => {
     setSearchParams({ tab });
   };
 
   const handleBack = () => {
+    // Reset CSS variables before leaving
+    const root = document.documentElement;
+    root.style.removeProperty('--color-primary');
+    root.style.removeProperty('--color-secondary');
+    root.style.removeProperty('--color-accent');
+    root.style.removeProperty('--color-bg');
+    root.style.removeProperty('--color-text');
+    root.style.removeProperty('--font-display');
+    root.style.removeProperty('--font-heading');
+    root.style.removeProperty('--font-body');
+    document.body.className = '';
     navigate('/dashboard');
   };
 
+  // Callback to update preview theme from child components (ThemeTab)
+  const handleThemePreview = useCallback((theme: PreviewTheme) => {
+    setPreviewTheme(theme);
+    applyThemeToCSS(theme);
+    setShowPreviewBadge(true);
+    setTimeout(() => setShowPreviewBadge(false), 3000);
+  }, [applyThemeToCSS]);
+
+  // Callback to save the theme permanently
+  const handleThemeSave = useCallback(async (themeName: string) => {
+    try {
+      await api.post(`/admin/events/${slug}/theme/preset`, { preset: themeName });
+      await refetchEvent();
+      setShowPreviewBadge(false);
+    } catch (err) {
+      console.error('Failed to save theme:', err);
+    }
+  }, [slug, refetchEvent]);
+
   if (errorEvent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: previewTheme.bgColor }}>
         <div className="text-center">
           <p className="text-red-500 mb-2">Error al cargar el evento</p>
           <p className="text-gray-500 text-sm">{String(errorEvent)}</p>
           <button
             onClick={handleBack}
-            className="mt-4 px-4 py-2 bg-pink-500 text-white rounded-lg"
+            className="mt-4 px-4 py-2 rounded-lg text-white"
+            style={{ backgroundColor: previewTheme.primaryColor }}
           >
             Volver al dashboard
           </button>
@@ -54,31 +160,78 @@ export function EventAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-10">
+    <div className="min-h-screen" style={{ backgroundColor: previewTheme.bgColor }}>
+      {/* Preview Badge */}
+      {showPreviewBadge && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full shadow-lg flex items-center gap-2"
+          style={{ 
+            backgroundColor: previewTheme.primaryColor, 
+            color: '#FFFFFF' 
+          }}
+        >
+          <Eye className="w-4 h-4" />
+          <span className="text-sm font-medium">Vista previa activa</span>
+        </motion.div>
+      )}
+
+      <header 
+        className="backdrop-blur-sm border-b sticky top-0 z-10"
+        style={{ 
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          borderColor: `${previewTheme.secondaryColor}50`
+        }}
+      >
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             <button
               onClick={handleBack}
-              className="p-2 rounded-lg hover:bg-pink-50 transition-colors"
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: previewTheme.textColor }}
             >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="flex-1 min-w-0">
-              {isLoadingEvent ? (
-                <>
-                  <Skeleton height="20px" width="160px" className="mb-1" />
-                  <Skeleton height="12px" width="100px" />
-                </>
-              ) : (
-                <>
-                  <h1 className="font-display text-xl text-gray-800 truncate">
-                    {event?.name || slug}
-                  </h1>
-                  <p className="text-xs text-gray-500">Panel de administración</p>
-                </>
-              )}
-            </div>
+              <div className="flex-1 min-w-0">
+                {isLoadingEvent ? (
+                  <>
+                    <Skeleton height="20px" width="160px" className="mb-1" />
+                    <Skeleton height="12px" width="100px" />
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <h1 
+                        className="font-display text-xl truncate"
+                        style={{ color: previewTheme.textColor }}
+                      >
+                        {event?.name || slug}
+                      </h1>
+                      {/* Active Theme Badge */}
+                      {event?.settings?.theme && (
+                        <span 
+                          className="px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1"
+                          style={{ 
+                            backgroundColor: `${previewTheme.primaryColor}20`,
+                            color: previewTheme.primaryColor 
+                          }}
+                        >
+                          <div 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: previewTheme.primaryColor }}
+                          />
+                          {event.settings.theme}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs" style={{ color: `${previewTheme.textColor}80` }}>
+                      Panel de administración
+                    </p>
+                  </>
+                )}
+              </div>
           </div>
         </div>
       </header>
@@ -87,9 +240,16 @@ export function EventAdminPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-6"
+          className="backdrop-blur-sm rounded-3xl shadow-xl border p-6"
+          style={{ 
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            borderColor: 'rgba(255, 255, 255, 0.5)'
+          }}
         >
-          <nav className="flex gap-1 mb-6 bg-pink-50/50 p-1 rounded-xl">
+          <nav 
+            className="flex gap-1 mb-6 p-1 rounded-xl"
+            style={{ backgroundColor: `${previewTheme.secondaryColor}30` }}
+          >
             {TABS.map((tab) => {
               const isActive = currentTab === tab.id;
               return (
@@ -98,11 +258,12 @@ export function EventAdminPage() {
                   onClick={() => handleTabChange(tab.id)}
                   className={`
                     flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all duration-200
-                    ${isActive
-                      ? 'bg-white text-pink-600 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                    }
+                    ${isActive ? 'shadow-sm' : ''}
                   `}
+                  style={{ 
+                    backgroundColor: isActive ? '#FFFFFF' : 'transparent',
+                    color: isActive ? previewTheme.primaryColor : `${previewTheme.textColor}80`
+                  }}
                 >
                   {tab.icon}
                   <span className="hidden sm:inline">{tab.label}</span>
@@ -117,10 +278,33 @@ export function EventAdminPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
           >
-          {currentTab === 'config' && <ConfigTab slug={slug} currentTab={currentTab} />}
-          {currentTab === 'questions' && <QuestionsTab slug={slug} />}
-          {currentTab === 'theme' && <ThemeTab slug={slug} />}
-          {currentTab === 'stats' && <StatsTab slug={slug} />}
+          {currentTab === 'config' && (
+            <ConfigTab 
+              slug={slug} 
+              currentTab={currentTab}
+              previewTheme={previewTheme}
+            />
+          )}
+          {currentTab === 'questions' && (
+            <QuestionsTab 
+              slug={slug} 
+              previewTheme={previewTheme}
+            />
+          )}
+          {currentTab === 'theme' && (
+            <ThemeTab 
+              slug={slug} 
+              onPreview={handleThemePreview}
+              onSave={handleThemeSave}
+              previewTheme={previewTheme}
+            />
+          )}
+          {currentTab === 'stats' && (
+            <StatsTab 
+              slug={slug} 
+              previewTheme={previewTheme}
+            />
+          )}
           {currentTab === 'analytics' && <AnalyticsDashboard eventSlug={slug} />}
           </motion.div>
         </motion.div>

@@ -15,7 +15,9 @@ export function LanguageSwitcher({ className = '' }: LanguageSwitcherProps) {
   const currentLang = languages.find((l) => l.code === i18n.language) || languages[0];
 
   const handleChange = (langCode: string) => {
-    i18n.changeLanguage(langCode);
+    i18n.changeLanguage(langCode).catch(err => {
+      console.error(`Failed to change language to ${langCode}:`, err);
+    });
   };
 
   return (
@@ -28,8 +30,8 @@ export function LanguageSwitcher({ className = '' }: LanguageSwitcherProps) {
             px-2 py-1 rounded-full text-xs font-medium transition-all
             ${
               lang.code === currentLang.code
-                ? 'bg-pink-100 text-pink-600'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                : 'bg-[var(--color-surface)]/50 text-[var(--color-on-surface-muted)] hover:bg-[var(--color-surface)]'
             }
           `}
           aria-label={`Switch to ${lang.label}`}

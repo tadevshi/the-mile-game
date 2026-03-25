@@ -39,10 +39,7 @@ See [Authentication](AUTH.md) for details on obtaining tokens.
 |--------|----------|-------------|------|
 | GET | `/users/me/events` | Get user's events | Yes |
 | POST | `/events` | Create new event | Yes |
-| GET | `/events/:id` | Get event by ID | Yes |
-| GET | `/events/by-slug/:slug` | Get event by slug | No |
-| PUT | `/events/:id` | Update event | Yes (Owner) |
-| DELETE | `/events/:id` | Delete event | Yes (Owner) |
+| GET | `/events/:slug` | Get event by slug | No |
 | POST | `/events/:slug/page-view` | Track page view | No |
 
 ### Players
@@ -75,9 +72,9 @@ See [Authentication](AUTH.md) for details on obtaining tokens.
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | GET | `/themes/presets` | List theme presets | No |
-| GET | `/events/by-slug/:slug/theme` | Get event theme | No |
-| PUT | `/admin/events/:id/theme` | Update theme | Yes (Owner) |
-| POST | `/admin/events/:id/theme/preset` | Apply preset | Yes (Owner) |
+| GET | `/events/:slug/theme` | Get event theme | No |
+| PUT | `/admin/events/:slug/theme` | Update theme | Yes (Owner) |
+| POST | `/admin/events/:slug/theme/preset` | Apply preset | Yes (Owner) |
 
 ### Admin Secret Box
 | Method | Endpoint | Description | Auth |

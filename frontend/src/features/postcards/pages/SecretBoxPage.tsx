@@ -123,7 +123,7 @@ export function SecretBoxPage() {
           >
             <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden">
               {/* Header */}
-              <div className="bg-gradient-to-r from-pink-400 to-pink-500 px-6 pt-8 pb-6 text-center">
+              <div className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] px-6 pt-8 pb-6 text-center">
                 <motion.p
                   className="text-4xl mb-2"
                   animate={{ rotate: [0, -10, 10, -10, 0] }}
@@ -188,7 +188,7 @@ export function SecretBoxPage() {
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full aspect-[4/3] rounded-xl border-2 border-dashed border-pink-300 bg-pink-50/50 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors hover:border-pink-400 hover:bg-pink-50"
+                      className="w-full aspect-[4/3] rounded-xl border-2 border-dashed border-pink-300 bg-pink-50/50 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors hover:border-pink-400 hover:bg-pink-50" style={{ borderColor: 'var(--color-secondary)', backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}
                     >
                       <span className="text-4xl">📸</span>
                       <span className="text-sm text-gray-500 font-medium">
@@ -275,7 +275,7 @@ export function SecretBoxPage() {
                 Mile va a ver tu mensaje cuando abra la Secret Box en su fiesta.
                 ¡Va a ser una sorpresa hermosa! 🩷
               </p>
-              <div className="bg-pink-50 rounded-2xl p-4">
+              <div className="bg-pink-50 rounded-2xl p-4" style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}>
                 <p className="text-xs text-gray-500">
                   Tu postal está guardada de forma segura y quedará oculta hasta el momento del reveal. ✨
                 </p>

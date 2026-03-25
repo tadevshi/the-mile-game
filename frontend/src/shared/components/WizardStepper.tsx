@@ -24,7 +24,7 @@ export function WizardStepper({ steps, currentStep, className = '' }: WizardStep
                 animate={{
                   scale: isCurrent ? 1.1 : 1,
                   backgroundColor: isCompleted || isCurrent 
-                    ? '#EC4899' // pink-500
+                    ? 'var(--color-primary)' 
                     : '#E5E7EB', // gray-200
                 }}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
@@ -42,11 +42,12 @@ export function WizardStepper({ steps, currentStep, className = '' }: WizardStep
               <span
                 className={`mt-1 text-xs font-medium whitespace-nowrap ${
                   isCurrent
-                    ? 'text-pink-600 dark:text-pink-400'
+                    ? ''
                     : isCompleted
                     ? 'text-gray-600 dark:text-gray-300'
                     : 'text-gray-400 dark:text-gray-500'
                 }`}
+                style={{ color: isCurrent ? 'var(--color-primary)' : undefined }}
               >
                 {step}
               </span>
@@ -58,7 +59,7 @@ export function WizardStepper({ steps, currentStep, className = '' }: WizardStep
                 initial={false}
                 animate={{
                   backgroundColor: index < currentStep 
-                    ? '#EC4899' // pink-500
+                    ? 'var(--color-primary)' 
                     : '#E5E7EB', // gray-200
                 }}
                 className="w-12 h-0.5 mx-1 mb-5"

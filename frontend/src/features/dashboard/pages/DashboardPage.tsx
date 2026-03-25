@@ -30,18 +30,18 @@ export function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--color-bg)] via-[var(--color-secondary)] to-[var(--color-bg)] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Header */}
-      <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-pink-100 dark:border-slate-700 sticky top-0 z-10">
+      <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-[var(--color-secondary)] dark:border-slate-700 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Avatar */}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center text-white font-semibold text-lg">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <div>
-              <p className="font-medium text-gray-800 dark:text-white">{user?.name || 'Usuario'}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
+            <div className="min-w-0">
+              <p className="font-medium text-gray-800 dark:text-white truncate">{user?.name || 'Usuario'}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
             </div>
           </div>
 
@@ -136,7 +136,7 @@ export function DashboardPage() {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleCreateEvent}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-full shadow-lg shadow-pink-300 dark:shadow-pink-900/50 flex items-center justify-center hover:shadow-xl transition-shadow z-10"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white rounded-full shadow-lg shadow-[var(--color-secondary)] dark:shadow-[var(--color-accent)]/50 flex items-center justify-center hover:shadow-xl transition-shadow z-10"
           aria-label="Crear nuevo evento"
         >
           <Plus className="w-7 h-7" />

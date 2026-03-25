@@ -37,6 +37,84 @@ type ThemePreset struct {
 
 // ThemePresets contains all available theme presets
 var ThemePresets = []ThemePreset{
+	// ============================================
+	// NEW PRESETS FROM STITCH (6 themes)
+	// ============================================
+	{
+		Name:            "ethereal-gala",
+		PrimaryColor:    "#b70049",
+		SecondaryColor:  "#ff7290",
+		AccentColor:     "#ff4e7c",
+		BgColor:         "#fff4f7",
+		TextColor:       "#48223a",
+		DisplayFont:     "Great Vibes",
+		HeadingFont:     "Playfair Display",
+		BodyFont:        "Montserrat",
+		BackgroundStyle: "watercolor",
+	},
+	{
+		Name:            "autumnal-vows",
+		PrimaryColor:    "#813a29",
+		SecondaryColor:  "#58624b",
+		AccentColor:     "#9f513e",
+		BgColor:         "#fdf9f3",
+		TextColor:       "#1c1c18",
+		DisplayFont:     "Cormorant Garamond",
+		HeadingFont:     "Noto Serif",
+		BodyFont:        "Manrope",
+		BackgroundStyle: "minimal",
+	},
+	{
+		Name:            "kids-carnival",
+		PrimaryColor:    "#705d00",
+		SecondaryColor:  "#cae6ff",
+		AccentColor:     "#bb0054",
+		BgColor:         "#eeffdd",
+		TextColor:       "#092100",
+		DisplayFont:     "Fredoka One",
+		HeadingFont:     "Baloo 2",
+		BodyFont:        "Be Vietnam Pro",
+		BackgroundStyle: "party",
+	},
+	{
+		Name:            "monolith-editorial",
+		PrimaryColor:    "#09090B",
+		SecondaryColor:  "#A1A1AA",
+		AccentColor:     "#71717A",
+		BgColor:         "#f9f9f9",
+		TextColor:       "#1b1b1b",
+		DisplayFont:     "Newsreader",
+		HeadingFont:     "Inter",
+		BodyFont:        "Inter",
+		BackgroundStyle: "minimal",
+	},
+	{
+		Name:            "nocturne-elegance",
+		PrimaryColor:    "#f1c97d",
+		SecondaryColor:  "#d4ad65",
+		AccentColor:     "#c084fc",
+		BgColor:         "#131313",
+		TextColor:       "#e5e2e1",
+		DisplayFont:     "Cinzel",
+		HeadingFont:     "Playfair Display",
+		BodyFont:        "Crimson Pro",
+		BackgroundStyle: "dark",
+	},
+	{
+		Name:            "executive-suite",
+		PrimaryColor:    "#1E3A8A",
+		SecondaryColor:  "#0EA5E9",
+		AccentColor:     "#6366F1",
+		BgColor:         "#F0F5FF",
+		TextColor:       "#1E293B",
+		DisplayFont:     "Montserrat",
+		HeadingFont:     "Raleway",
+		BodyFont:        "Source Sans 3",
+		BackgroundStyle: "minimal",
+	},
+	// ============================================
+	// LEGACY PRESETS (keep for backward compatibility)
+	// ============================================
 	{
 		Name:            "princess",
 		PrimaryColor:    "#EC4899",

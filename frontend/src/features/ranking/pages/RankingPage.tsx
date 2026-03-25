@@ -3,6 +3,7 @@ import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card, MedalCanvas, RankingSkeleton, useFeatureEnabled, CelebrationAnimation } from '@/shared';
 import { useRanking } from '../hooks/useRanking';
+import { useTheme } from '@/shared/theme/useTheme';
 
 const medalBgColors: Record<string, string> = {
   gold: 'bg-gold',
@@ -47,14 +48,19 @@ export function RankingPage() {
     restOfPlayers,
   } = useRanking();
 
+  // Theme colors for dynamic styling
+  const theme = useTheme();
+
   // Celebration for top 3 players
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationRank, setCelebrationRank] = useState<1 | 2 | 3>(1);
   const [celebrationName, setCelebrationName] = useState('');
+  const [hasCelebrated, setHasCelebrated] = useState(false);
 
   // Check if current player is in top 3 and show celebration
+  // Only show once per ranking load to prevent infinite loop
   useEffect(() => {
-    if (currentPlayerId && top3.length > 0 && !showCelebration) {
+    if (currentPlayerId && top3.length > 0 && !showCelebration && !hasCelebrated) {
       const currentPlayer = top3.find(p => p.id === currentPlayerId);
       if (currentPlayer && currentPlayer.position <= 3) {
         // Delay celebration to let the page load
@@ -62,11 +68,19 @@ export function RankingPage() {
           setCelebrationRank(currentPlayer.position as 1 | 2 | 3);
           setCelebrationName(currentPlayer.name);
           setShowCelebration(true);
+          setHasCelebrated(true); // Mark as celebrated to prevent re-trigger
         }, 1500);
         return () => clearTimeout(timer);
       }
     }
-  }, [currentPlayerId, top3, showCelebration]);
+  }, [currentPlayerId, top3, showCelebration, hasCelebrated]);
+
+  // Reset flag when player changes (allows celebration again)
+  useEffect(() => {
+    if (currentPlayerId) {
+      setHasCelebrated(false);
+    }
+  }, [currentPlayerId]);
 
   // Si está cargando, mostrar skeleton
   if (isLoading) {
@@ -90,10 +104,22 @@ export function RankingPage() {
         <div className="flex-1 flex flex-col items-center justify-center px-6">
           <div className="text-center max-w-md space-y-6">
             <div className="text-6xl mb-4">⚠️</div>
-            <h1 className="font-display text-3xl text-accent mb-4">
+            <h1 
+              className="text-3xl mb-4"
+              style={{ 
+                fontFamily: theme.currentTheme.headingFont,
+                color: theme.currentTheme.primaryColor 
+              }}
+            >
               Error
             </h1>
-            <p className="font-serif text-slate-600 mb-6">
+            <p 
+              className="mb-6"
+              style={{ 
+                fontFamily: theme.currentTheme.bodyFont,
+                color: theme.currentTheme.textColor 
+              }}
+            >
               {error}
             </p>
             <Button
@@ -117,10 +143,22 @@ export function RankingPage() {
         <div className="flex-1 flex flex-col items-center justify-center px-6">
           <div className="text-center max-w-md space-y-6">
             <div className="text-6xl mb-4">🎮</div>
-            <h1 className="font-display text-3xl text-accent mb-4">
+            <h1 
+              className="text-3xl mb-4"
+              style={{ 
+                fontFamily: theme.currentTheme.headingFont,
+                color: theme.currentTheme.primaryColor 
+              }}
+            >
               Aún no hay jugadores
             </h1>
-            <p className="font-serif text-slate-600 mb-6">
+            <p 
+              className="mb-6"
+              style={{ 
+                fontFamily: theme.currentTheme.bodyFont,
+                color: theme.currentTheme.textColor 
+              }}
+            >
               ¡Sé el primero en jugar y aparecer en el ranking!
             </p>
             <Button
@@ -216,11 +254,18 @@ export function RankingPage() {
                     animate={{ height: player.position === 1 ? 112 : player.position === 2 ? 80 : 64 }}
                     transition={{ type: 'spring' as const, stiffness: 100, delay: 0.5 }}
                   >
-                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                    <p 
+                      className="text-[10px] font-semibold uppercase"
+                      style={{ color: theme.currentTheme.textColor, opacity: 0.6 }}
+                    >
                       {player.name}
                     </p>
                     <p
-                      className={`font-serif font-bold text-primary ${player.position === 1 ? 'text-2xl' : 'text-lg'}`}
+                      className={`font-bold ${player.position === 1 ? 'text-2xl' : 'text-lg'}`}
+                      style={{ 
+                        fontFamily: theme.currentTheme.headingFont,
+                        color: theme.currentTheme.primaryColor 
+                      }}
                     >
                       {player.score}
                     </p>
@@ -233,10 +278,16 @@ export function RankingPage() {
           {/* Lista de participantes */}
           <div className="flex-grow space-y-3">
             <div className="flex items-center justify-between px-4 mb-2">
-              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+              <span 
+                className="text-xs font-bold uppercase tracking-widest"
+                style={{ color: theme.currentTheme.textColor, opacity: 0.5 }}
+              >
                 Participante
               </span>
-              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+              <span 
+                className="text-xs font-bold uppercase tracking-widest"
+                style={{ color: theme.currentTheme.textColor, opacity: 0.5 }}
+              >
                 Puntos
               </span>
             </div>
@@ -250,27 +301,59 @@ export function RankingPage() {
                 return (
                   <motion.div
                     key={player.id}
-                    className="bg-primary/10 border-2 border-primary/30 rounded-2xl p-4 flex items-center shadow-md relative overflow-hidden"
+                    className="rounded-2xl p-4 flex items-center shadow-md relative overflow-hidden"
+                    style={{
+                      backgroundColor: `${theme.currentTheme.primaryColor}15`,
+                      borderWidth: '2px',
+                      borderColor: `${theme.currentTheme.primaryColor}50`,
+                    }}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                     whileHover={{ scale: 1.02, x: 5 }}
                   >
-                    <div className="absolute top-0 right-0 p-1 bg-primary text-white text-[8px] font-bold rounded-bl-lg">
+                    <div 
+                      className="absolute top-0 right-0 p-1 text-white text-[8px] font-bold rounded-bl-lg"
+                      style={{ backgroundColor: theme.currentTheme.primaryColor }}
+                    >
                       TÚ
                     </div>
-                    <div className="w-8 font-serif font-bold text-primary text-center">
+                    <div 
+                      className="w-8 font-bold text-center"
+                      style={{ 
+                        fontFamily: theme.currentTheme.headingFont,
+                        color: theme.currentTheme.primaryColor 
+                      }}
+                    >
                       {entry.position}
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-xl ml-2 mr-4 border border-primary">
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-xl ml-2 mr-4 border-2"
+                      style={{ 
+                        backgroundColor: theme.currentTheme.bgColor,
+                        borderColor: theme.currentTheme.primaryColor 
+                      }}
+                    >
                       {player.avatar}
                     </div>
                     <div className="flex-grow">
-                      <p className="font-serif text-slate-800 dark:text-slate-100 font-bold">
+                      <p 
+                        className="font-bold"
+                        style={{ 
+                          fontFamily: theme.currentTheme.headingFont,
+                          color: theme.currentTheme.textColor 
+                        }}
+                      >
                         {player.name}
                       </p>
                     </div>
-                    <div className="text-primary font-bold font-serif text-xl">
+                    <div 
+                      className="font-bold text-xl"
+                      style={{ 
+                        fontFamily: theme.currentTheme.headingFont,
+                        color: theme.currentTheme.primaryColor 
+                      }}
+                    >
                       {player.score}
                     </div>
                   </motion.div>
@@ -286,18 +369,40 @@ export function RankingPage() {
                   whileHover={{ scale: 1.02, x: 5 }}
                 >
                   <Card variant="glass" padding="sm" className="flex items-center">
-                    <div className="w-8 font-serif font-bold text-slate-400 text-center">
+                    <div 
+                      className="w-8 font-bold text-center"
+                      style={{ 
+                        fontFamily: theme.currentTheme.headingFont,
+                        color: theme.currentTheme.textColor,
+                        opacity: 0.5
+                      }}
+                    >
                       {entry.position}
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-xl ml-2 mr-4">
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-xl ml-2 mr-4"
+                      style={{ backgroundColor: theme.currentTheme.secondaryColor }}
+                    >
                       {player.avatar}
                     </div>
                     <div className="flex-grow">
-                      <p className="font-serif text-slate-700 dark:text-slate-200 font-semibold">
+                      <p 
+                        className="font-semibold"
+                        style={{ 
+                          fontFamily: theme.currentTheme.bodyFont,
+                          color: theme.currentTheme.textColor 
+                        }}
+                      >
                         {player.name}
                       </p>
                     </div>
-                    <div className="text-primary font-bold font-serif text-lg">
+                    <div 
+                      className="font-bold text-lg"
+                      style={{ 
+                        fontFamily: theme.currentTheme.headingFont,
+                        color: theme.currentTheme.primaryColor 
+                      }}
+                    >
                       {player.score}
                     </div>
                   </Card>
@@ -305,7 +410,8 @@ export function RankingPage() {
               );
             }) : (
               <motion.p
-                className="text-center text-slate-400 py-4"
+                className="text-center py-4"
+                style={{ color: theme.currentTheme.textColor, opacity: 0.5 }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >

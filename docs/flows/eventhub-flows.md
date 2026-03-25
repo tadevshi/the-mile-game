@@ -404,7 +404,7 @@ POST /api/auth/logout
 GET  /api/users/me/events
 POST /api/events
 GET  /api/events/:id
-GET  /api/events/by-slug/:slug
+GET  /api/events/:slug
 PUT  /api/events/:id
 DELETE /api/events/:id
 GET  /api/themes/presets
@@ -432,9 +432,9 @@ POST /api/postcards/secret    # X-Secret-Token: TOKEN
 
 ### Admin Secret Box
 ```
-GET  /api/events/:slug/admin/secret-box
-POST /api/events/:slug/admin/reveal
-GET  /api/events/:slug/admin/secret-box/status
+GET  /api/admin/events/:slug/secret-box
+POST /api/admin/events/:slug/reveal
+GET  /api/admin/events/:slug/secret-box/status
 ```
 
 ### Analytics (NEW)

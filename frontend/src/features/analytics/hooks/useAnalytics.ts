@@ -5,7 +5,7 @@ import type { AnalyticsSummary, TimelineResponse, FunnelResponse, ScoreDistribut
 export function useAnalyticsSummary(eventSlug: string) {
   return useQuery<AnalyticsSummary>({
     queryKey: ['analytics', 'summary', eventSlug],
-    queryFn: () => api.get(`/events/${eventSlug}/admin/analytics`).then(r => r.data),
+    queryFn: () => api.get<AnalyticsSummary>(`/admin/events/${eventSlug}/analytics`).then(r => r.data),
     enabled: !!eventSlug,
     staleTime: 30000, // 30 seconds
   });
@@ -14,7 +14,7 @@ export function useAnalyticsSummary(eventSlug: string) {
 export function useAnalyticsTimeline(eventSlug: string, period: 'hourly' | 'daily' = 'hourly') {
   return useQuery<TimelineResponse>({
     queryKey: ['analytics', 'timeline', eventSlug, period],
-    queryFn: () => api.get(`/events/${eventSlug}/admin/analytics/timeline?period=${period}`).then(r => r.data),
+    queryFn: () => api.get<TimelineResponse>(`/admin/events/${eventSlug}/analytics/timeline?period=${period}`).then(r => r.data),
     enabled: !!eventSlug,
     staleTime: 30000,
   });
@@ -23,7 +23,7 @@ export function useAnalyticsTimeline(eventSlug: string, period: 'hourly' | 'dail
 export function useAnalyticsFunnel(eventSlug: string) {
   return useQuery<FunnelResponse>({
     queryKey: ['analytics', 'funnel', eventSlug],
-    queryFn: () => api.get(`/events/${eventSlug}/admin/analytics/funnel`).then(r => r.data),
+    queryFn: () => api.get<FunnelResponse>(`/admin/events/${eventSlug}/analytics/funnel`).then(r => r.data),
     enabled: !!eventSlug,
     staleTime: 30000,
   });
@@ -32,7 +32,7 @@ export function useAnalyticsFunnel(eventSlug: string) {
 export function useScoreDistribution(eventSlug: string) {
   return useQuery<ScoreDistributionResponse>({
     queryKey: ['analytics', 'scores', eventSlug],
-    queryFn: () => api.get(`/events/${eventSlug}/admin/analytics/scores`).then(r => r.data),
+    queryFn: () => api.get<ScoreDistributionResponse>(`/admin/events/${eventSlug}/analytics/scores`).then(r => r.data),
     enabled: !!eventSlug,
     staleTime: 30000,
   });

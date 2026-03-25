@@ -92,13 +92,13 @@ export function ThemeEditorPage() {
 
   return (
     <PageLayout>
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto px-4 space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               to={`/admin/${eventSlug}`}
-              className="p-2 rounded-lg hover:bg-pink-100 transition-colors"
+              className="p-2 rounded-lg hover:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] transition-colors"
             >
               <ArrowLeft size={20} className="text-gray-600" />
             </Link>

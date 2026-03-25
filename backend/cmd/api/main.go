@@ -97,7 +97,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService)
 	themeHandler := handlers.NewThemeHandler(themeService)
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
-	adminEventHandler := handlers.NewAdminEventHandler(eventRepo)
+	adminEventHandler := handlers.NewAdminEventHandler(eventRepo, uploadsDir)
 	eventHandler := handlers.NewEventHandler(eventRepo)
 	analyticsHandler := handlers.NewAnalyticsHandler(db, eventRepo)
 
@@ -258,6 +258,8 @@ func main() {
 
 			// Event Features Admin
 			adminEvents.PUT("/features", adminEventHandler.UpdateEventFeatures)
+			adminEvents.POST("/media", adminEventHandler.UploadMedia)
+			adminEvents.DELETE("/media", adminEventHandler.DeleteMedia)
 
 			// Analytics
 			adminEvents.GET("/analytics", analyticsHandler.GetAnalyticsSummary)

@@ -80,9 +80,9 @@ export function LegacyRedirect({ target }: LegacyRedirectProps) {
 
   // Loading state while redirecting
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-100 via-rose-50 to-pink-50">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, color-mix(in srgb, var(--color-primary) 20%, white), color-mix(in srgb, var(--color-primary) 10%, white), color-mix(in srgb, var(--color-primary) 15%, white))' }}>
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: 'var(--color-primary)', borderBottomColor: 'transparent' }} />
         <p className="font-serif text-slate-500">Redirigiendo...</p>
       </div>
     </div>

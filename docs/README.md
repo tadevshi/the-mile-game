@@ -11,7 +11,6 @@
 ### API Documentation
 - [API Reference](api/README.md) - Complete API endpoint documentation
 - [Authentication](api/AUTH.md) - JWT auth flows
-- [Events](api/EVENTS.md) - Event management endpoints
 - [Themes](api/THEMES.md) - Theme customization endpoints
 - [Quiz](api/QUIZ.md) - Quiz and questions endpoints
 

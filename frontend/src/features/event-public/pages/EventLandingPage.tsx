@@ -10,7 +10,7 @@ function EventLandingContent() {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const quizEnabled = useFeatureEnabled('quiz');
   const corkboardEnabled = useFeatureEnabled('corkboard');
-  const { theme } = useTheme();
+  const { currentTheme: theme } = useTheme();
 
   // Generate theme-based gradient background style
   const bgStyle = {
@@ -64,14 +64,14 @@ function EventLandingContent() {
           )}
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50 p-6"
-        >
-          <div className="space-y-4">
-            {currentEvent?.date && (
+        {currentEvent?.date && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-lg border border-white/50 p-6"
+          >
+            <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div 
                   className="w-10 h-10 rounded-full flex items-center justify-center"
@@ -86,9 +86,9 @@ function EventLandingContent() {
                   </p>
                 </div>
               </div>
-            )}
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -125,7 +125,10 @@ function EventLandingContent() {
             whileTap={{ scale: 0.98 }}
           >
             <Link to={`/e/${slug}/ranking`}>
-              <div className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full">
+              <div 
+                className="rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full"
+                style={{ background: `linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary-dark) 100%)` }}
+              >
                 <div className="text-3xl mb-3">🏆</div>
                 <h3 className="text-xl font-display mb-1" style={{ fontFamily: `var(--font-display)` }}>Ranking</h3>
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
@@ -145,7 +148,10 @@ function EventLandingContent() {
               whileTap={{ scale: 0.98 }}
             >
               <Link to={`/e/${slug}/corkboard`}>
-                <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full">
+                <div 
+                  className="rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full"
+                  style={{ background: `linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%)` }}
+                >
                   <div className="text-3xl mb-3">📌</div>
                   <h3 className="text-xl font-display mb-1" style={{ fontFamily: `var(--font-display)` }}>Cartelera</h3>
                   <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>

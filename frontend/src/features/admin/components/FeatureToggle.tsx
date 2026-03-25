@@ -30,7 +30,7 @@ export function FeatureToggle({
       className={`
         flex items-start justify-between gap-4 p-4 
         bg-white/60 backdrop-blur-sm rounded-xl 
-        border border-pink-100 
+        border border-[var(--color-secondary)] 
         transition-all duration-200
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/80 cursor-pointer'}
       `}
@@ -58,8 +58,8 @@ export function FeatureToggle({
         className={`
           relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full 
           border-2 border-transparent transition-colors duration-200 ease-in-out
-          focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-offset-2
-          ${checked ? 'bg-pink-500' : 'bg-gray-200'}
+          focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2
+          ${checked ? 'bg-[var(--color-primary)]' : 'bg-gray-200'}
           ${disabled ? 'cursor-not-allowed' : ''}
         `}
       >

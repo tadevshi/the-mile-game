@@ -1,7 +1,5 @@
-import { useEffect } from 'react';
 import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { useEventStore } from '@/shared/store/eventStore';
-import { api } from '@/shared/lib/api';
 import { motion } from 'framer-motion';
 import { Button, Header, PageLayout, Card, ScrollReveal, useFeatureEnabled } from '@/shared';
 import { useQuizStore } from '../store/quizStore';
@@ -9,34 +7,14 @@ import { useQuizStore } from '../store/quizStore';
 export function WelcomePage() {
   const navigate = useEventNavigate();
   const hasCompleted = useQuizStore((s) => s.hasCompleted);
-  const { currentEvent, setEvent } = useEventStore();
+  const { currentEvent } = useEventStore();
   const isCorkboardEnabled = useFeatureEnabled('corkboard');
 
-  // Load default event on mount so useEventNavigate can prepend the event slug
-  useEffect(() => {
-    if (!currentEvent) {
-      api.getEventBySlug('mile-2026')
-        .then((event) => {
-          // Transform snake_case from API to camelCase for store
-          setEvent({
-            id: event.id,
-            slug: event.slug,
-            name: event.name,
-            description: event.description,
-            date: event.date,
-            ownerId: event.owner_id,
-            features: event.features,
-            isActive: event.is_active,
-          });
-        })
-        .catch((error) => {
-          console.error('Failed to load default event:', error);
-        });
-    }
-  }, [currentEvent, setEvent]);
+  // El currentEvent ya debería estar cargado por el router (useEventRoutes)
+  // No hacer fallback hardcodeado a mile-2026 — dejar que falle si no hay evento
 
   return (
-    <PageLayout background="butterfly-animated" showSparkles={false}>
+    <PageLayout background="butterfly-animated" showSparkles={false} themeId={currentEvent?.themeId}>
       <div className="flex flex-col items-center flex-1 px-8 py-12 text-center">
         {/* Sección superior - Título */}
         <ScrollReveal variant="fadeDown" className="w-full h-1/3 flex flex-col items-center justify-center relative mt-4">
@@ -61,8 +39,8 @@ export function WelcomePage() {
           </motion.div>
 
           <Header
-            title="¡Bienvenidos a mi Cumpleaños!"
-            subtitle="Mágica Celebración"
+            title={currentEvent ? `¡Bienvenidos a ${currentEvent.name}!` : '¡Bienvenidos!'}
+            subtitle={currentEvent?.description || 'Mágica Celebración'}
             size="lg"
             decoration="lines"
           />
@@ -76,15 +54,15 @@ export function WelcomePage() {
               animate={{ scale: [1.05, 1.1, 1.05], opacity: [0.2, 0.4, 0.2] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             />
-            {/* Foto de Mile */}
-            <motion.div 
+            {/* Foto del evento */}
+            <motion.div
               className="w-40 h-40 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <img 
-                src="/princess_logo.png" 
-                alt="Mile"
+              <img
+                src={currentEvent?.settings?.logo_url || currentEvent?.name ? `/logo.png` : '/logo.png'}
+                alt={currentEvent?.name ?? 'Evento'}
                 className="w-full h-full object-cover"
                 loading="eager"
               />
@@ -133,7 +111,7 @@ export function WelcomePage() {
                 onClick={() => navigate('/corkboard?add=true')}
                 className="!border-primary/50 !text-primary hover:!bg-primary/10"
               >
-                Dejar tu Foto para Mile
+                Dejar tu Foto para {currentEvent?.name ?? 'el festejado'}
               </Button>
             </motion.div>
           )}

@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { api } from '../lib/api';
 
+export interface EventSettings {
+  theme?: string;
+  primary_color?: string;
+  background_image?: string;
+  logo_url?: string;
+  background_url?: string;
+}
+
 export interface Event {
   id: string;
   slug: string;
@@ -8,8 +16,10 @@ export interface Event {
   description?: string;
   date?: string;
   ownerId?: string;
+  themeId?: string;
   features: EventFeatures;
   isActive: boolean;
+  settings?: EventSettings;
 }
 
 export interface EventFeatures {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/shared/lib/api', () => ({
   api: {
-    createPlayer: vi.fn(),
+    createPlayerScoped: vi.fn(),
     submitQuiz: vi.fn(),
   },
 }))
@@ -16,19 +16,19 @@ describe('quizService', () => {
   })
 
   describe('createPlayer', () => {
-    it('delegates to api.createPlayer with the same args', async () => {
+    it('delegates to api.createPlayerScoped with eventSlug and player data', async () => {
       const player = { id: 'uuid', name: 'Ana', avatar: '👸', score: 0, created_at: '' }
-      vi.mocked(api.createPlayer).mockResolvedValueOnce(player)
+      vi.mocked(api.createPlayerScoped).mockResolvedValueOnce(player)
 
-      const result = await quizService.createPlayer({ name: 'Ana', avatar: '👸' })
+      const result = await quizService.createPlayer('boda3', { name: 'Ana', avatar: '👸' })
 
-      expect(api.createPlayer).toHaveBeenCalledWith({ name: 'Ana', avatar: '👸' })
+      expect(api.createPlayerScoped).toHaveBeenCalledWith('boda3', { name: 'Ana', avatar: '👸' })
       expect(result).toEqual(player)
     })
 
-    it('propagates errors from api.createPlayer', async () => {
-      vi.mocked(api.createPlayer).mockRejectedValueOnce(new Error('Network error'))
-      await expect(quizService.createPlayer({ name: 'Ana' })).rejects.toThrow('Network error')
+    it('propagates errors from api.createPlayerScoped', async () => {
+      vi.mocked(api.createPlayerScoped).mockRejectedValueOnce(new Error('Network error'))
+      await expect(quizService.createPlayer('boda3', { name: 'Ana' })).rejects.toThrow('Network error')
     })
   })
 

@@ -69,7 +69,8 @@ export function FeaturesGrid() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="inline-block px-4 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-sm font-medium rounded-full mb-4"
+            className="inline-block px-4 py-1 text-sm font-medium rounded-full mb-4"
+            style={{ background: 'color-mix(in srgb, var(--color-primary) 15%, transparent)', color: 'var(--color-primary)' }}
           >
             Características
           </motion.span>
@@ -98,7 +99,13 @@ export function FeaturesGrid() {
                 scale: 1.02,
                 transition: { duration: 0.2 }
               }}
-              className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-800 dark:to-slate-800/50 rounded-2xl p-6 border border-pink-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:shadow-pink-100/50 dark:hover:shadow-pink-900/20 transition-all"
+              className="rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all"
+              style={{
+                background: 'linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 8%, transparent) 0%, color-mix(in srgb, var(--color-secondary) 5%, transparent) 100%)',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                borderColor: 'color-mix(in srgb, var(--color-primary) 20%, transparent)',
+              }}
             >
               {/* Icon with animation */}
               <motion.div
@@ -119,14 +126,15 @@ export function FeaturesGrid() {
               </p>
 
               {/* Feature indicator */}
-              <motion.div 
-                className="mt-4 pt-4 border-t border-pink-100 dark:border-slate-700"
+              <motion.div
+                className="mt-4 pt-4"
+                style={{ borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: 'color-mix(in srgb, var(--color-primary) 20%, transparent)' }}
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.3 + index * 0.1 }}
               >
-                <span className="text-xs font-medium text-pink-500 dark:text-pink-400">
+                <span className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>
                   ✓ Incluido en todos los planes
                 </span>
               </motion.div>

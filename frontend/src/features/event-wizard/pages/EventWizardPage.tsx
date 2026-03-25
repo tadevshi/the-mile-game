@@ -43,7 +43,7 @@ export function EventWizardPage() {
     try {
       const newEvent = await api.createEvent({
         name: formData.name,
-        slug: formData.slug,
+        slug: formData.slug || undefined,
         date: formData.date,
         description: formData.description,
         features: formData.features,
@@ -60,7 +60,8 @@ export function EventWizardPage() {
       }
 
       reset();
-      navigate(`/admin/${newEvent.slug}?tab=config`, { replace: true });
+      console.log('Event created, redirecting to:', newEvent.slug);
+      navigate(`/e/${newEvent.slug}/admin?tab=config`, { replace: true });
     } catch (err) {
       console.error('Error creating event:', err);
       setSubmitError(
@@ -79,8 +80,8 @@ export function EventWizardPage() {
   const CurrentStepComponent = stepComponents[currentStep];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--color-bg)] via-[var(--color-secondary)] to-[var(--color-bg)]">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-[var(--color-secondary)] sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <button
             onClick={handleCancel}

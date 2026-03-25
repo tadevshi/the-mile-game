@@ -21,7 +21,7 @@ export function SectionHeader({ section, count, onAddQuestion }: SectionHeaderPr
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="flex items-center justify-between py-2 px-3 bg-pink-50/50 rounded-t-xl border-b border-pink-100"
+      className="flex items-center justify-between py-2 px-3 bg-[color-mix(in_srgb,var(--color-primary)_5%,transparent)] rounded-t-xl border-b border-[var(--color-secondary)]"
     >
       <div className="flex items-center gap-2">
         <span className="text-lg">{SECTION_ICONS[section]}</span>

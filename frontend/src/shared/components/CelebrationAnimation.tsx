@@ -166,7 +166,7 @@ export function CelebrationAnimation({
                       ease: 'easeOut',
                     }}
                     className={`absolute top-1/2 left-1/2 w-2 h-2 rounded-full ${
-                      i % 3 === 0 ? 'bg-yellow-400' : i % 3 === 1 ? 'bg-pink-400' : 'bg-gray-300'
+                      i % 3 === 0 ? 'bg-yellow-400' : i % 3 === 1 ? 'bg-[var(--color-primary)]' : 'bg-gray-300'
                     }`}
                   />
                 ))}

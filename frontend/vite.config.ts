@@ -42,9 +42,37 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
-        navigateFallback: 'offline.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/ws/],
+        navigateFallback: '/index.html', // IMPORTANTE: Servir index.html, no offline.html
+        navigateFallbackDenylist: [/^\/api/, /^\/ws/], // No interceptar API ni WebSocket
         runtimeCaching: [
+          // Rutas dinámicas de eventos - NetworkOnly para evitar que el SW intercepte requests
+          {
+            urlPattern: /\/(e|login|dashboard|register).*/i,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'dynamic-pages',
+            },
+          },
+          // API - NetworkOnly (NUNCA cachear respuestas de API)
+          {
+            urlPattern: /\/api\/.*/i,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'api-cache',
+            },
+          },
+          // Assets estáticos - CacheFirst (estos sí se cachean)
+          {
+            urlPattern: /\.(js|css|png|jpg|svg|woff|woff2)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'static-assets',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 1 week
+              },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
@@ -71,18 +99,6 @@ export default defineConfig({
               cacheableResponse: {
                 statuses: [0, 200],
               },
-            },
-          },
-          {
-            urlPattern: /\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60, // 1 hour
-              },
-              networkTimeoutSeconds: 10,
             },
           },
           {

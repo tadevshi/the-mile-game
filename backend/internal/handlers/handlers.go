@@ -195,6 +195,7 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 
 	// Cross-event player validation: ensure player belongs to this event
 	var eventID uuid.UUID
+	var eventFeatures models.EventFeatures
 	if eID, exists := c.Get("event_id"); exists {
 		eventID = eID.(uuid.UUID)
 		player, playerErr := h.playerRepo.GetByID(playerID)
@@ -204,6 +205,25 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 		}
 		if player.EventID != eventID {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Player does not belong to this event"})
+			return
+		}
+		// Obtener features del evento
+		if ev, ok := c.Get("event"); ok {
+			eventFeatures = ev.(*models.Event).Features
+		}
+	}
+
+	// Validar que el quiz esté habilitado para este evento
+	if eventID != uuid.Nil && !eventFeatures.Quiz {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Quiz no está habilitado para este evento"})
+		return
+	}
+
+	// Verificar que haya preguntas configuradas antes de aceptar envío
+	if eventID != uuid.Nil && h.quizQuestionRepo != nil {
+		count, countErr := h.quizQuestionRepo.CountByEvent(eventID)
+		if countErr == nil && count == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "No hay preguntas configuradas para este quiz"})
 			return
 		}
 	}
@@ -331,7 +351,9 @@ func (h *Handler) GetQuizQuestions(c *gin.Context) {
 	}
 
 	if len(questions) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "No quiz questions found for this event"})
+		// No hay preguntas configuradas para este evento — devolver array vacío
+		// NO 404 para que el frontend pueda distinguir "sin preguntas" de "evento no existe"
+		c.JSON(http.StatusOK, gin.H{"questions": []interface{}{}})
 		return
 	}
 
@@ -444,10 +466,11 @@ func (h *Handler) validateAndSaveImage(c *gin.Context) (publicPath, diskPath str
 	}
 	filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
 
-	uploadsDir := h.uploadsDir
-	if uploadsDir == "" {
-		uploadsDir = "/app/uploads/postcards"
+	baseDir := h.uploadsDir
+	if baseDir == "" {
+		baseDir = "/app/uploads"
 	}
+	uploadsDir := filepath.Join(baseDir, "postcards")
 	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
 		return "", "", &struct {
 			Code    int
@@ -561,10 +584,12 @@ func (h *Handler) validateAndSaveMedia(c *gin.Context) (*MediaResult, *struct {
 
 		filename := fmt.Sprintf("%s%s", uuid.New().String(), videoExt)
 
-		uploadsDir := h.uploadsDir
-		if uploadsDir == "" {
-			uploadsDir = "/app/uploads/videos"
+		// Videos se guardan en la misma carpeta que las imágenes: /app/uploads/postcards
+		baseDir := h.uploadsDir
+		if baseDir == "" {
+			baseDir = os.Getenv("UPLOADS_DIR")
 		}
+		uploadsDir := filepath.Join(baseDir, "postcards")
 		if err := os.MkdirAll(uploadsDir, 0755); err != nil {
 			return nil, &struct {
 				Code    int
@@ -590,7 +615,8 @@ func (h *Handler) validateAndSaveMedia(c *gin.Context) (*MediaResult, *struct {
 			}{http.StatusInternalServerError, "Failed to write video"}
 		}
 
-		publicPath = "/uploads/videos/" + filename
+		// Videos se guardan en la misma carpeta que las imágenes
+		publicPath = "/uploads/postcards/" + filename
 
 		// Generar thumbnail con ffmpeg
 		thumb, thumbErr := h.generateVideoThumbnail(diskPath)
@@ -628,10 +654,11 @@ func (h *Handler) validateAndSaveMedia(c *gin.Context) (*MediaResult, *struct {
 		}
 		filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
 
-		uploadsDir := h.uploadsDir
-		if uploadsDir == "" {
-			uploadsDir = "/app/uploads/postcards"
+		baseDir := h.uploadsDir
+		if baseDir == "" {
+			baseDir = "/app/uploads"
 		}
+		uploadsDir := filepath.Join(baseDir, "postcards")
 		if err := os.MkdirAll(uploadsDir, 0755); err != nil {
 			return nil, &struct {
 				Code    int

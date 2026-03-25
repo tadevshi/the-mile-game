@@ -86,7 +86,10 @@ export function PricingTable() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <span className="inline-block px-4 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-sm font-medium rounded-full mb-4">
+          <span
+            className="inline-block px-4 py-1 text-sm font-medium rounded-full mb-4"
+            style={{ background: 'color-mix(in srgb, var(--color-primary) 15%, transparent)', color: 'var(--color-primary)' }}
+          >
             Precios
           </span>
           <h2 className="text-2xl md:text-3xl mb-3" style={{ fontFamily: 'var(--font-serif)' }}>
@@ -106,16 +109,13 @@ export function PricingTable() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={`relative rounded-2xl p-6 ${
-                tier.popular
-                  ? 'shadow-xl shadow-pink-200/50 dark:shadow-pink-900/30'
-                  : 'shadow-md'
-              }`}
+              className={`relative rounded-2xl p-6 ${tier.popular ? '' : 'shadow-md'}`}
               style={
                 tier.popular
                   ? {
                       background: 'linear-gradient(135deg, var(--primary) 0%, #BE185D 100%)',
                       color: 'white',
+                      boxShadow: '0 20px 25px -5px color-mix(in srgb, var(--color-primary) 30%, transparent), 0 8px 10px -6px color-mix(in srgb, var(--color-primary) 30%, transparent)',
                     }
                   : {
                       background: 'var(--surface-container)',
@@ -126,7 +126,10 @@ export function PricingTable() {
               {/* Popular badge */}
               {tier.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-white text-pink-600 text-xs font-bold px-3 py-1 rounded-full shadow">
+                  <span
+                    className="text-xs font-bold px-3 py-1 rounded-full shadow"
+                    style={{ background: 'white', color: 'var(--color-primary)' }}
+                  >
                     ⭐ Más popular
                   </span>
                 </div>
@@ -238,17 +241,12 @@ export function PricingTable() {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleCTA(tier)}
                 className={`w-full py-3 rounded-full font-semibold transition-colors ${
-                  tier.popular
-                    ? 'bg-white text-pink-600 hover:bg-pink-50'
-                    : 'border-2 hover:opacity-80'
+                  tier.popular ? '' : 'border-2 hover:opacity-80'
                 }`}
                 style={
-                  !tier.popular
-                    ? {
-                        borderColor: 'var(--primary)',
-                        color: 'var(--primary)',
-                      }
-                    : {}
+                  tier.popular
+                    ? { background: 'white', color: 'var(--color-primary)' }
+                    : { borderColor: 'var(--primary)', color: 'var(--primary)' }
                 }
               >
                 {tier.cta}

@@ -7,12 +7,13 @@ import { AdminPage } from '@features/admin';
 import { LoginPage, RegisterPage as AuthRegisterPage } from '@/features/auth';
 import { DashboardPage, CreateEventPage } from '@/features/dashboard';
 import { LandingPage } from '@/features/landing';
-import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
-import { ErrorBoundary, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
+import { ProtectedRoute, ErrorBoundary, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
+import { ThemeProvider } from '@/shared/theme';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { LegacyRedirect } from '@/shared/components/LegacyRedirect';
 import { InstallPromptBanner } from '@/shared/components/InstallPromptBanner';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { MobileMenu } from '@/shared/components/MobileMenu';
 import type { ReactNode } from 'react';
 
 import { EventWizardPage } from '@/features/event-wizard';
@@ -445,17 +446,44 @@ function AnimatedRoutes() {
   );
 }
 
+// Helper to detect public event routes (should hide theme/language controls)
+function isPublicEventRoute(pathname: string): boolean {
+  return pathname.startsWith('/e/');
+}
+
+// Componente interno que SÍ tiene acceso al contexto del Router
+function AppContent() {
+  const location = useLocation();
+  const isPublicRoute = isPublicEventRoute(location.pathname);
+
+  return (
+    <>
+      {/* Only show theme/language controls on non-public routes */}
+      {!isPublicRoute && (
+        <>
+          {/* Mobile: menú desplegable */}
+          <MobileMenu />
+          {/* Desktop: toggles visibles directamente (MobileMenu retorna null en desktop) */}
+          <div className="hidden md:flex fixed top-4 right-4 z-50 items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
+        </>
+      )}
+      <AnimatedRoutes />
+      <InstallPromptBanner />
+    </>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-          <LanguageSwitcher />
-          <ThemeToggle />
-        </div>
-        <AnimatedRoutes />
-        <InstallPromptBanner />
-      </BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

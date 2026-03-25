@@ -34,30 +34,30 @@ export function LandingPage() {
   return (
     <div className="min-h-screen pb-20" style={{ background: 'var(--background)', color: 'var(--on-background)' }}>
       {/* Fixed Glass Header */}
-      <header className="stitch-glass-header w-[calc(100%-2rem)] max-w-md">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <header className="stitch-glass-header w-[calc(100%-2rem)] max-w-md" style={{ zIndex: 55 }}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xl font-bold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--primary)' }}>
               EventHub
             </span>
           </div>
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-3 flex-nowrap">
             {isAuthenticated ? (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="text-sm font-medium transition-colors"
+                className="text-sm font-medium transition-colors whitespace-nowrap"
                 style={{ color: 'var(--on-surface-variant)' }}
               >
                 Dashboard
               </button>
             ) : (
               <>
-                <Link to="/login" className="text-sm font-medium transition-colors" style={{ color: 'var(--on-surface-variant)' }}>
+                <Link to="/login" className="text-sm font-medium transition-colors whitespace-nowrap" style={{ color: 'var(--on-surface-variant)' }}>
                   Ingresar
                 </Link>
                 <Link
                   to="/register"
-                  className="text-sm font-semibold px-3 py-1.5 rounded-full transition-colors"
+                  className="text-sm font-semibold px-3 py-1.5 rounded-full transition-colors whitespace-nowrap"
                   style={{ background: 'var(--primary)', color: 'white' }}
                 >
                   Registrarse

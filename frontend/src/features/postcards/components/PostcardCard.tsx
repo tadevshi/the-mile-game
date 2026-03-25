@@ -3,17 +3,34 @@ import { motion } from 'framer-motion';
 import { toPng } from 'html-to-image';
 import { PushPin } from './PushPin';
 import type { Postcard } from '../types/postcards.types';
+import type { Theme } from '@/shared/theme/ThemeProvider';
 
 interface PostcardCardProps {
   postcard: Postcard;
   onSelect: (postcard: Postcard) => void;
+  eventLogoUrl?: string;  // Logo del evento para fallback en videos
+  theme?: Theme;          // Tema del evento para colores dinámicos
 }
 
-export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
+export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: PostcardCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [imageError, setImageError] = useState(false);
 
   const isVideo = postcard.media_type === 'video';
+  
+  // Fallback para thumbnails: thumbnail_path -> eventLogoUrl -> placeholder por defecto
+  const videoFallback = eventLogoUrl || '/logo.png';
+  const imageFallback = eventLogoUrl || '/logo.png';
+
+  // Colores del tema con fallbacks
+  const bgColor = theme?.bgColor || '#FFFFFF';
+  const textColor = theme?.textColor || '#1E293B';
+  const primaryColor = theme?.primaryColor || '#EC4899';
+  const secondaryColor = theme?.secondaryColor || '#FBCFE8';
+
+  // Tipografía del tema
+  const headingFont = theme?.headingFont || 'Playfair Display';
+  const bodyFont = theme?.bodyFont || 'Montserrat';
 
   return (
     <div className="relative pt-4">
@@ -25,8 +42,14 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
       {/* Postal con rotación */}
       <motion.div
         ref={cardRef}
-        className="postcard-card relative bg-white shadow-lg cursor-pointer overflow-hidden border border-gray-200"
-        style={{ rotate: postcard.rotation }}
+        className="postcard-card relative shadow-lg cursor-pointer overflow-hidden"
+        style={{ 
+          rotate: postcard.rotation,
+          backgroundColor: bgColor,
+          borderColor: `${primaryColor}20`,
+          borderWidth: '1px',
+          fontFamily: bodyFont,
+        }}
         whileHover={{ scale: 1.05, zIndex: 30, rotate: 0 }}
         whileTap={{ scale: 0.97 }}
         onClick={() => onSelect(postcard)}
@@ -39,12 +62,15 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
         {/* Usamos aspect ratio fijo para que siempre mantenga proporción de postal */}
         <div className="flex w-full aspect-[2/1] max-h-[220px]">
           {/* Media (imagen o video thumbnail) — lado izquierdo */}
-          <div className="w-1/2 relative overflow-hidden bg-pink-50 flex items-center justify-center">
+          <div 
+            className="w-1/2 relative overflow-hidden flex items-center justify-center"
+            style={{ backgroundColor: secondaryColor }}
+          >
             {isVideo ? (
               <>
                 {/* Video thumbnail con play overlay */}
                 <img
-                  src={imageError ? '/princess_logo.png' : (postcard.thumbnail_path || postcard.image_path)}
+                  src={imageError ? videoFallback : (postcard.thumbnail_path || videoFallback)}
                   alt={`Video de ${postcard.player_name}`}
                   className={`absolute inset-0 w-full h-full ${imageError ? 'object-contain p-4 opacity-50' : 'object-cover'}`}
                   loading="lazy"
@@ -52,9 +78,12 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
                 />
                 {/* Play button overlay */}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-md">
+                  <div 
+                    className="w-10 h-10 rounded-full flex items-center justify-center shadow-md"
+                    style={{ backgroundColor: `${primaryColor}E6` }}
+                  >
                     <svg
-                      className="w-5 h-5 text-pink-500 ml-0.5"
+                      className="w-5 h-5 text-white ml-0.5"
                       fill="currentColor"
                       viewBox="0 0 24 24"
                     >
@@ -69,7 +98,10 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
                   </div>
                 )}
                 {/* Video indicator */}
-                <div className="absolute top-1 left-1 bg-pink-500 text-white text-[8px] px-1 py-0.5 rounded flex items-center gap-0.5">
+                <div 
+                  className="absolute top-1 left-1 text-white text-[8px] px-1 py-0.5 rounded flex items-center gap-0.5"
+                  style={{ backgroundColor: primaryColor }}
+                >
                   <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
                   </svg>
@@ -77,7 +109,7 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
               </>
             ) : (
               <img
-                src={imageError ? '/princess_logo.png' : postcard.image_path}
+                src={imageError ? imageFallback : postcard.image_path}
                 alt={`Postal de ${postcard.player_name}`}
                 className={`absolute inset-0 w-full h-full ${imageError ? 'object-contain p-4 opacity-50' : 'object-cover'}`}
                 loading="lazy"
@@ -87,32 +119,41 @@ export function PostcardCard({ postcard, onSelect }: PostcardCardProps) {
           </div>
 
           {/* Separador vertical */}
-          <div className="w-px bg-gray-200 self-stretch" />
+          <div className="w-px self-stretch" style={{ backgroundColor: `${primaryColor}30` }} />
 
           {/* Mensaje — lado derecho */}
           <div className="w-1/2 p-3 flex flex-col justify-between relative">
             {/* Líneas decorativas de fondo (efecto postal real) */}
             <div className="absolute inset-x-3 top-8 space-y-4 pointer-events-none">
-              <div className="h-px bg-gray-100" />
-              <div className="h-px bg-gray-100" />
-              <div className="h-px bg-gray-100" />
-              <div className="h-px bg-gray-100" />
+              <div className="h-px" style={{ backgroundColor: `${primaryColor}15` }} />
+              <div className="h-px" style={{ backgroundColor: `${primaryColor}15` }} />
+              <div className="h-px" style={{ backgroundColor: `${primaryColor}15` }} />
+              <div className="h-px" style={{ backgroundColor: `${primaryColor}15` }} />
             </div>
 
             <div className="relative z-10">
-              <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1">
+              <p 
+                className="text-[10px] uppercase tracking-wider font-medium mb-1"
+                style={{ color: `${textColor}80` }}
+              >
                 mensaje:
               </p>
-              <p className="text-xs text-gray-700 leading-relaxed line-clamp-4 font-serif italic whitespace-pre-wrap">
+              <p 
+                className="text-xs leading-relaxed line-clamp-4 italic whitespace-pre-wrap"
+                style={{ 
+                  color: textColor,
+                  fontFamily: headingFont.includes('Vibes') || headingFont.includes('Script') ? headingFont : `${headingFont}, serif`,
+                }}
+              >
                 {postcard.message || '...'}
               </p>
             </div>
 
             {/* From: nombre */}
-            <div className="relative z-10 mt-2 pt-2 border-t border-gray-200">
-              <p className="text-[10px] text-gray-500 flex items-center gap-1">
+            <div className="relative z-10 mt-2 pt-2" style={{ borderTopColor: `${primaryColor}30`, borderTopWidth: '1px' }}>
+              <p className="text-[10px] flex items-center gap-1" style={{ color: `${textColor}80` }}>
                 <span className="text-sm">{postcard.player_avatar}</span>
-                <span className="font-medium text-accent">
+                <span className="font-medium" style={{ color: primaryColor }}>
                   {postcard.player_name}
                 </span>
               </p>

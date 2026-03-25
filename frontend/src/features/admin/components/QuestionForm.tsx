@@ -162,7 +162,7 @@ export function QuestionForm({
   const showCorrectAnswers = formData.is_scorable;
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-pink-100 p-4">
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-display text-gray-800">
           {question ? 'Editar Pregunta' : 'Nueva Pregunta'}
@@ -324,27 +324,46 @@ export function QuestionForm({
               className="space-y-2"
             >
               <label className="block text-sm font-medium text-gray-700">
-                Respuesta(s) correcta(s)
+                {isChoiceType ? 'Respuesta(s) correcta(s)' : 'Respuesta correcta'}
               </label>
-              <div className="space-y-1">
-                {formData.options.map((option, index) => (
-                  <label
-                    key={index}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.correct_answers.includes(option)}
-                      onChange={(e) => handleCorrectAnswerChange(option, e.target.checked)}
-                      disabled={!option.trim()}
-                      className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary disabled:opacity-50"
-                    />
-                    <span className="text-sm text-gray-600 truncate">{option || `Opción ${index + 1}`}</span>
-                  </label>
-                ))}
-              </div>
-              {errors.correct_answers && (
-                <p className="text-red-500 text-xs">{errors.correct_answers}</p>
+              
+              {isChoiceType ? (
+                /* Choice type: checkboxes for each option */
+                <div className="space-y-1">
+                  {formData.options.map((option, index) => (
+                    <label
+                      key={index}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.correct_answers.includes(option)}
+                        onChange={(e) => handleCorrectAnswerChange(option, e.target.checked)}
+                        disabled={!option.trim()}
+                        className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary disabled:opacity-50"
+                      />
+                      <span className="text-sm text-gray-600 truncate">{option || `Opción ${index + 1}`}</span>
+                    </label>
+                  ))}
+                  {errors.correct_answers && (
+                    <p className="text-red-500 text-xs">{errors.correct_answers}</p>
+                  )}
+                </div>
+              ) : (
+                /* Text type: single text input for correct answer */
+                <div>
+                  <input
+                    type="text"
+                    value={formData.correct_answers[0] || ''}
+                    onChange={(e) => handleChange('correct_answers', e.target.value ? [e.target.value] : [])}
+                    placeholder="Escribe la respuesta correcta"
+                    className="w-full px-3 py-2 bg-transparent border-b-2 border-gray-200 
+                               focus:border-primary rounded-b-lg focus:outline-none text-sm"
+                  />
+                  <p className="text-gray-400 text-[10px] mt-0.5">
+                    La respuesta se comparará con texto libre del jugador (sin distinción de mayúsculas/minúsculas)
+                  </p>
+                </div>
               )}
             </motion.div>
           )}

@@ -14,12 +14,6 @@ interface CardProps {
   className?: string;
 }
 
-const variantStyles: Record<CardVariant, string> = {
-  default: 'bg-white dark:bg-slate-800 shadow-lg',
-  glass: 'glass-card shadow-lg',
-  outlined: 'bg-transparent border-2 border-primary/30',
-};
-
 const paddingStyles: Record<CardPadding, string> = {
   none: '',
   sm: 'p-3',
@@ -36,12 +30,37 @@ export function Card({
   onClick,
   className = '',
 }: CardProps) {
-  const baseClasses = `
-    rounded-2xl
-    ${variantStyles[variant]}
-    ${paddingStyles[padding]}
-    ${className}
-  `;
+  // Card styles use CSS variables directly
+  
+  // Get card style based on variant and theme
+  // Uses CSS variables injected by ThemeProvider
+  const getCardStyle = (): React.CSSProperties => {
+    switch (variant) {
+      case 'default':
+        return {
+          backgroundColor: 'var(--color-surface)',
+          boxShadow: 'var(--shadow-lg)',
+          border: '1px solid var(--color-border-light)',
+        };
+      case 'glass':
+        return {
+          backgroundColor: 'rgba(255, 255, 255, 0.75)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255, 255, 255, 0.4)',
+          boxShadow: 'var(--shadow-lg)',
+        };
+      case 'outlined':
+        return {
+          backgroundColor: 'transparent',
+          border: '2px solid var(--color-border)',
+        };
+      default:
+        return {};
+    }
+  };
+
+  const baseStyle = getCardStyle();
+  const baseClasses = `rounded-[var(--radius-lg)] ${paddingStyles[padding]} ${className}`;
 
   // Si es presionable, usamos motion.div con efectos de tap
   if (isPressable) {
@@ -50,6 +69,7 @@ export function Card({
         whileHover={isHoverable ? { y: -2, scale: 1.01 } : undefined}
         whileTap={{ scale: 0.98 }}
         className={`${baseClasses} cursor-pointer`}
+        style={baseStyle}
         onClick={onClick}
       >
         {children}
@@ -64,6 +84,7 @@ export function Card({
         whileHover={{ y: -2, scale: 1.01 }}
         transition={{ duration: 0.2 }}
         className={baseClasses}
+        style={baseStyle}
         onClick={onClick}
       >
         {children}
@@ -73,7 +94,7 @@ export function Card({
 
   // Card estática
   return (
-    <div className={baseClasses} onClick={onClick}>
+    <div className={baseClasses} style={baseStyle} onClick={onClick}>
       {children}
     </div>
   );

@@ -11,6 +11,7 @@ export { ButterflyBackground } from './components/ButterflyBackground';
 export { ErrorBoundary } from './components/ErrorBoundary';
 export { ThemeToggle } from './components/ThemeToggle';
 export { EventLayout } from './components/EventLayout';
+export { MobileBottomNav } from './components/MobileBottomNav';
 export { EventLoader } from './components/EventLoader';
 export { LegacyRedirect } from './components/LegacyRedirect';
 export { EventLandingSkeleton, EventQuizSkeleton, RankingSkeletonPage } from './components/EventSkeletons';

@@ -42,6 +42,8 @@ type EventSettings struct {
 	Theme           string `json:"theme,omitempty"`
 	PrimaryColor    string `json:"primary_color,omitempty"`
 	BackgroundImage string `json:"background_image,omitempty"`
+	LogoURL         string `json:"logo_url,omitempty"`       // URL del logo/imagen representativa del evento
+	BackgroundURL   string `json:"background_url,omitempty"` // URL del fondo custom del corkboard
 }
 
 // QuizQuestion representa una pregunta del quiz configurable por evento
@@ -83,7 +85,7 @@ func (d *DateOnly) UnmarshalJSON(data []byte) error {
 
 // CreateEventRequest body para crear evento
 type CreateEventRequest struct {
-	Slug        string        `json:"slug" binding:"required"`
+	Slug        *string       `json:"slug"` // Opcional - si está vacío se autogenera
 	Name        string        `json:"name" binding:"required"`
 	Description string        `json:"description"`
 	Features    EventFeatures `json:"features"`

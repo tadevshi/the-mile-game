@@ -36,7 +36,10 @@ export function DemoVideoSection() {
             transition={{ duration: 0.6 }}
             className="text-center mb-10"
           >
-            <span className="inline-block px-4 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-sm font-medium rounded-full mb-4">
+            <span
+              className="inline-block px-4 py-1 text-sm font-medium rounded-full mb-4"
+              style={{ background: 'color-mix(in srgb, var(--color-primary) 15%, transparent)', color: 'var(--color-primary)' }}
+            >
               Demo
             </span>
             <h2 className="text-2xl md:text-3xl mb-3" style={{ fontFamily: 'var(--font-serif)' }}>
