@@ -3,9 +3,9 @@ import { Skeleton, SkeletonAvatar } from '@/shared/components/Skeleton';
 
 export function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--color-bg)] via-[var(--color-secondary)] to-[var(--color-bg)] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Header Skeleton */}
-      <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-pink-100 dark:border-slate-700 sticky top-0 z-10">
+      <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-[var(--color-secondary)] dark:border-slate-700 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <SkeletonAvatar size="40px" />

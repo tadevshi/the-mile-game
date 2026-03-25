@@ -126,17 +126,17 @@ export function EventCard({ event, onDelete }: EventCardProps) {
         {/* Features Pills */}
         <div className="flex flex-wrap gap-2 mb-4">
           {event.features?.quiz && (
-            <span className="px-2.5 py-1 text-xs font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full flex items-center gap-1">
+            <span className="px-2.5 py-1 text-xs font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full flex items-center gap-1" style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 15%, transparent)' }}>
               <span>🧠</span> Quiz
             </span>
           )}
           {event.features?.corkboard && (
-            <span className="px-2.5 py-1 text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full flex items-center gap-1">
+            <span className="px-2.5 py-1 text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full flex items-center gap-1" style={{ backgroundColor: 'color-mix(in srgb, var(--color-accent-amber, #F59E0B) 15%, transparent)' }}>
               <span>📌</span> Corcho
             </span>
           )}
           {event.features?.secretBox && (
-            <span className="px-2.5 py-1 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full flex items-center gap-1">
+            <span className="px-2.5 py-1 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full flex items-center gap-1" style={{ backgroundColor: 'color-mix(in srgb, var(--color-accent-purple, #A855F7) 15%, transparent)' }}>
               <span>🎁</span> Caja Secreta
             </span>
           )}
@@ -163,7 +163,7 @@ export function EventCard({ event, onDelete }: EventCardProps) {
         <Link
           to={`/e/${event.slug}`}
           target="_blank"
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-[var(--color-accent)] dark:hover:text-[var(--color-primary)] hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg transition-colors"
         >
           <Eye className="w-4 h-4" />
           Ver
@@ -173,7 +173,7 @@ export function EventCard({ event, onDelete }: EventCardProps) {
         {/* Admin Button */}
         <Link
           to={`/admin/${event.slug}?tab=config`}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-pink-500 hover:bg-pink-600 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-[var(--color-primary)] hover:bg-[var(--color-accent)] rounded-lg transition-colors"
         >
           <Settings className="w-4 h-4" />
           Admin

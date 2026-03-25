@@ -92,7 +92,7 @@ export function VideoPlayer({
             whileTap={{ scale: 0.95 }}
           >
             <svg
-              className="w-8 h-8 text-pink-500 ml-1"
+              className="w-8 h-8 text-[var(--color-primary)] ml-1"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -108,7 +108,7 @@ export function VideoPlayer({
           )}
 
           {/* Video indicator */}
-          <div className="absolute top-2 left-2 bg-pink-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+          <div className="absolute top-2 left-2 bg-[var(--color-primary)] text-white text-xs px-2 py-1 rounded flex items-center gap-1">
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
               <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
             </svg>
@@ -132,7 +132,7 @@ export function VideoPlayer({
                 e.stopPropagation();
                 handlePause();
               }}
-              className="hover:text-pink-400 transition-colors"
+              className="hover:text-[var(--color-accent)] transition-colors"
             >
               {isPlaying ? (
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

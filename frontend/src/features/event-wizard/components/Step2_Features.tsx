@@ -8,28 +8,28 @@ const featureItems: {
   label: string;
   description: string;
   emoji: string;
-  bg: string;
+  bgStyle: React.CSSProperties;
 }[] = [
   {
     key: 'quiz',
     label: 'Quiz (Trivia)',
     description: 'Juego de preguntas sobre la cumpleañera',
     emoji: '🧠',
-    bg: 'bg-pink-50/50',
+    bgStyle: { backgroundColor: 'color-mix(in srgb, var(--color-primary) 15%, transparent)' },
   },
   {
     key: 'corkboard',
     label: 'Cartelera de Corcho',
     description: 'Postales y mensajes de invitados',
     emoji: '📌',
-    bg: 'bg-amber-50/50',
+    bgStyle: { backgroundColor: 'color-mix(in srgb, var(--color-accent-amber, #F59E0B) 15%, transparent)' },
   },
   {
     key: 'secretBox',
     label: 'Caja Secreta',
     description: 'Sorpresas de familiares y amigos',
     emoji: '🎁',
-    bg: 'bg-purple-50/50',
+    bgStyle: { backgroundColor: 'color-mix(in srgb, var(--color-accent-purple, #A855F7) 15%, transparent)' },
   },
 ];
 
@@ -58,7 +58,7 @@ export function Step2_Features() {
 
       <div className="space-y-4">
         {featureItems.map((item) => (
-          <div key={item.key} className={`p-4 rounded-xl ${item.bg}`}>
+          <div key={item.key} className="p-4 rounded-xl" style={item.bgStyle}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{item.emoji}</span>
@@ -76,7 +76,7 @@ export function Step2_Features() {
         ))}
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800" style={{ backgroundColor: 'color-mix(in srgb, var(--color-accent-amber, #F59E0B) 10%, transparent)' }}>
         <p className="font-medium mb-1">💡 Tip</p>
         <p>
           Podés cambiar estas configuraciones más tarde desde el panel de

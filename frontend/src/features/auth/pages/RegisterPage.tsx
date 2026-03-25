@@ -132,7 +132,7 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--color-bg)] via-[var(--color-secondary)] to-[var(--color-bg)] flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -141,7 +141,7 @@ export function RegisterPage() {
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-display text-pink-600 mb-2">EventHub</h1>
+            <h1 className="text-3xl font-display text-[var(--color-accent)] mb-2">EventHub</h1>
             <p className="text-gray-500 dark:text-gray-400">Crear Cuenta</p>
           </div>
 
@@ -174,7 +174,7 @@ export function RegisterPage() {
                 className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${
                   validationErrors.name
                     ? 'border-red-300 focus:border-red-400'
-                    : 'border-pink-100 focus:border-pink-300'
+                    : 'border-[var(--color-secondary)] focus:border-[var(--color-accent)]'
                 } bg-white/50`}
                 placeholder="Juan Pérez"
               />
@@ -198,7 +198,7 @@ export function RegisterPage() {
                 className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${
                   validationErrors.email
                     ? 'border-red-300 focus:border-red-400'
-                    : 'border-pink-100 focus:border-pink-300'
+                    : 'border-[var(--color-secondary)] focus:border-[var(--color-accent)]'
                 } bg-white/50`}
                 placeholder="tu@email.com"
               />
@@ -222,7 +222,7 @@ export function RegisterPage() {
                 className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${
                   validationErrors.password
                     ? 'border-red-300 focus:border-red-400'
-                    : 'border-pink-100 focus:border-pink-300'
+                    : 'border-[var(--color-secondary)] focus:border-[var(--color-accent)]'
                 } bg-white/50`}
                 placeholder="••••••••"
               />
@@ -287,7 +287,7 @@ export function RegisterPage() {
                 className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${
                   validationErrors.confirmPassword
                     ? 'border-red-300 focus:border-red-400'
-                    : 'border-pink-100 focus:border-pink-300'
+                    : 'border-[var(--color-secondary)] focus:border-[var(--color-accent)]'
                 } bg-white/50`}
                 placeholder="••••••••"
               />
@@ -300,7 +300,7 @@ export function RegisterPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 text-white bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 shadow-lg shadow-pink-200"
+              className="w-full py-3.5 text-white bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] hover:from-[var(--color-accent)] hover:to-[var(--color-primary)] shadow-lg shadow-[var(--color-secondary)]"
             >
               {isLoading ? (
                 <LoadingSpinner size="sm" className="text-white" />
@@ -317,7 +317,7 @@ export function RegisterPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               ¿Ya tienes cuenta?{' '}
-              <Link to="/login" className="text-pink-500 hover:text-pink-600 font-medium">
+              <Link to="/login" className="text-[var(--color-primary)] hover:text-[var(--color-accent)] font-medium">
                 Inicia sesión
               </Link>
             </p>
