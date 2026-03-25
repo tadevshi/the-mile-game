@@ -15,14 +15,20 @@ function ProgressBar({ current, total }: { current: number; total: number }) {
   return (
     <div className="w-full space-y-2">
       <div className="flex justify-between items-center text-sm">
-        <span className="font-serif text-slate-600 dark:text-slate-300">
+        <span 
+          className="font-serif"
+          style={{ color: 'var(--color-on-surface-muted)' }}
+        >
           Progreso
         </span>
         <span className="font-bold text-primary">
           {current} de {total}
         </span>
       </div>
-      <div className="h-3 w-full bg-pink-100 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
+      <div 
+        className="h-3 w-full rounded-full overflow-hidden shadow-inner"
+        style={{ backgroundColor: 'var(--color-primary-light)' }}
+      >
         <motion.div
           className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
           initial={{ width: 0 }}
@@ -39,7 +45,10 @@ function ProgressBarMinimal({ current, total }: { current: number; total: number
   const percentage = Math.round((current / total) * 100);
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-pink-100/80 dark:bg-slate-800/80 backdrop-blur-sm">
+    <div 
+      className="fixed top-0 left-0 right-0 z-50 h-1 backdrop-blur-sm"
+      style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary-light) 80%, transparent)' }}
+    >
       <motion.div
         className="h-full bg-gradient-to-r from-primary to-accent shadow-[0_0_10px_rgba(236,72,153,0.5)]"
         initial={{ width: 0 }}
@@ -215,7 +224,16 @@ export function QuizPage() {
 
           {/* Error message */}
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <div 
+              className="px-4 py-3 rounded"
+              style={{ 
+                backgroundColor: 'var(--color-error-light)',
+                borderColor: 'var(--color-error)',
+                color: 'var(--color-error)',
+                borderWidth: '1px',
+                borderStyle: 'solid'
+              }}
+            >
               {error}
             </div>
           )}
@@ -245,7 +263,10 @@ export function QuizPage() {
               <section className="space-y-6">
                 <div className="flex items-center justify-center space-x-3">
                   <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-primary" />
-                  <span className="font-serif italic text-accent dark:text-primary px-4 text-lg">
+                  <span 
+                    className="font-serif italic px-4 text-lg"
+                    style={{ color: 'var(--color-accent)' }}
+                  >
                     ¿Qué prefiere?
                   </span>
                   <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-primary" />
@@ -268,9 +289,14 @@ export function QuizPage() {
                                 onClick={() => !isLoading && setPreferenceAnswer(q.key, opt)}
                                 className={`flex-1 py-2 px-3 rounded-full border-2 text-sm font-semibold transition-colors ${
                                   isSelected
-                                    ? 'bg-accent border-accent text-white'
-                                    : 'border-primary text-primary bg-white/60 dark:bg-slate-800/60 hover:bg-primary/10'
+                                    ? 'text-white'
+                                    : ''
                                 } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                style={{
+                                  backgroundColor: isSelected ? 'var(--color-accent)' : 'color-mix(in srgb, var(--color-surface) 60%, transparent)',
+                                  borderColor: isSelected ? 'var(--color-accent)' : 'var(--color-primary)',
+                                  color: isSelected ? 'var(--color-on-accent)' : 'var(--color-primary)',
+                                }}
                                 whileTap={isLoading ? {} : { scale: 0.95 }}
                                 animate={isSelected ? { scale: 1.05 } : { scale: 1 }}
                                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
@@ -295,7 +321,10 @@ export function QuizPage() {
               <section className="space-y-4">
                 <div className="flex items-center justify-center space-x-3">
                   <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-primary" />
-                  <span className="font-serif italic text-accent dark:text-primary px-4 text-lg">
+                  <span 
+                    className="font-serif italic px-4 text-lg"
+                    style={{ color: 'var(--color-accent)' }}
+                  >
                     Descríbeme en una oración
                   </span>
                   <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-primary" />

@@ -95,7 +95,10 @@ export function TestimonialsCarousel() {
           transition={{ duration: 0.6 }}
           className="text-center mb-10"
         >
-          <span className="inline-block px-4 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-sm font-medium rounded-full mb-4">
+          <span
+            className="inline-block px-4 py-1 text-sm font-medium rounded-full mb-4"
+            style={{ background: 'color-mix(in srgb, var(--color-primary) 15%, transparent)', color: 'var(--color-primary)' }}
+          >
             Testimonios
           </span>
           <h2 className="text-2xl md:text-3xl mb-3" style={{ fontFamily: 'var(--font-serif)' }}>
@@ -108,7 +111,7 @@ export function TestimonialsCarousel() {
           {/* Navigation Arrows */}
           <button
             onClick={() => paginate(-1)}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors hover:bg-pink-100 dark:hover:bg-pink-900/30"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"
             style={{ background: 'rgba(255,255,255,0.8)' }}
             aria-label="Anterior testimonio"
           >
@@ -117,7 +120,7 @@ export function TestimonialsCarousel() {
 
           <button
             onClick={() => paginate(1)}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors hover:bg-pink-100 dark:hover:bg-pink-900/30"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors"
             style={{ background: 'rgba(255,255,255,0.8)' }}
             aria-label="Siguiente testimonio"
           >

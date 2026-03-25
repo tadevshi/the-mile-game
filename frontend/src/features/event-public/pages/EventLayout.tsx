@@ -27,7 +27,10 @@ export function EventLayout({ children }: EventLayoutProps) {
     <ThemeProvider eventSlug={slug}>
       <div className="relative">
         {/* Desktop Header - hidden on mobile, visible on md+ */}
-        <header className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-pink-100/50">
+        <header 
+          className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b"
+          style={{ borderColor: 'var(--color-border-light)' }}
+        >
           <div className="max-w-4xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between gap-4">
               <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar">
@@ -35,13 +38,20 @@ export function EventLayout({ children }: EventLayoutProps) {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="border-pink-300 text-pink-700 hover:text-pink-600 hover:border-pink-400"
+                    className="hover:text-[var(--color-primary)]"
+                    style={{ 
+                      borderColor: 'var(--color-border)',
+                      color: 'var(--color-primary)'
+                    }}
                   >
                     ← Inicio
                   </Button>
                 </Link>
 
-                <div className="w-px h-4 bg-slate-200 mx-1" />
+                <div 
+                  className="w-px h-4 mx-1" 
+                  style={{ backgroundColor: 'var(--color-divider)' }} 
+                />
 
                 {quizEnabled && (
                   <Link to={`/e/${slug}/quiz`}>
@@ -79,7 +89,10 @@ export function EventLayout({ children }: EventLayoutProps) {
               </nav>
 
               {currentEvent?.name && (
-                <span className="hidden sm:block text-sm font-serif text-slate-500 truncate max-w-[200px]">
+                <span 
+                  className="hidden sm:block text-sm font-serif truncate max-w-[200px]"
+                  style={{ color: 'var(--color-on-surface-muted)' }}
+                >
                   {currentEvent.name}
                 </span>
               )}

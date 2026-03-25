@@ -125,7 +125,10 @@ function EventLandingContent() {
             whileTap={{ scale: 0.98 }}
           >
             <Link to={`/e/${slug}/ranking`}>
-              <div className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full">
+              <div 
+                className="rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full"
+                style={{ background: `linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary-dark) 100%)` }}
+              >
                 <div className="text-3xl mb-3">🏆</div>
                 <h3 className="text-xl font-display mb-1" style={{ fontFamily: `var(--font-display)` }}>Ranking</h3>
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
@@ -145,7 +148,10 @@ function EventLandingContent() {
               whileTap={{ scale: 0.98 }}
             >
               <Link to={`/e/${slug}/corkboard`}>
-                <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full">
+                <div 
+                  className="rounded-2xl p-6 text-white shadow-lg cursor-pointer h-full"
+                  style={{ background: `linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%)` }}
+                >
                   <div className="text-3xl mb-3">📌</div>
                   <h3 className="text-xl font-display mb-1" style={{ fontFamily: `var(--font-display)` }}>Cartelera</h3>
                   <p className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>

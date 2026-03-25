@@ -160,7 +160,8 @@ export function RegisterPage() {
                     animate={{ opacity: 1, y: 0, height: 'auto' }}
                     exit={{ opacity: 0, y: -10, height: 0 }}
                     transition={{ duration: 0.3, ease: 'easeOut' }}
-                    className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-pink-100 max-h-60 overflow-y-auto"
+                    className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg max-h-60 overflow-y-auto"
+                    style={{ borderColor: 'var(--color-border-light)' }}
                   >
                     <div className="grid grid-cols-6 gap-2">
                       {AVATAR_EMOJIS.map((emoji) => (
@@ -171,10 +172,12 @@ export function RegisterPage() {
                             setShowEmojiPicker(false);
                           }}
                           className={`w-10 h-10 rounded-lg flex items-center justify-center text-2xl transition-all ${
-                            selectedAvatar === emoji
-                              ? 'bg-primary text-white shadow-md'
-                              : 'hover:bg-pink-50'
+                            selectedAvatar === emoji ? '' : ''
                           }`}
+                          style={{
+                            backgroundColor: selectedAvatar === emoji ? 'var(--color-primary)' : 'transparent',
+                            color: selectedAvatar === emoji ? 'var(--color-on-primary)' : 'inherit',
+                          }}
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                         >
@@ -230,7 +233,10 @@ export function RegisterPage() {
           <ScrollReveal variant="fadeUp" delay={0.4}>
             <button
               onClick={() => navigate('/')}
-              className="w-full text-center text-sm text-gray-400 hover:text-primary transition-colors"
+              className="w-full text-center text-sm transition-colors"
+              style={{ color: 'var(--color-on-surface-muted)' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-on-surface-muted)'}
               disabled={isLoading}
             >
               ← Volver al inicio
