@@ -41,7 +41,6 @@ export function HeroSection() {
 
   const handleJoinEvent = () => {
     trackCTA('join');
-    // Focus on event code input
     const input = document.getElementById('event-code-input');
     if (input) {
       input.focus();
@@ -51,14 +50,25 @@ export function HeroSection() {
 
   return (
     <section className="relative min-h-[85vh] flex items-center justify-center px-4 py-12 md:py-16 overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-pink-100 via-rose-50 to-pink-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900" />
+      {/* Background gradient - uses CSS variable for theme-aware background */}
+      <div 
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(to bottom right, var(--color-background), var(--color-background-alt), var(--color-background))',
+          opacity: 0.95,
+        }}
+      />
       
       {/* Decorative elements */}
-      <div className="absolute top-16 md:top-20 left-4 md:left-10 w-24 md:w-32 h-24 md:h-32 bg-pink-300/30 rounded-full blur-3xl" />
-      <div className="absolute bottom-16 md:bottom-20 right-4 md:right-10 w-32 md:w-40 h-32 md:h-40 bg-rose-300/30 rounded-full blur-3xl" />
-      <div className="absolute top-1/3 right-1/4 w-20 md:w-24 h-20 md:h-24 bg-pink-200/40 rounded-full blur-2xl hidden sm:block" />
-      
+      <div 
+        className="absolute top-16 md:top-20 left-4 md:left-10 w-24 md:w-32 h-24 md:h-32 rounded-full blur-3xl"
+        style={{ backgroundColor: 'var(--color-primary)', opacity: 0.15 }}
+      />
+      <div 
+        className="absolute bottom-16 md:bottom-20 right-4 md:right-10 w-32 md:w-40 h-32 md:h-40 rounded-full blur-3xl"
+        style={{ backgroundColor: 'var(--color-accent)', opacity: 0.15 }}
+      />
+
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -67,9 +77,21 @@ export function HeroSection() {
       >
         {/* Logo / Brand */}
         <motion.div variants={itemVariants} className="mb-4 md:mb-6">
-          <div className="inline-flex items-center gap-2 px-3 md:px-4 py-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-full shadow-sm border border-pink-100 dark:border-slate-700">
-            <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-pink-500" />
-            <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-300">
+          <div 
+            className="inline-flex items-center gap-2 px-3 md:px-4 py-2 backdrop-blur-sm rounded-full shadow-sm border"
+            style={{ 
+              backgroundColor: 'var(--color-surface)',
+              borderColor: 'var(--color-border-light)',
+            }}
+          >
+            <Sparkles 
+              className="w-4 h-4 md:w-5 md:h-5" 
+              style={{ color: 'var(--color-primary)' }} 
+            />
+            <span 
+              className="text-xs md:text-sm font-medium"
+              style={{ color: 'var(--color-on-surface)' }}
+            >
               Plataforma de eventos interactivos
             </span>
           </div>
@@ -80,7 +102,13 @@ export function HeroSection() {
           variants={itemVariants}
           className="text-4xl sm:text-5xl md:text-7xl font-display mb-2 md:mb-4"
         >
-          <span className="bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 bg-clip-text text-transparent dark:from-pink-400 dark:via-rose-400 dark:to-pink-500">
+          <span 
+            className="bg-clip-text"
+            style={{
+              backgroundImage: 'linear-gradient(to right, var(--color-primary), var(--color-accent), var(--color-primary))',
+              color: 'transparent',
+            }}
+          >
             EventHub
           </span>
         </motion.h1>
@@ -88,7 +116,8 @@ export function HeroSection() {
         {/* Tagline */}
         <motion.p
           variants={itemVariants}
-          className="text-lg md:text-2xl text-gray-600 dark:text-gray-300 mb-2 md:mb-4 font-serif"
+          className="text-lg md:text-2xl mb-2 md:mb-4 font-serif"
+          style={{ color: 'var(--color-on-background)' }}
         >
           Creá experiencias memorables
         </motion.p>
@@ -96,7 +125,8 @@ export function HeroSection() {
         {/* Subtitle */}
         <motion.p
           variants={itemVariants}
-          className="text-sm md:text-base text-gray-500 dark:text-gray-400 mb-8 md:mb-10 max-w-2xl mx-auto px-4"
+          className="text-sm md:text-base mb-8 md:mb-10 max-w-2xl mx-auto px-4"
+          style={{ color: 'var(--color-on-surface-muted)' }}
         >
           Organizá eventos únicos con quizzes interactivos, carteleras de fotos y 
           cajas secretas. Todo en un solo lugar, fácil de compartir.
@@ -107,19 +137,12 @@ export function HeroSection() {
           variants={itemVariants}
           className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 mb-8 md:mb-12 px-4"
         >
-          <Button
-            onClick={handleCreateEvent}
-            className="w-full sm:w-auto px-6 md:px-8 py-3 md:py-4 text-base md:text-lg bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 shadow-lg shadow-pink-200 dark:shadow-pink-900/50"
-          >
+          <Button onClick={handleCreateEvent}>
             <PartyPopper className="w-4 h-4 md:w-5 md:h-5" />
             Crear Evento
           </Button>
 
-          <Button
-            onClick={handleJoinEvent}
-            variant="outline"
-            className="w-full sm:w-auto px-6 md:px-8 py-3 md:py-4 text-base md:text-lg border-2 border-pink-300 dark:border-pink-700 hover:bg-pink-50 dark:hover:bg-pink-900/30"
-          >
+          <Button onClick={handleJoinEvent} variant="outline">
             <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
             Ingresar a Evento
           </Button>
@@ -131,18 +154,54 @@ export function HeroSection() {
           className="flex flex-wrap items-center justify-center gap-4 md:gap-8 text-center px-4"
         >
           <div>
-            <p className="text-2xl md:text-3xl font-bold text-pink-600 dark:text-pink-400">100+</p>
-            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Eventos creados</p>
+            <p 
+              className="text-2xl md:text-3xl font-bold"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              100+
+            </p>
+            <p 
+              className="text-xs md:text-sm"
+              style={{ color: 'var(--color-on-surface-muted)' }}
+            >
+              Eventos creados
+            </p>
           </div>
-          <div className="w-px h-10 md:h-12 bg-pink-200 dark:bg-slate-700 hidden sm:block" />
+          <div 
+            className="w-px h-10 md:h-12 hidden sm:block"
+            style={{ backgroundColor: 'var(--color-border)' }}
+          />
           <div>
-            <p className="text-2xl md:text-3xl font-bold text-pink-600 dark:text-pink-400">50+</p>
-            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Invitados por evento</p>
+            <p 
+              className="text-2xl md:text-3xl font-bold"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              50+
+            </p>
+            <p 
+              className="text-xs md:text-sm"
+              style={{ color: 'var(--color-on-surface-muted)' }}
+            >
+              Invitados por evento
+            </p>
           </div>
-          <div className="w-px h-10 md:h-12 bg-pink-200 dark:bg-slate-700 hidden sm:block" />
+          <div 
+            className="w-px h-10 md:h-12 hidden sm:block"
+            style={{ backgroundColor: 'var(--color-border)' }}
+          />
           <div>
-            <p className="text-2xl md:text-3xl font-bold text-pink-600 dark:text-pink-400">4.9★</p>
-            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Satisfacción</p>
+            <p 
+              className="text-2xl md:text-3xl font-bold"
+              style={{ color: 'var(--color-primary)' }}
+            >
+              4.9★
+            </p>
+            <p 
+              className="text-xs md:text-sm"
+              style={{ color: 'var(--color-on-surface-muted)' }}
+            >
+              Satisfacción
+            </p>
           </div>
         </motion.div>
 
@@ -154,12 +213,14 @@ export function HeroSection() {
           <motion.div
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            className="w-6 h-10 border-2 border-pink-300 dark:border-pink-700 rounded-full flex items-start justify-center p-1"
+            className="w-6 h-10 rounded-full flex items-start justify-center p-1"
+            style={{ borderColor: 'var(--color-primary)' }}
           >
             <motion.div
               animate={{ y: [0, 12, 0] }}
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              className="w-1.5 h-3 bg-pink-400 dark:bg-pink-500 rounded-full"
+              className="w-1.5 h-3 rounded-full"
+              style={{ backgroundColor: 'var(--color-primary)' }}
             />
           </motion.div>
         </motion.div>
