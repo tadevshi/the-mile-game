@@ -36,6 +36,23 @@ export {
   hexToRgb,
   rgbToHex,
 } from './utils/colorUtils';
+export {
+  getThemedClasses,
+  getThemedStyles,
+  useThemeClasses,
+  themedClassNames,
+} from './utils/classes';
+export type {
+  ThemedClasses,
+  ThemedButtonClasses,
+  ThemedCardClasses,
+  ThemedInputClasses,
+  ThemedBadgeClasses,
+  ThemedTextClasses,
+  ThemedBackgroundClasses,
+  ThemedSpacingClasses,
+  ThemedGradientClasses,
+} from './utils/classes';
 
 // Default design tokens
 export {
