@@ -15,7 +15,7 @@ export function QuestionPreview({ data }: QuestionPreviewProps) {
     : 'from-blue-50 to-blue-100';
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-pink-100 p-4">
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-4">
       <div className="flex items-center gap-2 mb-3">
         <Eye size={16} className="text-gray-400" />
         <h3 className="font-display text-gray-700 text-sm">Preview</h3>

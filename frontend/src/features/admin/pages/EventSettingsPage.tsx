@@ -80,14 +80,14 @@ export function EventSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100">
+    <div className="min-h-screen theme-watercolor">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-10">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-[var(--color-secondary)] sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 rounded-lg hover:bg-pink-50 transition-colors"
+              className="p-2 rounded-lg hover:bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)] transition-colors"
             >
               <ArrowLeft size={20} className="text-gray-600" />
             </button>

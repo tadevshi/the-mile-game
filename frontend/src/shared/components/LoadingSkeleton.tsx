@@ -16,10 +16,10 @@ export function LoadingSkeleton({
 }: SkeletonProps) {
   return (
     <motion.div
-      className={`bg-pink-200/50 dark:bg-slate-700/50 relative overflow-hidden ${
+      className={`dark:bg-slate-700/50 relative overflow-hidden ${
         circle ? 'rounded-full' : 'rounded-lg'
       } ${className}`}
-      style={{ width, height }}
+      style={{ width, height, backgroundColor: 'color-mix(in srgb, var(--color-primary) 30%, transparent)' }}
       initial={{ opacity: 0.5 }}
       animate={{ opacity: [0.5, 0.8, 0.5] }}
       transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
@@ -102,9 +102,9 @@ export function LoadingSkeletonCard({ className = '' }: SkeletonCardProps) {
 // Skeleton para página completa de dashboard
 export function DashboardSkeletonPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen dark:from-slate-900 dark:via-slate-800 dark:to-slate-900" style={{ background: 'linear-gradient(to bottom right, color-mix(in srgb, var(--color-primary) 15%, white), color-mix(in srgb, var(--color-primary) 10%, white), color-mix(in srgb, var(--color-primary) 20%, white))' }}>
       {/* Header Skeleton */}
-      <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-pink-100 dark:border-slate-700 sticky top-0 z-10">
+      <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b dark:border-slate-700 sticky top-0 z-10" style={{ borderColor: 'color-mix(in srgb, var(--color-primary) 20%, transparent)' }}>
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <LoadingSkeletonAvatar size="40px" />

@@ -81,10 +81,11 @@ export function MobileMenu() {
           text-accent dark:text-primary
           bg-white/70 dark:bg-slate-800/70
           backdrop-blur-md
-          border border-pink-100 dark:border-slate-600
-          shadow-md shadow-pink-100/50 dark:shadow-slate-900/50
+          dark:border-slate-600
+          shadow-md dark:shadow-slate-900/50
           cursor-pointer
         "
+        style={{ borderColor: 'color-mix(in srgb, var(--color-primary) 20%, transparent)', boxShadow: '0 4px 6px -1px color-mix(in srgb, var(--color-primary) 15%, transparent)' }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
@@ -114,12 +115,13 @@ export function MobileMenu() {
               w-48
               bg-white/90 dark:bg-slate-800/90
               backdrop-blur-md
-              border border-pink-100 dark:border-slate-600
+              dark:border-slate-600
               rounded-2xl
-              shadow-lg shadow-pink-100/50 dark:shadow-slate-900/50
+              dark:shadow-slate-900/50
               p-3
               space-y-3
             "
+            style={{ borderColor: 'color-mix(in srgb, var(--color-primary) 20%, transparent)', boxShadow: '0 10px 15px -3px color-mix(in srgb, var(--color-primary) 15%, transparent)' }}
           >
             {/* Language Switcher */}
             <div className="flex justify-center">
@@ -127,7 +129,7 @@ export function MobileMenu() {
             </div>
 
             {/* Divider */}
-            <div className="h-[1px] bg-pink-100 dark:bg-slate-600" />
+            <div className="h-[1px] dark:bg-slate-600" style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 20%, transparent)' }} />
 
             {/* Theme Toggle - versión inline para el dropdown */}
             <div className="flex justify-center">
@@ -157,11 +159,12 @@ function ThemeToggleInline() {
         w-10 h-10 rounded-full
         flex items-center justify-center
         text-accent dark:text-primary
-        bg-pink-50 dark:bg-slate-700
-        border border-pink-100 dark:border-slate-600
+        dark:bg-slate-700
+        dark:border-slate-600
         cursor-pointer
         transition-colors duration-300
       "
+      style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 15%, white)', borderColor: 'color-mix(in srgb, var(--color-primary) 20%, transparent)' }}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
     >

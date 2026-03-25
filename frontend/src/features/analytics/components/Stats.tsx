@@ -26,7 +26,7 @@ export function FunnelChart({ steps, loading }: FunnelChartProps) {
 
   if (!steps.length) {
     return (
-      <div className="bg-pink-50 rounded-xl p-4 flex items-center justify-center h-48">
+      <div className="rounded-xl p-4 flex items-center justify-center h-48" style={{ backgroundColor: 'var(--color-bg)' }}>
         <p className="text-gray-500">No hay datos de conversión todavía</p>
       </div>
     );
@@ -37,7 +37,7 @@ export function FunnelChart({ steps, loading }: FunnelChartProps) {
   const maxWidth = 100; // percentage
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-pink-100">
+    <div className="bg-white rounded-xl p-4 shadow-sm border" style={{ borderColor: 'var(--color-border)' }}>
       <h3 className="text-lg font-semibold text-gray-800 mb-4">Embudo de Conversión</h3>
       <div className="space-y-2">
         {steps.map((step, index) => {
@@ -98,7 +98,7 @@ const COLOR_CLASSES = {
 export function StatCard({ title, value, subtitle, icon, color = 'pink', loading }: StatCardProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-xl p-3 shadow-sm border border-pink-100">
+      <div className="bg-white rounded-xl p-3 shadow-sm border" style={{ borderColor: 'var(--color-border)' }}>
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 bg-gray-200 animate-pulse rounded-full shrink-0" />
           <div className="flex-1 min-w-0">
@@ -111,7 +111,7 @@ export function StatCard({ title, value, subtitle, icon, color = 'pink', loading
   }
 
   return (
-    <div className="bg-white rounded-xl p-3 shadow-sm border border-pink-100 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl p-3 shadow-sm border hover:shadow-md transition-shadow" style={{ borderColor: 'var(--color-border)' }}>
       <div className="flex items-center gap-2">
         <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${COLOR_CLASSES[color]} flex items-center justify-center text-white text-base shadow-md shrink-0`}>
           {icon}

@@ -13,7 +13,7 @@ export function ActivityChart({ data, loading }: ActivityChartProps) {
 
   if (!data.length) {
     return (
-      <div className="h-64 bg-pink-50 rounded-xl flex items-center justify-center">
+      <div className="h-64 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
         <p className="text-gray-500">No hay datos de actividad todavía</p>
       </div>
     );
@@ -30,7 +30,7 @@ export function ActivityChart({ data, loading }: ActivityChartProps) {
   }));
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-pink-100">
+    <div className="bg-white rounded-xl p-4 shadow-sm border" style={{ borderColor: 'var(--color-border)' }}>
       <h3 className="text-lg font-semibold text-gray-800 mb-4">Actividad en el tiempo</h3>
       <ResponsiveContainer width="100%" height={250}>
         <LineChart data={formattedData}>
@@ -95,14 +95,14 @@ export function ScoreDistributionChart({ data, loading }: ScoreDistributionChart
 
   if (!data.length) {
     return (
-      <div className="h-48 bg-pink-50 rounded-xl flex items-center justify-center">
+      <div className="h-48 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
         <p className="text-gray-500">No hay scores todavía</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-pink-100">
+    <div className="bg-white rounded-xl p-4 shadow-sm border" style={{ borderColor: 'var(--color-border)' }}>
       <h3 className="text-lg font-semibold text-gray-800 mb-4">Distribución de Scores</h3>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} layout="vertical">

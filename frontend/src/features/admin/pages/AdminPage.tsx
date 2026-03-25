@@ -255,7 +255,7 @@ export function AdminPage() {
                     {postcards.map((pc) => (
                       <motion.div
                         key={pc.id}
-                        className="rounded-xl overflow-hidden border border-pink-100 shadow-sm"
+                        className="rounded-xl overflow-hidden border border-[var(--color-secondary)] shadow-sm"
                         whileHover={{ scale: 1.02 }}
                       >
                         <div className="aspect-[4/3] bg-gray-100">
@@ -327,7 +327,7 @@ export function AdminPage() {
                     {postcards.map((pc) => (
                       <div
                         key={pc.id}
-                        className="rounded-xl overflow-hidden border border-pink-100 shadow-sm"
+                        className="rounded-xl overflow-hidden border border-[var(--color-secondary)] shadow-sm"
                       >
                         <div className="aspect-[4/3] bg-gray-100">
                           <img

@@ -37,7 +37,7 @@ export function EventLayout({ children }: EventLayoutProps) {
     <ThemeProvider eventSlug={slug}>
       <div className="relative">
         {/* Desktop Header - hidden on mobile, visible on md+ */}
-        <header className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-b border-pink-100/50 dark:border-slate-700/50">
+        <header className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-b border-[var(--color-border)]/50 dark:border-slate-700/50">
           <div className="max-w-4xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between gap-4">
               {/* Navegación izquierda */}

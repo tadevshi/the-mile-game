@@ -127,7 +127,7 @@ export function AnalyticsDashboard({ eventSlug, eventName }: AnalyticsDashboardP
         />
         
         {/* Quiz Funnel */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-pink-100">
+        <div className="bg-white rounded-xl p-4 shadow-sm border" style={{ borderColor: 'var(--color-border)' }}>
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Quiz Funnel</h3>
           {funnelLoading ? (
             <div className="space-y-2">
@@ -154,7 +154,7 @@ export function AnalyticsDashboard({ eventSlug, eventName }: AnalyticsDashboardP
               ))}
             </div>
           ) : (
-            <div className="h-32 bg-pink-50 rounded-lg flex items-center justify-center">
+            <div className="h-32 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
               <p className="text-gray-500">No hay datos de quiz todavía</p>
             </div>
           )}

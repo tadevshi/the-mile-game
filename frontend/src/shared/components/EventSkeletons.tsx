@@ -7,7 +7,7 @@ import { LoadingSkeleton, LoadingSkeletonText, LoadingSkeletonAvatar } from './L
  */
 export function EventLandingSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, color-mix(in srgb, var(--color-primary) 15%, white), color-mix(in srgb, var(--color-primary) 10%, white), color-mix(in srgb, var(--color-primary) 20%, white))' }}>
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
         {/* Header Skeleton */}
         <motion.div
@@ -79,14 +79,15 @@ export function EventLandingSkeleton() {
  */
 export function EventQuizSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, color-mix(in srgb, var(--color-primary) 15%, white), color-mix(in srgb, var(--color-primary) 10%, white), color-mix(in srgb, var(--color-primary) 20%, white))' }}>
       <div className="max-w-xl mx-auto px-4 py-8 space-y-6">
         {/* Progress Bar Skeleton */}
         <div className="flex items-center gap-4">
           <LoadingSkeleton width="60px" height="12px" />
-          <div className="flex-1 h-3 bg-pink-200/50 rounded-full overflow-hidden">
+          <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 30%, transparent)' }}>
             <motion.div
-              className="h-full bg-pink-300/50"
+              className="h-full"
+              style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 40%, transparent)' }}
               initial={{ width: '0%' }}
               animate={{ width: '30%' }}
               transition={{ duration: 1 }}
@@ -125,7 +126,7 @@ export function EventQuizSkeleton() {
  */
 export function RankingSkeletonPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom right, color-mix(in srgb, var(--color-primary) 15%, white), color-mix(in srgb, var(--color-primary) 10%, white), color-mix(in srgb, var(--color-primary) 20%, white))' }}>
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
         {/* Podium Skeleton */}
         <div className="flex items-end justify-center gap-4 py-8">
@@ -141,10 +142,11 @@ export function RankingSkeletonPage() {
               <LoadingSkeleton width="80px" height="16px" className="mt-2" />
               <LoadingSkeleton width="40px" height="24px" />
               <div
-                className="rounded-t-lg bg-pink-200/50"
+                className="rounded-t-lg"
                 style={{
                   width: pos === 1 ? '80px' : '64px',
                   height: pos === 1 ? '100px' : pos === 2 ? '80px' : '60px',
+                  backgroundColor: 'color-mix(in srgb, var(--color-primary) 30%, transparent)',
                 }}
               />
             </motion.div>

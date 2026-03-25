@@ -72,9 +72,9 @@ function SortableQuestionItem({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -20 }}
       className={`
-        relative bg-white/80 backdrop-blur-sm rounded-xl border border-pink-100
+        relative bg-white/80 backdrop-blur-sm rounded-xl border border-[var(--color-secondary)]
         shadow-sm hover:shadow-md transition-shadow p-3
-        ${isDragging ? 'ring-2 ring-primary shadow-lg z-50' : ''}
+        ${isDragging ? 'ring-2 ring-[var(--color-primary)] shadow-lg z-50' : ''}
         ${isDeleting ? 'opacity-50' : ''}
       `}
     >
@@ -113,7 +113,7 @@ function SortableQuestionItem({
         <div className="flex items-center gap-1">
           <button
             onClick={() => onEdit(question)}
-            className="p-2 rounded-lg text-gray-500 hover:text-primary hover:bg-pink-50 transition-colors"
+            className="p-2 rounded-lg text-gray-500 hover:text-[var(--color-primary)] hover:bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)] transition-colors"
             title="Editar"
           >
             <Pencil size={16} />

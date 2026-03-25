@@ -162,7 +162,7 @@ export function QuestionForm({
   const showCorrectAnswers = formData.is_scorable;
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-pink-100 p-4">
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-display text-gray-800">
           {question ? 'Editar Pregunta' : 'Nueva Pregunta'}
