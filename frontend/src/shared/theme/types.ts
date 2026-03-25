@@ -3,8 +3,6 @@
  * Complete type definitions for the EventHub theme system
  */
 
-import { adjustColor, getContrastColor } from './utils/colorUtils'
-
 // ============================================
 // Background Styles
 // ============================================

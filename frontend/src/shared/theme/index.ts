@@ -12,7 +12,7 @@ export type {
   ThemeShadows,
   ThemeData,
   LegacyTheme,
-  ThemePreset,
+  ThemePreset as ThemePresetV2,
   BackgroundStyle,
 } from './types';
 

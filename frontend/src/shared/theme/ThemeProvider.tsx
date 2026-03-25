@@ -1,7 +1,13 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { THEME_PRESETS, type ThemePresetData, getPresetByName } from './presets';
 import { useEventStore } from '@/shared/store/eventStore';
+import { createTheme, type ThemeData } from './utils/themeFactory';
+import { applyCSSVariables } from './utils/cssVariables';
 
+/**
+ * Legacy Theme interface (flat structure)
+ * Kept for backward compatibility with existing components
+ */
 export interface Theme {
   id?: string;
   eventId?: string;
@@ -47,11 +53,12 @@ export interface ThemeContextValue {
 
 /**
  * Default theme - se usa como fallback
+ * Updated with WCAG AA compliant colors
  */
 const defaultTheme: Theme = {
-  primaryColor: '#EC4899',
+  primaryColor: '#D22E7F', // WCAG AA compliant
   secondaryColor: '#FBCFE8',
-  accentColor: '#DB2777',
+  accentColor: '#B0236A',
   bgColor: '#FFF5F7',
   textColor: '#1E293B',
   displayFont: 'Great Vibes',
@@ -88,8 +95,6 @@ function loadGoogleFont(fontName: string): void {
  * Cargar todas las Google Fonts del tema
  */
 function loadThemeFonts(displayFont: string, headingFont: string, bodyFont: string): void {
-  // Always load all theme fonts - the loadGoogleFont function
-  // already skips fonts that are already loaded (by link ID)
   const fonts = [displayFont, headingFont, bodyFont].filter(Boolean);
   
   fonts.forEach(font => {
@@ -146,6 +151,23 @@ function themeFromPreset(preset: ThemePresetData): Theme {
   };
 }
 
+/**
+ * Convert legacy Theme to ThemeData for V2 system
+ */
+function themeToThemeData(theme: Theme): ThemeData {
+  return {
+    primaryColor: theme.primaryColor,
+    secondaryColor: theme.secondaryColor,
+    accentColor: theme.accentColor,
+    bgColor: theme.bgColor,
+    textColor: theme.textColor,
+    displayFont: theme.displayFont,
+    headingFont: theme.headingFont,
+    bodyFont: theme.bodyFont,
+    backgroundStyle: theme.backgroundStyle,
+  };
+}
+
 // Create context with undefined as default - must be wrapped by ThemeProvider
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
@@ -160,8 +182,9 @@ interface ThemeProviderProps {
  * 
  * Funcionalidades:
  * - Carga tema desde localStorage (fallback a default)
- * - Aplica CSS custom properties al document root
- * - Proveed currentTheme, setTheme, availableThemes
+ * - Aplica CSS custom properties al document root (V2: design tokens completos)
+ * - Sincroniza con EventStore para eventos
+ * - Provee currentTheme, setTheme, availableThemes
  */
 export function ThemeProvider({ 
   children, 
@@ -208,24 +231,15 @@ export function ThemeProvider({
 
   /**
    * Efecto: Sincronizar con currentEvent.themeId del store
-   * Esto asegura que cuando EventLoader carga el evento,
-   * el tema se actualice automáticamente según el themeId del evento
-   * 
-   * También se re-ejecuta cuando currentEvent?.themeId cambia para
-   * cubrir el caso donde el evento se carga después del mount
    */
   useEffect(() => {
-    // Solo sincronizar si hay un eventSlug (estamos en contexto de evento)
     if (!eventSlug) return;
 
-    // Función helper para aplicar el tema del evento si está disponible
     const applyEventTheme = () => {
       const currentEvent = useEventStore.getState().currentEvent;
       if (currentEvent?.themeId) {
         const preset = getPresetByName(currentEvent.themeId);
         if (preset) {
-          // Aplicar el tema del preset sin guardarlo en localStorage
-          // (el localStorage es solo para preferencias del usuario, no del evento)
           setThemeState(themeFromPreset(preset));
           return true;
         }
@@ -233,20 +247,15 @@ export function ThemeProvider({
       return false;
     };
 
-    // Intentar aplicar inmediatamente (caso: evento ya cargado)
     if (!applyEventTheme()) {
-      // Si no hay tema del evento, aplicar default
       setThemeState(defaultTheme);
     }
 
-    // Suscribirse a cambios en el store para detectar cuando el evento se carga
-    // Usamos subscribe con selector para solo reaccionar a cambios de themeId
     let prevThemeId = useEventStore.getState().currentEvent?.themeId;
     
     const unsubscribe = useEventStore.subscribe(
       (state) => {
         const currentEvent = state.currentEvent;
-        // Solo reaccionar si cambió el themeId
         const newThemeId = currentEvent?.themeId;
         if (newThemeId !== prevThemeId) {
           prevThemeId = newThemeId;
@@ -268,55 +277,28 @@ export function ThemeProvider({
    */
   const refreshTheme = async () => {
     if (!eventSlug) return;
-    
-    // El tema ahora se sincroniza automáticamente con currentEvent.themeId
-    // a través de los efectos acima
+    // El tema se sincroniza automáticamente con currentEvent.themeId
   };
 
   /**
    * Efecto: Inyectar CSS custom properties cuando el tema cambia
+   * 
+   * V2: Usa applyCSSVariables() para inyectar TODOS los design tokens
+   * (colors, typography, spacing, radius, shadows)
    */
   useEffect(() => {
-    const root = document.documentElement;
-    
     // Load Google Fonts dynamically for the theme
     loadThemeFonts(theme.displayFont, theme.headingFont, theme.bodyFont);
     
-    // Set primary colors as Tailwind-compatible CSS variables
-    root.style.setProperty('--color-primary', theme.primaryColor);
-    root.style.setProperty('--color-secondary', theme.secondaryColor);
-    root.style.setProperty('--color-accent', theme.accentColor);
-    root.style.setProperty('--color-bg', theme.bgColor);
-    root.style.setProperty('--color-text', theme.textColor);
+    // Convert legacy Theme to ThemeData and create complete theme
+    const themeData = themeToThemeData(theme);
+    const completeTheme = createTheme(themeData);
     
-    // Set fonts
-    root.style.setProperty('--font-display', `'${theme.displayFont}', cursive`);
-    root.style.setProperty('--font-heading', `'${theme.headingFont}', serif`);
-    root.style.setProperty('--font-body', `'${theme.bodyFont}', sans-serif`);
-    
-    // Apply background style class to body
-    document.body.className = `theme-${theme.backgroundStyle}`;
-    
-    // Apply theme colors to Tailwind custom properties for direct use
-    // These can be used in Tailwind classes like bg-[var(--color-primary)]
-    root.style.setProperty('--tw-primary', theme.primaryColor);
-    root.style.setProperty('--tw-secondary', theme.secondaryColor);
-    root.style.setProperty('--tw-accent', theme.accentColor);
+    // Apply all CSS variables (V2 system)
+    const cleanup = applyCSSVariables(completeTheme);
     
     return () => {
-      document.body.className = '';
-      // Clean up custom properties on unmount
-      root.style.removeProperty('--color-primary');
-      root.style.removeProperty('--color-secondary');
-      root.style.removeProperty('--color-accent');
-      root.style.removeProperty('--color-bg');
-      root.style.removeProperty('--color-text');
-      root.style.removeProperty('--font-display');
-      root.style.removeProperty('--font-heading');
-      root.style.removeProperty('--font-body');
-      root.style.removeProperty('--tw-primary');
-      root.style.removeProperty('--tw-secondary');
-      root.style.removeProperty('--tw-accent');
+      cleanup();
     };
   }, [theme]);
 

@@ -19,6 +19,9 @@ import {
   DEFAULT_OVERLAY_COLORS,
 } from '../types'
 
+// Re-export ThemeData for convenience
+export type { ThemeData } from '../types'
+
 /**
  * Create a complete Theme object from flat ThemeData
  * 
