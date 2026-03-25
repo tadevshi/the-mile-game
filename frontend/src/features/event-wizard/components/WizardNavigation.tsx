@@ -17,7 +17,7 @@ export function WizardNavigation({ onSubmit }: WizardNavigationProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center justify-between gap-4 pt-6 border-t border-pink-100"
+      className="flex items-center justify-between gap-4 pt-6 border-t border-[var(--color-border-light)]"
     >
       <div>
         {currentStep > 0 && (
@@ -38,7 +38,6 @@ export function WizardNavigation({ onSubmit }: WizardNavigationProps) {
             onClick={onSubmit}
             disabled={isSubmitting}
             isLoading={isSubmitting}
-            className="bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-200"
           >
             {isSubmitting ? <LoadingSpinner size="sm" /> : 'Crear Evento'}
           </Button>
@@ -47,7 +46,6 @@ export function WizardNavigation({ onSubmit }: WizardNavigationProps) {
             variant="primary"
             onClick={nextStep}
             icon={<ArrowRight className="w-4 h-4" />}
-            className="bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-200"
           >
             Siguiente
           </Button>

@@ -1,6 +1,5 @@
 import type { ReactNode, MouseEventHandler } from 'react';
 import { motion } from 'framer-motion';
-import { useTheme } from '@/shared/theme/useTheme';
 
 type CardVariant = 'default' | 'glass' | 'outlined';
 type CardPadding = 'none' | 'sm' | 'md' | 'lg';
@@ -31,38 +30,29 @@ export function Card({
   onClick,
   className = '',
 }: CardProps) {
-  const { currentTheme: theme } = useTheme();
+  // Card styles use CSS variables directly
   
   // Get card style based on variant and theme
+  // Uses CSS variables injected by ThemeProvider
   const getCardStyle = (): React.CSSProperties => {
-    const isDark = theme.backgroundStyle === 'dark';
-
     switch (variant) {
       case 'default':
         return {
-          backgroundColor: isDark ? 'var(--color-surface, #1E293B)' : 'var(--color-surface, #FFFFFF)',
-          boxShadow: isDark
-            ? '0 10px 15px -3px rgba(0, 0, 0, 0.3)'
-            : '0 10px 15px -3px rgba(0, 0, 0, 0.08)',
-          border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'}`,
+          backgroundColor: 'var(--color-surface)',
+          boxShadow: 'var(--shadow-lg)',
+          border: '1px solid var(--color-border-light)',
         };
       case 'glass':
         return {
-          backgroundColor: isDark
-            ? 'rgba(30, 25, 26, 0.7)'
-            : 'rgba(255, 255, 255, 0.75)',
+          backgroundColor: 'rgba(255, 255, 255, 0.75)',
           backdropFilter: 'blur(12px)',
-          border: isDark
-            ? '1px solid rgba(255, 255, 255, 0.12)'
-            : '1px solid rgba(255, 255, 255, 0.4)',
-          boxShadow: isDark
-            ? '0 10px 15px -3px rgba(0, 0, 0, 0.3)'
-            : '0 10px 15px -3px rgba(0, 0, 0, 0.08)',
+          border: '1px solid rgba(255, 255, 255, 0.4)',
+          boxShadow: 'var(--shadow-lg)',
         };
       case 'outlined':
         return {
           backgroundColor: 'transparent',
-          border: `2px solid ${theme.primaryColor}40`,
+          border: '2px solid var(--color-border)',
         };
       default:
         return {};
@@ -70,7 +60,7 @@ export function Card({
   };
 
   const baseStyle = getCardStyle();
-  const baseClasses = `rounded-2xl ${paddingStyles[padding]} ${className}`;
+  const baseClasses = `rounded-[var(--radius-lg)] ${paddingStyles[padding]} ${className}`;
 
   // Si es presionable, usamos motion.div con efectos de tap
   if (isPressable) {

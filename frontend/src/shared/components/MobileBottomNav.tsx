@@ -50,7 +50,7 @@ export function MobileBottomNav({ slug }: MobileBottomNavProps) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] border-t border-[var(--color-border)] md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex justify-around items-center py-2">
@@ -71,8 +71,8 @@ export function MobileBottomNav({ slug }: MobileBottomNavProps) {
                   whileTap={{ scale: 0.9 }}
                   className={`flex flex-col items-center gap-0.5 ${
                     active
-                      ? 'text-pink-600 dark:text-pink-400'
-                      : 'text-slate-500 dark:text-slate-400'
+                      ? 'text-[var(--color-primary)]'
+                      : 'text-[var(--color-on-surface-muted)]'
                   }`}
                 >
                   <Icon
@@ -89,7 +89,7 @@ export function MobileBottomNav({ slug }: MobileBottomNavProps) {
                 {active && (
                   <motion.div
                     layoutId="mobileNavIndicator"
-                    className="absolute -bottom-2 w-1 h-1 rounded-full bg-pink-600 dark:bg-pink-400"
+                    className="absolute -bottom-2 w-1 h-1 rounded-full bg-[var(--color-primary)]"
                   />
                 )}
               </Link>

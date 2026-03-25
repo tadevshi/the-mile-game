@@ -59,42 +59,51 @@ export function EmptyState({ onCreateEvent }: EmptyStateProps) {
       </motion.div>
 
       {/* Text */}
-      <h2 className="text-2xl font-display text-gray-800 dark:text-white mb-3">
+      <h2 
+        className="text-2xl font-display mb-3"
+        style={{ color: 'var(--color-on-background)' }}
+      >
         No tenés eventos aún
       </h2>
-      <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm mx-auto leading-relaxed">
+      <p 
+        className="mb-8 max-w-sm mx-auto leading-relaxed"
+        style={{ color: 'var(--color-on-surface-muted)' }}
+      >
         Crea tu primer evento y comienza a organizar experiencias únicas para tus invitados.
       </p>
 
       {/* CTA */}
-      <Button
-        onClick={handleCreate}
-        className="px-8 py-4 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 shadow-lg shadow-pink-200 dark:shadow-pink-900/50"
-      >
+      <Button onClick={handleCreate}>
         <PartyPopper className="w-5 h-5" />
         Creá tu primer evento
       </Button>
 
       {/* Tips */}
       <div className="mt-12 text-left max-w-md mx-auto">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+        <h3 
+          className="text-sm font-medium mb-3"
+          style={{ color: 'var(--color-on-surface)' }}
+        >
           ¿Qué podés crear?
         </h3>
-        <ul className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+        <ul 
+          className="space-y-2 text-sm"
+          style={{ color: 'var(--color-on-surface-muted)' }}
+        >
           <li className="flex items-center gap-2">
-            <span className="text-pink-500">✓</span>
+            <span style={{ color: 'var(--color-primary)' }}>✓</span>
             Cumpleaños con quiz interactivo
           </li>
           <li className="flex items-center gap-2">
-            <span className="text-pink-500">✓</span>
+            <span style={{ color: 'var(--color-primary)' }}>✓</span>
             Eventos corporativos con carteleras
           </li>
           <li className="flex items-center gap-2">
-            <span className="text-pink-500">✓</span>
+            <span style={{ color: 'var(--color-primary)' }}>✓</span>
             Bodas con caja de sorpresas
           </li>
           <li className="flex items-center gap-2">
-            <span className="text-pink-500">✓</span>
+            <span style={{ color: 'var(--color-primary)' }}>✓</span>
             Cualquier celebración especial
           </li>
         </ul>

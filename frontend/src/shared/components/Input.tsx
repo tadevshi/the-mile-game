@@ -1,6 +1,5 @@
 import type { InputHTMLAttributes } from 'react';
 import { forwardRef } from 'react';
-import { useTheme } from '@/shared/theme/useTheme';
 
 // Extiende las props nativas de input + nuestras custom
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -12,19 +11,19 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 /**
  * Input component con estilo Material Design
  * - Borde inferior que cambia de color con focus
- * - Usa colores del tema para contraste WCAG 4.5:1
+ * - Usa CSS variables del tema para contraste WCAG 4.5:1
  */
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, helperText, className = '', ...props }, ref) => {
-    const { currentTheme: theme } = useTheme();
+    // Input styles use CSS variables directly
 
-    // Colores del tema para el input
+    // Colores del tema usando CSS variables
     const borderColor = error
-      ? 'var(--color-error, #EF4444)'
-      : 'var(--color-secondary, #FBCFE8)';
-    const focusBorderColor = 'var(--color-accent, #DB2777)';
-    const textColor = 'var(--color-text)';
-    const mutedTextColor = 'var(--color-on-surface-muted, var(--color-text))';
+      ? 'var(--color-error)'
+      : 'var(--color-border)';
+    const focusBorderColor = 'var(--color-primary)';
+    const textColor = 'var(--color-on-background)';
+    const mutedTextColor = 'var(--color-on-surface-muted)';
 
     return (
       <div className="flex flex-col w-full">
@@ -50,15 +49,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ${className}
           `}
           style={{
-            borderColor: error ? 'var(--color-error, #EF4444)' : borderColor,
-            borderBottomColor: error ? 'var(--color-error, #EF4444)' : borderColor,
+            borderColor: error ? 'var(--color-error)' : borderColor,
+            borderBottomColor: error ? 'var(--color-error)' : borderColor,
+            color: textColor,
           }}
           onFocus={(e) => {
             e.target.style.borderBottomColor = focusBorderColor;
           }}
           onBlur={(e) => {
             e.target.style.borderBottomColor = error
-              ? 'var(--color-error, #EF4444)'
+              ? 'var(--color-error)'
               : borderColor;
           }}
           placeholder="..."
@@ -68,7 +68,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {/* Placeholder inline style para contraste */}
         <style>{`
           input::placeholder {
-            color: ${theme.secondaryColor}80;
+            color: var(--color-on-surface-muted);
             opacity: 0.8;
           }
         `}</style>
@@ -77,7 +77,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {(helperText || error) && (
           <span
             className="text-xs mt-1"
-            style={{ color: error ? 'var(--color-error, #EF4444)' : mutedTextColor }}
+            style={{ color: error ? 'var(--color-error)' : mutedTextColor }}
           >
             {error || helperText}
           </span>
