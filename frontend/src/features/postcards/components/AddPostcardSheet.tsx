@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/shared';
 import { useQuizStore } from '@features/quiz/store/quizStore';
 import { api } from '@/shared/lib/api';
+import type { Theme } from '@/shared/theme/ThemeProvider';
 
 type MediaMode = 'photo' | 'video';
 
@@ -10,12 +11,17 @@ interface AddPostcardSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (file: File, message: string, senderName?: string) => Promise<void>;
+  theme?: Theme;
 }
 
 const MAX_VIDEO_DURATION = 30; // segundos
 
-export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheetProps) {
+export function AddPostcardSheet({ isOpen, onClose, onSubmit, theme }: AddPostcardSheetProps) {
   const playerName = useQuizStore((s) => s.playerName);
+
+  // Theme colors with fallbacks
+  const primaryColor = theme?.primaryColor || '#EC4899';
+  const textColor = theme?.textColor || '#1E293B';
 
   // Guest mode: el usuario llegó a la cartelera sin haber hecho el quiz.
   const [isGuest, setIsGuest] = useState(!api.getPlayerId());
@@ -240,13 +246,13 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
           >
             {/* Handle (mobile) */}
             <div className="md:hidden flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-gray-300" />
+              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: `${primaryColor}40` }} />
             </div>
 
             <div className="p-5 space-y-4">
               {/* Título */}
               <div className="text-center">
-                <h2 className="text-xl font-display text-accent">
+                <h2 className="text-xl font-display" style={{ color: primaryColor }}>
                   Nueva Postal
                 </h2>
                 {/* Modo toggle */}
@@ -254,27 +260,21 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleModeToggle('photo')}
-                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                      mediaMode === 'photo'
-                        ? 'bg-pink-100 text-pink-600'
-                        : 'bg-gray-100 text-gray-500'
-                    }`}
+                    className="px-4 py-1.5 rounded-full text-xs font-medium transition-colors"
+                    style={mediaMode === 'photo' ? { backgroundColor: `${primaryColor}20`, color: primaryColor } : { backgroundColor: `${primaryColor}10`, color: `${textColor}80` }}
                   >
                     📷 Foto
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleModeToggle('video')}
-                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                      mediaMode === 'video'
-                        ? 'bg-pink-100 text-pink-600'
-                        : 'bg-gray-100 text-gray-500'
-                    }`}
+                    className="px-4 py-1.5 rounded-full text-xs font-medium transition-colors"
+                    style={mediaMode === 'video' ? { backgroundColor: `${primaryColor}20`, color: primaryColor } : { backgroundColor: `${primaryColor}10`, color: `${textColor}80` }}
                   >
                     🎬 Video
                   </motion.button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs mt-1" style={{ color: `${textColor}80` }}>
                   {mediaMode === 'photo'
                     ? 'Tomá una foto y dejá un mensaje'
                     : 'Grabá un video de hasta 30 segundos'}
@@ -285,9 +285,10 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
               <div className="space-y-1">
                 <label
                   htmlFor="postcard-sender"
-                  className="text-xs text-gray-500 uppercase tracking-wider font-medium"
+                  className="text-xs uppercase tracking-wider font-medium"
+                  style={{ color: `${textColor}80` }}
                 >
-                  Tu nombre:{isGuest && <span className="text-accent ml-1">*</span>}
+                  Tu nombre:{isGuest && <span className="ml-1" style={{ color: primaryColor }}>*</span>}
                 </label>
                 <input
                   id="postcard-sender"
@@ -296,10 +297,11 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                   onChange={(e) => setSenderName(e.target.value)}
                   placeholder="¿Cómo te llamás?"
                   maxLength={100}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 text-gray-700"
+                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none text-gray-700"
+                  style={{ borderColor: `${primaryColor}30` }}
                 />
                 {isGuest && (
-                  <p className="text-[10px] text-pink-400 font-medium flex items-center gap-1">
+                  <p className="text-[10px] font-medium flex items-center gap-1" style={{ color: primaryColor }}>
                     <span>📌</span>
                     <span>Vas a quedar registrado/a en la cartelera automáticamente</span>
                   </p>
@@ -343,7 +345,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                     </motion.button>
                     {/* Video indicator */}
                     {mediaMode === 'video' && mediaFile?.type.startsWith('video/') && (
-                      <div className="absolute top-3 left-3 bg-pink-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                      <div className="absolute top-3 left-3 text-xs px-2 py-1 rounded flex items-center gap-1" style={{ backgroundColor: primaryColor, color: 'white' }}>
                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
                         </svg>
@@ -359,10 +361,11 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full aspect-[4/3] rounded-xl border-2 border-dashed border-primary/40 bg-pink-50/50 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors hover:border-primary/60 hover:bg-pink-50"
+                        className="w-full aspect-[4/3] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors"
+                        style={{ borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}10` }}
                       >
                         <span className="text-4xl">📸</span>
-                        <span className="text-sm text-gray-500 font-medium">
+                        <span className="text-sm font-medium" style={{ color: `${textColor}80` }}>
                           Tomar foto / Elegir imagen
                         </span>
                       </motion.button>
@@ -424,18 +427,20 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               onClick={startCamera}
-                              className="px-6 py-3 bg-pink-500 text-white rounded-full font-medium shadow-lg flex items-center gap-2"
+                              className="px-6 py-3 text-white rounded-full font-medium shadow-lg flex items-center gap-2"
+                              style={{ backgroundColor: primaryColor }}
                             >
                               <span>📹</span>
                               <span>Activar cámara</span>
                             </motion.button>
-                            <p className="text-gray-400 text-xs">
+                            <p className="text-xs" style={{ color: `${textColor}50` }}>
                               O elegí un video de tu galería
                             </p>
                             <motion.button
                               whileTap={{ scale: 0.95 }}
                               onClick={() => fileInputRef.current?.click()}
-                              className="text-pink-400 text-sm underline"
+                              className="text-sm underline"
+                              style={{ color: primaryColor }}
                             >
                               Seleccionar archivo
                             </motion.button>
@@ -451,7 +456,8 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
               <div className="space-y-1.5">
                 <label
                   htmlFor="postcard-message"
-                  className="text-xs text-gray-500 uppercase tracking-wider font-medium"
+                  className="text-xs uppercase tracking-wider font-medium"
+                  style={{ color: `${textColor}80` }}
                 >
                   Tu mensaje:
                 </label>
@@ -462,9 +468,10 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                   placeholder="Escribí tu mensaje para Mile..."
                   maxLength={500}
                   rows={3}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 font-serif italic text-gray-700 placeholder:text-gray-300 placeholder:not-italic"
+                  className="w-full px-3 py-2.5 border rounded-xl text-sm resize-none focus:outline-none font-serif italic text-gray-700 placeholder:text-gray-400 placeholder:not-italic"
+                  style={{ borderColor: `${primaryColor}30` }}
                 />
-                <p className="text-[10px] text-gray-400 text-right">
+                <p className="text-[10px] text-right" style={{ color: `${textColor}40` }}>
                   {message.length}/500
                 </p>
               </div>

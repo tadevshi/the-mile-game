@@ -219,10 +219,10 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-amber-50/50 rounded-xl">
+          <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: `${theme.secondaryColor}30` }}>
             <div>
-              <p className="font-medium text-gray-800">Cartelera de Corcho</p>
-              <p className="text-sm text-gray-500">Postales de invitados</p>
+              <p className="font-medium" style={{ color: theme.textColor }}>Cartelera de Corcho</p>
+              <p className="text-sm" style={{ color: `${theme.textColor}80` }}>Postales de invitados</p>
             </div>
             <Switch
               checked={features.corkboard}
@@ -230,10 +230,10 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-purple-50/50 rounded-xl">
+          <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: `${theme.secondaryColor}30` }}>
             <div>
-              <p className="font-medium text-gray-800">Caja Secreta</p>
-              <p className="text-sm text-gray-500">Sorpresas de familiares</p>
+              <p className="font-medium" style={{ color: theme.textColor }}>Caja Secreta</p>
+              <p className="text-sm" style={{ color: `${theme.textColor}80` }}>Sorpresas de familiares</p>
             </div>
             <Switch
               checked={features.secretBox}
@@ -251,23 +251,23 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
           exit={{ opacity: 0, height: 0 }}
           className="space-y-3 pt-2"
         >
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+          <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: `${theme.textColor}80` }}>
             Personalización del Corkboard
           </h3>
 
           <div className="space-y-4">
             {/* Logo / Imagen representativa */}
-            <div className="p-4 bg-amber-50/50 rounded-xl border border-amber-100">
+            <div className="p-4 rounded-xl" style={{ backgroundColor: `${theme.secondaryColor}30`, borderColor: `${theme.secondaryColor}50`, borderWidth: '1px' }}>
               <div className="flex items-center gap-2 mb-2">
-                <ImageIcon className="w-4 h-4 text-amber-600" />
-                <p className="font-medium text-gray-800">Logo o imagen representativa</p>
+                <ImageIcon className="w-4 h-4" style={{ color: theme.primaryColor }} />
+                <p className="font-medium" style={{ color: theme.textColor }}>Logo o imagen representativa</p>
               </div>
-              <p className="text-sm text-gray-500 mb-3">
+              <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
                 Se usa como imagen de respaldo para videos y otros elementos del evento.
               </p>
 
               {/* Preview con iconos superpuestos */}
-              <div className="relative w-full h-32 rounded-lg border-2 border-dashed border-amber-200 bg-white overflow-hidden">
+              <div className="relative w-full h-32 rounded-lg border-2 border-dashed bg-white overflow-hidden" style={{ borderColor: `${theme.primaryColor}30` }}>
                 {logoPreview ? (
                   <img
                     src={logoPreview}
@@ -276,7 +276,7 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="w-8 h-8 text-amber-300" />
+                    <ImageIcon className="w-8 h-8" style={{ color: `${theme.primaryColor}50` }} />
                   </div>
                 )}
 
@@ -296,9 +296,9 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
                     title="Subir logo"
                   >
                     {isUploadingLogo ? (
-                      <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: theme.primaryColor, borderTopColor: 'transparent' }} />
                     ) : (
-                      <Upload className="w-4 h-4 text-amber-600" />
+                      <Upload className="w-4 h-4" style={{ color: theme.primaryColor }} />
                     )}
                   </button>
                   {logoPreview && (
@@ -320,17 +320,17 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
             </div>
 
             {/* Fondo personalizado */}
-            <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100">
+            <div className="p-4 rounded-xl" style={{ backgroundColor: `${theme.secondaryColor}30`, borderColor: `${theme.secondaryColor}50`, borderWidth: '1px' }}>
               <div className="flex items-center gap-2 mb-2">
-                <ImageIcon className="w-4 h-4 text-emerald-600" />
-                <p className="font-medium text-gray-800">Fondo personalizado</p>
+                <ImageIcon className="w-4 h-4" style={{ color: theme.primaryColor }} />
+                <p className="font-medium" style={{ color: theme.textColor }}>Fondo personalizado</p>
               </div>
-              <p className="text-sm text-gray-500 mb-3">
+              <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
                 Imagen de fondo para la cartelera de postales. Si no se configura, se usa la textura de corcho por defecto.
               </p>
 
               {/* Preview con iconos superpuestos */}
-              <div className="relative w-full h-32 rounded-lg border-2 border-dashed border-emerald-200 bg-white overflow-hidden">
+              <div className="relative w-full h-32 rounded-lg border-2 border-dashed bg-white overflow-hidden" style={{ borderColor: `${theme.primaryColor}30` }}>
                 {backgroundPreview ? (
                   <img
                     src={backgroundPreview}
@@ -339,7 +339,7 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="w-8 h-8 text-emerald-300" />
+                    <ImageIcon className="w-8 h-8" style={{ color: `${theme.primaryColor}50` }} />
                   </div>
                 )}
 
@@ -359,9 +359,9 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
                     title="Subir fondo"
                   >
                     {isUploadingBackground ? (
-                      <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: theme.primaryColor, borderTopColor: 'transparent' }} />
                     ) : (
-                      <Upload className="w-4 h-4 text-emerald-600" />
+                      <Upload className="w-4 h-4" style={{ color: theme.primaryColor }} />
                     )}
                   </button>
                   {backgroundPreview && (
