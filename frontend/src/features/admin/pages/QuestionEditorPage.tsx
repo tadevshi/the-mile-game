@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/shared';
 import { useQuestionEditor } from '../hooks/useQuestionEditor';
+import { useTheme } from '@/shared/theme/useTheme';
 import { QuestionList } from '../components/QuestionList';
 import { QuestionForm } from '../components/QuestionForm';
 import { QuestionPreview } from '../components/QuestionPreview';
@@ -13,6 +14,7 @@ import type { QuizQuestion, QuestionFormData, QuestionSection } from '../types/q
 export function QuestionEditorPage() {
   const navigate = useNavigate();
   const { slug: eventSlug } = useParams<{ slug: string }>();
+  const { currentTheme } = useTheme();
 
   const [selectedQuestion, setSelectedQuestion] = useState<QuizQuestion | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -175,7 +177,10 @@ export function QuestionEditorPage() {
   }
 
   return (
-    <div className="min-h-screen theme-watercolor">
+    <div 
+      className="min-h-screen"
+      style={{ backgroundColor: currentTheme.bgColor }}
+    >
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-[var(--color-secondary)] sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
