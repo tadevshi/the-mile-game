@@ -28,9 +28,9 @@ export const THEME_PRESETS: ThemePresetData[] = [
   {
     name: 'princess',
     label: 'Princess',
-    primaryColor: '#EC4899',
+    primaryColor: '#D22E7F', // WCAG AA compliant (4.73:1 with white)
     secondaryColor: '#FBCFE8',
-    accentColor: '#DB2777',
+    accentColor: '#B0236A', // Darkened to match
     bgColor: '#FFF5F7',
     textColor: '#1E293B',
     displayFont: 'Great Vibes',
@@ -43,7 +43,7 @@ export const THEME_PRESETS: ThemePresetData[] = [
   {
     name: 'elegant',
     label: 'Elegant',
-    primaryColor: '#8B5CF6',
+    primaryColor: '#7E4FE9', // WCAG AA compliant (5.02:1 with white)
     secondaryColor: '#DDD6FE',
     accentColor: '#6D28D9',
     bgColor: '#F5F3FF',
@@ -58,7 +58,7 @@ export const THEME_PRESETS: ThemePresetData[] = [
   {
     name: 'party',
     label: 'Party',
-    primaryColor: '#F59E0B',
+    primaryColor: '#F59E0B', // WCAG AA compliant (6.81:1 with dark)
     secondaryColor: '#FDE68A',
     accentColor: '#D97706',
     bgColor: '#FFFBEB',
@@ -73,7 +73,7 @@ export const THEME_PRESETS: ThemePresetData[] = [
   {
     name: 'dark',
     label: 'Dark',
-    primaryColor: '#06B6D4',
+    primaryColor: '#06B6D4', // WCAG AA compliant (6.03:1 with dark)
     secondaryColor: '#67E8F9',
     accentColor: '#0891B2',
     bgColor: '#0F172A',
@@ -88,9 +88,9 @@ export const THEME_PRESETS: ThemePresetData[] = [
   {
     name: 'corporate',
     label: 'Corporate',
-    primaryColor: '#3B82F6',
+    primaryColor: '#2168DC', // WCAG AA compliant (5.15:1 with white)
     secondaryColor: '#BFDBFE',
-    accentColor: '#2563EB',
+    accentColor: '#1E5AB8', // Darkened to match
     bgColor: '#EFF6FF',
     textColor: '#1E293B',
     displayFont: 'Montserrat',
@@ -103,7 +103,7 @@ export const THEME_PRESETS: ThemePresetData[] = [
   {
     name: 'kids',
     label: 'Kids',
-    primaryColor: '#10B981',
+    primaryColor: '#10B981', // WCAG AA compliant (5.77:1 with dark)
     secondaryColor: '#A7F3D0',
     accentColor: '#059669',
     bgColor: '#ECFDF5',
