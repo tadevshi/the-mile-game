@@ -19,25 +19,41 @@ export function FeatureCard({
   return (
     <motion.div
       whileHover={{ y: -4, scale: 1.02 }}
-      className={`bg-gradient-to-br from-pink-50 to-rose-50 dark:from-slate-800 dark:to-slate-800/50 rounded-2xl p-6 border border-pink-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow ${className}`}
+      className={`rounded-[var(--radius-lg)] p-6 border shadow-sm hover:shadow-md transition-shadow ${className}`}
+      style={{
+        background: 'linear-gradient(to bottom right, var(--color-background), var(--color-background-alt))',
+        borderColor: 'var(--color-border-light)',
+      }}
     >
       {/* Icon */}
       <div className="text-5xl mb-4">{icon}</div>
       
       {/* Badge */}
       {badge && (
-        <span className="inline-block px-2 py-1 text-xs font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-300 rounded-full mb-3">
+        <span 
+          className="inline-block px-2 py-1 text-xs font-medium rounded-full mb-3"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--color-primary) 15%, transparent)',
+            color: 'var(--color-primary)',
+          }}
+        >
           {badge}
         </span>
       )}
       
       {/* Title */}
-      <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
+      <h3 
+        className="text-xl font-semibold mb-2"
+        style={{ color: 'var(--color-on-background)' }}
+      >
         {title}
       </h3>
       
       {/* Description */}
-      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+      <p 
+        className="text-sm leading-relaxed"
+        style={{ color: 'var(--color-on-surface-muted)' }}
+      >
         {description}
       </p>
     </motion.div>
