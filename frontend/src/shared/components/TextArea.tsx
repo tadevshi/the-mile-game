@@ -12,7 +12,10 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
     return (
       <div className="flex flex-col w-full">
         {label && (
-          <label className="font-serif italic text-lg mb-2 text-slate-700 dark:text-slate-200">
+          <label 
+            className="font-serif italic text-lg mb-2"
+            style={{ color: 'var(--color-on-background)' }}
+          >
             {label}
           </label>
         )}
@@ -22,21 +25,26 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
           rows={rows}
           className={`
             w-full 
-            bg-white/50 dark:bg-black/20 
-            border ${error ? 'border-red-500' : 'border-primary/30'}
-            rounded-2xl p-4 
-            focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30
-            placeholder:text-pink-200 dark:placeholder:text-pink-800
+            bg-transparent
+            border ${error ? 'border-[var(--color-error)]' : 'border-[var(--color-border)]'}
+            rounded-[var(--radius-lg)] p-4 
+            focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/30
             transition-all duration-200
-            text-slate-800 dark:text-slate-100
             resize-none
             ${className}
           `}
+          style={{
+            color: 'var(--color-on-background)',
+            backgroundColor: 'color-mix(in srgb, var(--color-surface) 80%, transparent)',
+          }}
           {...props}
         />
         
         {(helperText || error) && (
-          <span className={`text-xs mt-1 ${error ? 'text-red-500' : 'text-slate-400'}`}>
+          <span 
+            className="text-xs mt-1"
+            style={{ color: error ? 'var(--color-error)' : 'var(--color-on-surface-muted)' }}
+          >
             {error || helperText}
           </span>
         )}

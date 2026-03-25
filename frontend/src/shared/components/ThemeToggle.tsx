@@ -33,19 +33,12 @@ function MoonIcon() {
  * Botón flotante fixed para cambiar entre light/dark mode.
  * Aparece en todas las páginas sin necesidad de añadirlo en cada una.
  * Persiste la preferencia en localStorage via themeStore.
- * 
- * IMPORTANTE: Asegura que el tema se aplique correctamente al cargar la app,
- * evitando el flash de tema incorrecto.
  */
 export function ThemeToggle() {
   const { theme, toggleTheme } = useThemeStore();
   const isDark = theme === 'dark';
 
-  // Efecto para asegurar que el tema se aplique correctamente al montar el componente
-  // Esto previene el flash de tema incorrecto en la primera renderización
   useEffect(() => {
-    // El tema ya debería estar aplicado por onRehydrateStorage del store,
-    // pero este efecto es un fallback de seguridad
     const root = document.documentElement;
     if (isDark) {
       root.classList.add('dark');
@@ -63,18 +56,19 @@ export function ThemeToggle() {
         fixed top-16 right-4 z-[70]
         w-10 h-10 rounded-full
         flex items-center justify-center
-        text-accent dark:text-primary
-        bg-white/70 dark:bg-slate-800/70
         backdrop-blur-md
-        border border-pink-100 dark:border-slate-600
-        shadow-md shadow-pink-100/50 dark:shadow-slate-900/50
+        shadow-md
         cursor-pointer
         transition-colors duration-300
       "
+      style={{
+        color: 'var(--color-accent)',
+        backgroundColor: 'color-mix(in srgb, var(--color-surface) 70%, transparent)',
+        borderColor: 'var(--color-border)',
+      }}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
     >
-      {/* AnimatePresence hace fade entre sol y luna sin resize del botón */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
           key={theme}
