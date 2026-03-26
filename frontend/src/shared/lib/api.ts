@@ -351,7 +351,7 @@ class ApiClient {
     return response.data;
   }
 
-  async createSecretPostcard(file: File, message: string, senderName: string, token: string): Promise<Postcard> {
+  async createSecretPostcard(file: File, message: string, senderName: string, token: string, eventSlug?: string): Promise<Postcard> {
     const formData = new FormData();
     // Usar "media" para videos, "image" para imágenes (compatibilidad hacia atrás)
     const fieldName = file.type.startsWith('video/') ? 'media' : 'image';
@@ -359,8 +359,13 @@ class ApiClient {
     formData.append('message', message);
     formData.append('sender_name', senderName.trim());
 
+    // Usar endpoint event-scoped si se proporciona el slug, sino el legacy
+    const endpoint = eventSlug 
+      ? `/events/${eventSlug}/secret-box` 
+      : '/postcards/secret';
+
     const response = await this.client.post<Postcard>(
-      '/postcards/secret',
+      endpoint,
       formData,
       {
         headers: {

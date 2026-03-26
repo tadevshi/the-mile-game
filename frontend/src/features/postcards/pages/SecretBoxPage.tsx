@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { postcardService } from '../services/postcardApi';
 import { Button } from '@/shared';
@@ -10,6 +10,7 @@ import corkTexture from '@/assets/cartelera.png';
 type PageState = 'form' | 'success' | 'invalid_token';
 
 export function SecretBoxPage() {
+  const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') ?? '';
 
@@ -61,7 +62,7 @@ export function SecretBoxPage() {
 
     try {
       const resized = await postcardService.resizeImage(imageFile);
-      await postcardService.createSecret(resized, message.trim(), senderName.trim(), token);
+      await postcardService.createSecret(resized, message.trim(), senderName.trim(), token, slug);
       setPageState('success');
     } catch (err: unknown) {
       // 401 = token inválido

@@ -404,6 +404,13 @@ function AnimatedRoutes() {
             </EventLoader>
           } />
 
+          {/* Secret Box inside event */}
+          <Route path="secret-box" element={
+            <EventLoader>
+              <SecretBoxPage />
+            </EventLoader>
+          } />
+
           {/* Register inside event */}
           <Route path="register" element={
             <EventLoader>

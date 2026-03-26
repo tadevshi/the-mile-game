@@ -17,13 +17,13 @@ export const postcardService = {
     return api.createPostcard(resized, message, senderName);
   },
 
-  async createSecret(file: File, message: string, senderName: string, token: string): Promise<Postcard> {
+  async createSecret(file: File, message: string, senderName: string, token: string, eventSlug?: string): Promise<Postcard> {
     // Videos no se redimensionan
     if (file.type.startsWith('video/')) {
-      return api.createSecretPostcard(file, message, senderName, token);
+      return api.createSecretPostcard(file, message, senderName, token, eventSlug);
     }
     const resized = await this.resizeImage(file);
-    return api.createSecretPostcard(resized, message, senderName, token);
+    return api.createSecretPostcard(resized, message, senderName, token, eventSlug);
   },
 
   /**
