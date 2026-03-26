@@ -21,6 +21,19 @@ export function PageLayout({
 }: PageLayoutProps) {
   const { currentTheme: theme } = useTheme();
   
+  // Check if we should show decorative background
+  // For dark themes, skip decorative backgrounds to avoid color clashes
+  const shouldShowDecorativeBg = (): boolean => {
+    if (background === 'none' || background === 'butterfly-animated') {
+      return false;
+    }
+    // Don't show decorative backgrounds for dark themes
+    if (theme.backgroundStyle === 'dark' || theme.backgroundStyle === 'minimal') {
+      return false;
+    }
+    return true;
+  };
+
   // Determine background class based on prop or theme
   const getBackgroundClass = (): string => {
     if (background === 'none' || background === 'butterfly-animated') {
@@ -53,13 +66,13 @@ export function PageLayout({
       {/* Fondo animado con mariposas - solo para tema princess */}
       {showButterflyAnimation && <ButterflyBackground />}
 
-      {/* Fondo decorativo CSS */}
-      {background !== 'none' && background !== 'butterfly-animated' && (
+      {/* Fondo decorativo CSS - only for light themes */}
+      {shouldShowDecorativeBg() && (
         <div className={`absolute inset-0 ${getBackgroundClass()} pointer-events-none`} />
       )}
 
-      {/* Sparkles decorativos adicionales */}
-      {showSparkles && background !== 'butterfly-animated' && (
+      {/* Sparkles decorativos adicionales - only for light themes */}
+      {showSparkles && shouldShowDecorativeBg() && (
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="sparkle-dot w-1 h-1 top-[15%] left-[10%]" />
           <div className="sparkle-dot w-2 h-2 top-[25%] right-[15%]" />

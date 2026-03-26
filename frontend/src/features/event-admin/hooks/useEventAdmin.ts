@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/shared/lib/api';
 
-export type AdminTab = 'config' | 'questions' | 'theme' | 'stats' | 'analytics';
+export type AdminTab = 'config' | 'questions' | 'theme' | 'stats' | 'analytics' | 'secretBox';
 
 export interface EventStats {
   playerCount: number;

@@ -17,17 +17,18 @@ type User struct {
 
 // Event representa un evento (cumpleaños, casamiento, etc.)
 type Event struct {
-	ID          uuid.UUID     `json:"id" db:"id"`
-	Slug        string        `json:"slug" db:"slug"` // URL-friendly: "mile-birthday-2026"
-	OwnerID     uuid.UUID     `json:"owner_id" db:"owner_id"`
-	Name        string        `json:"name" db:"name"`
-	Description string        `json:"description" db:"description"`
-	Features    EventFeatures `json:"features" db:"features"` // JSONB
-	Settings    EventSettings `json:"settings" db:"settings"` // JSONB
-	StartsAt    *time.Time    `json:"starts_at,omitempty" db:"starts_at"`
-	EndsAt      *time.Time    `json:"ends_at,omitempty" db:"ends_at"`
-	IsActive    bool          `json:"is_active" db:"is_active"`
-	CreatedAt   time.Time     `json:"created_at" db:"created_at"`
+	ID             uuid.UUID     `json:"id" db:"id"`
+	Slug           string        `json:"slug" db:"slug"` // URL-friendly: "mile-birthday-2026"
+	OwnerID        uuid.UUID     `json:"owner_id" db:"owner_id"`
+	Name           string        `json:"name" db:"name"`
+	Description    string        `json:"description" db:"description"`
+	Features       EventFeatures `json:"features" db:"features"`                           // JSONB
+	Settings       EventSettings `json:"settings" db:"settings"`                           // JSONB
+	SecretBoxToken *string       `json:"secret_box_token,omitempty" db:"secret_box_token"` // UUID para acceso a Secret Box
+	StartsAt       *time.Time    `json:"starts_at,omitempty" db:"starts_at"`
+	EndsAt         *time.Time    `json:"ends_at,omitempty" db:"ends_at"`
+	IsActive       bool          `json:"is_active" db:"is_active"`
+	CreatedAt      time.Time     `json:"created_at" db:"created_at"`
 }
 
 // EventFeatures flags de features habilitadas para el evento
