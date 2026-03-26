@@ -1,13 +1,13 @@
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Settings, MessageSquare, Palette, BarChart3, TrendingUp, Eye, Gift } from 'lucide-react';
+import { ArrowLeft, Settings, MessageSquare, Palette, BarChart3, TrendingUp, Eye } from 'lucide-react';
 import { useEventAdmin, type AdminTab } from '../hooks/useEventAdmin';
 import { ConfigTab } from '../components/ConfigTab';
 import { QuestionsTab } from '../components/QuestionsTab';
 import { ThemeTab } from '../components/ThemeTab';
 import { StatsTab } from '../components/StatsTab';
-import { SecretBoxTab } from '../components/SecretBoxTab';
+
 import { AnalyticsDashboard } from '@/features/analytics/pages/AnalyticsDashboard';
 import { Skeleton } from '@/shared/components/Skeleton';
 import { api } from '@/shared/lib/api';
@@ -50,10 +50,8 @@ export function EventAdminPage() {
 
   const { event, isLoadingEvent, errorEvent, refetchEvent } = useEventAdmin(slug);
 
-  // Build tabs array, adding Secret Box if feature is enabled
-  const visibleTabs = event?.features?.secretBox
-    ? [...TABS, { id: 'secretBox' as AdminTab, label: 'Secret Box', icon: <Gift className="w-4 h-4" /> }]
-    : TABS;
+  // Tabs configurables - Secret Box ahora es parte de ConfigTab, no una tab separada
+  const visibleTabs = TABS;
 
   // Apply theme to CSS variables for preview
   const applyThemeToCSS = useCallback((theme: PreviewTheme) => {
@@ -312,12 +310,6 @@ export function EventAdminPage() {
             />
           )}
           {currentTab === 'analytics' && <AnalyticsDashboard eventSlug={slug} />}
-          {currentTab === 'secretBox' && (
-            <SecretBoxTab 
-              slug={slug} 
-              previewTheme={previewTheme}
-            />
-          )}
           </motion.div>
         </motion.div>
       </main>

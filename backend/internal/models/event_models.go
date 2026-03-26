@@ -35,7 +35,7 @@ type Event struct {
 type EventFeatures struct {
 	Quiz      bool `json:"quiz"`
 	Corkboard bool `json:"corkboard"`
-	SecretBox bool `json:"secret_box"`
+	SecretBox bool `json:"secretBox"`
 }
 
 // EventSettings configuración específica del evento
