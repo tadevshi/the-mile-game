@@ -115,6 +115,13 @@ class ApiClient {
       async (error) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean; headers?: Record<string, string> };
         
+        // Skip auth handling for Secret Box requests (they use X-Secret-Token, not JWT)
+        const isSecretBoxRequest = originalRequest.headers?.['X-Secret-Token'];
+        if (isSecretBoxRequest && error.response?.status === 401) {
+          // Let the component handle the error (show invalid token message)
+          return Promise.reject(error);
+        }
+        
         // If 401 and haven't tried refresh yet, try to refresh token
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
