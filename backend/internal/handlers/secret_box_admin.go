@@ -8,19 +8,19 @@ import (
 	"github.com/the-mile-game/backend/internal/models"
 )
 
-// SecretBoxAdminHandler maneja las peticiones admin de Secret Box (token management)
-type SecretBoxAdminHandler struct {
-	eventRepo EventBySlugGetter
+// EventBySlugGetterUpdater define las operaciones necesarias para el Secret Box admin.
+type EventBySlugGetterUpdater interface {
+	GetBySlug(slug string) (*models.Event, error)
+	Update(event *models.Event) error
 }
 
-// EventBySlugGetter define la operación para obtener un evento por slug.
-// Permite inyectar mocks en tests.
-type EventBySlugGetter interface {
-	GetBySlug(slug string) (*models.Event, error)
+// SecretBoxAdminHandler maneja las peticiones admin de Secret Box (token management)
+type SecretBoxAdminHandler struct {
+	eventRepo EventBySlugGetterUpdater
 }
 
 // NewSecretBoxAdminHandler crea un nuevo handler de admin de Secret Box
-func NewSecretBoxAdminHandler(eventRepo EventBySlugGetter) *SecretBoxAdminHandler {
+func NewSecretBoxAdminHandler(eventRepo EventBySlugGetterUpdater) *SecretBoxAdminHandler {
 	return &SecretBoxAdminHandler{
 		eventRepo: eventRepo,
 	}
@@ -50,16 +50,9 @@ func (h *SecretBoxAdminHandler) GetSecretBoxToken(c *gin.Context) {
 	newToken := uuid.New().String()
 	event.SecretBoxToken = &newToken
 
-	// Actualizar en DB usando el eventRepo (que implementa EventUpdater)
-	if updater, ok := h.eventRepo.(interface {
-		Update(event *models.Event) error
-	}); ok {
-		if err := updater.Update(event); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
-			return
-		}
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Event repository does not support updates"})
+	// Actualizar en DB
+	if err := h.eventRepo.Update(event); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
 		return
 	}
 
@@ -85,15 +78,8 @@ func (h *SecretBoxAdminHandler) RegenerateSecretBoxToken(c *gin.Context) {
 	event.SecretBoxToken = &newToken
 
 	// Actualizar en DB
-	if updater, ok := h.eventRepo.(interface {
-		Update(event *models.Event) error
-	}); ok {
-		if err := updater.Update(event); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new token"})
-			return
-		}
-	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Event repository does not support updates"})
+	if err := h.eventRepo.Update(event); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save new token"})
 		return
 	}
 
