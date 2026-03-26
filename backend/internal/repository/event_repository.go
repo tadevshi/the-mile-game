@@ -165,14 +165,14 @@ func (r *EventRepository) Update(event *models.Event) error {
 
 	query := `
 		UPDATE events
-		SET name = $1, description = $2, features = $3, settings = $4, 
-		    starts_at = $5, ends_at = $6, is_active = $7
-		WHERE id = $8
+		SET name = $1, description = $2, features = $3, settings = $4,
+		    starts_at = $5, ends_at = $6, is_active = $7, secret_box_token = $8
+		WHERE id = $9
 	`
 
 	_, err := r.db.Exec(query,
 		event.Name, event.Description, featuresJSON, settingsJSON,
-		event.StartsAt, event.EndsAt, event.IsActive, event.ID)
+		event.StartsAt, event.EndsAt, event.IsActive, event.SecretBoxToken, event.ID)
 
 	return err
 }
