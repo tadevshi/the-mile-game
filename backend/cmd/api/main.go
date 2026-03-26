@@ -98,6 +98,7 @@ func main() {
 	themeHandler := handlers.NewThemeHandler(themeService)
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
 	adminEventHandler := handlers.NewAdminEventHandler(eventRepo, uploadsDir)
+	adminSecretBoxHandler := handlers.NewSecretBoxAdminHandler(eventRepo)
 	eventHandler := handlers.NewEventHandler(eventRepo)
 	analyticsHandler := handlers.NewAnalyticsHandler(db, eventRepo)
 
@@ -248,6 +249,10 @@ func main() {
 			adminEvents.POST("/reveal", handler.RevealSecretBox)
 			adminEvents.PUT("/theme", themeHandler.UpdateTheme)
 			adminEvents.POST("/theme/preset", themeHandler.ApplyPreset)
+
+			// Secret Box Admin (token management)
+			adminEvents.GET("/secret-box/token", adminSecretBoxHandler.GetSecretBoxToken)
+			adminEvents.POST("/secret-box/token/regenerate", adminSecretBoxHandler.RegenerateSecretBoxToken)
 
 			// Quiz Questions Admin
 			adminEvents.GET("/questions", adminQuestionHandler.ListQuestions)

@@ -8,6 +8,9 @@ import type { EventFeatures } from '@/shared/lib/api';
 import { api } from '@/shared/lib/api';
 import type { PreviewTheme } from '@/themes';
 import { useTheme } from '@/shared/theme/useTheme';
+import { TokenSection } from './TokenSection';
+import { PostcardsPreviewGrid } from './PostcardsPreviewGrid';
+import { RevealButton } from './RevealButton';
 
 interface ConfigTabProps {
   slug: string;
@@ -242,6 +245,54 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
           </div>
         </div>
       </div>
+
+      {/* Secret Box Management — solo visible si secretBox está habilitado */}
+      {features.secretBox && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="space-y-4 pt-2 border-t"
+          style={{ borderColor: `${theme.secondaryColor}50` }}
+        >
+          <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: `${theme.textColor}80` }}>
+            Gestión de Secret Box
+          </h3>
+
+          {/* Token / Link Sharing */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="p-4 rounded-xl"
+            style={{ backgroundColor: `${theme.secondaryColor}20` }}
+          >
+            <TokenSection slug={slug} theme={theme} />
+          </motion.div>
+
+          {/* Postcards Preview Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="p-4 rounded-xl"
+            style={{ backgroundColor: `${theme.secondaryColor}20` }}
+          >
+            <PostcardsPreviewGrid slug={slug} theme={theme} />
+          </motion.div>
+
+          {/* Reveal Button */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="p-4 rounded-xl"
+            style={{ backgroundColor: `${theme.secondaryColor}20` }}
+          >
+            <RevealButton slug={slug} theme={theme} />
+          </motion.div>
+        </motion.div>
+      )}
 
       {/* Personalización del Corkboard — solo visible si corkboard está habilitado */}
       {features.corkboard && (

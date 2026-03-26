@@ -70,14 +70,14 @@ func (r *EventRepository) GetBySlug(slug string) (*models.Event, error) {
 	var featuresJSON, settingsJSON []byte
 
 	query := `
-		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token
 		FROM events
 		WHERE slug = $1
 	`
 
 	err := r.db.QueryRow(query, slug).Scan(
 		&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
-		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt,
+		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -99,14 +99,14 @@ func (r *EventRepository) GetByID(id uuid.UUID) (*models.Event, error) {
 	var featuresJSON, settingsJSON []byte
 
 	query := `
-		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token
 		FROM events
 		WHERE id = $1
 	`
 
 	err := r.db.QueryRow(query, id).Scan(
 		&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
-		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt,
+		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -124,7 +124,7 @@ func (r *EventRepository) GetByID(id uuid.UUID) (*models.Event, error) {
 // ListByOwner obtiene todos los eventos de un usuario
 func (r *EventRepository) ListByOwner(ownerID uuid.UUID) ([]models.Event, error) {
 	query := `
-		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token
 		FROM events
 		WHERE owner_id = $1
 		ORDER BY created_at DESC
@@ -143,7 +143,7 @@ func (r *EventRepository) ListByOwner(ownerID uuid.UUID) ([]models.Event, error)
 
 		err := rows.Scan(
 			&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
-			&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt,
+			&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken,
 		)
 		if err != nil {
 			return nil, err
@@ -165,14 +165,14 @@ func (r *EventRepository) Update(event *models.Event) error {
 
 	query := `
 		UPDATE events
-		SET name = $1, description = $2, features = $3, settings = $4, 
-		    starts_at = $5, ends_at = $6, is_active = $7
-		WHERE id = $8
+		SET name = $1, description = $2, features = $3, settings = $4,
+		    starts_at = $5, ends_at = $6, is_active = $7, secret_box_token = $8
+		WHERE id = $9
 	`
 
 	_, err := r.db.Exec(query,
 		event.Name, event.Description, featuresJSON, settingsJSON,
-		event.StartsAt, event.EndsAt, event.IsActive, event.ID)
+		event.StartsAt, event.EndsAt, event.IsActive, event.SecretBoxToken, event.ID)
 
 	return err
 }

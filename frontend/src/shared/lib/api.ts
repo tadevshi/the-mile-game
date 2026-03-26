@@ -115,6 +115,13 @@ class ApiClient {
       async (error) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean; headers?: Record<string, string> };
         
+        // Skip auth handling for Secret Box requests (they use X-Secret-Token, not JWT)
+        const isSecretBoxRequest = originalRequest.headers?.['X-Secret-Token'];
+        if (isSecretBoxRequest && error.response?.status === 401) {
+          // Let the component handle the error (show invalid token message)
+          return Promise.reject(error);
+        }
+        
         // If 401 and haven't tried refresh yet, try to refresh token
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
@@ -351,7 +358,7 @@ class ApiClient {
     return response.data;
   }
 
-  async createSecretPostcard(file: File, message: string, senderName: string, token: string): Promise<Postcard> {
+  async createSecretPostcard(file: File, message: string, senderName: string, token: string, eventSlug?: string): Promise<Postcard> {
     const formData = new FormData();
     // Usar "media" para videos, "image" para imágenes (compatibilidad hacia atrás)
     const fieldName = file.type.startsWith('video/') ? 'media' : 'image';
@@ -359,8 +366,13 @@ class ApiClient {
     formData.append('message', message);
     formData.append('sender_name', senderName.trim());
 
+    // Usar endpoint event-scoped si se proporciona el slug, sino el legacy
+    const endpoint = eventSlug 
+      ? `/events/${eventSlug}/secret-box` 
+      : '/postcards/secret';
+
     const response = await this.client.post<Postcard>(
-      '/postcards/secret',
+      endpoint,
       formData,
       {
         headers: {
@@ -453,7 +465,7 @@ class ApiClient {
       payload.features = {
         quiz: data.features.quiz,
         corkboard: data.features.corkboard,
-        secretBox: data.features.secretBox,  // camelCase para coincidir con backend
+        secret_box: data.features.secretBox,  // snake_case para coincidir con backend
       };
     }
     
@@ -596,7 +608,7 @@ class ApiClient {
     const snakeFeatures = {
       quiz: features.quiz,
       corkboard: features.corkboard,
-      secretBox: features.secretBox,  // camelCase para coincidir con backend
+      secret_box: features.secretBox,  // snake_case para coincidir con backend
     };
     
     const response = await this.client.put<Event>(

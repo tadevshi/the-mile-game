@@ -7,6 +7,7 @@ import { ConfigTab } from '../components/ConfigTab';
 import { QuestionsTab } from '../components/QuestionsTab';
 import { ThemeTab } from '../components/ThemeTab';
 import { StatsTab } from '../components/StatsTab';
+
 import { AnalyticsDashboard } from '@/features/analytics/pages/AnalyticsDashboard';
 import { Skeleton } from '@/shared/components/Skeleton';
 import { api } from '@/shared/lib/api';
@@ -48,6 +49,9 @@ export function EventAdminPage() {
   const currentTab: AdminTab = TABS.find((t) => t.id === tabParam)?.id ?? 'config';
 
   const { event, isLoadingEvent, errorEvent, refetchEvent } = useEventAdmin(slug);
+
+  // Tabs configurables - Secret Box ahora es parte de ConfigTab, no una tab separada
+  const visibleTabs = TABS;
 
   // Apply theme to CSS variables for preview
   const applyThemeToCSS = useCallback((theme: PreviewTheme) => {
@@ -250,7 +254,7 @@ export function EventAdminPage() {
             className="flex gap-1 mb-6 p-1 rounded-xl"
             style={{ backgroundColor: `${previewTheme.secondaryColor}30` }}
           >
-            {TABS.map((tab) => {
+            {visibleTabs.map((tab) => {
               const isActive = currentTab === tab.id;
               return (
                 <button

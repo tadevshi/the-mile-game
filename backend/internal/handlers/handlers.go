@@ -882,11 +882,23 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 }
 
 // CreateSecretPostcard crea una postal secreta vía link compartible.
-// No requiere jugador registrado. Valida el token de acceso.
+// No requiere jugador registrado. Valida el token de acceso por evento.
 func (h *Handler) CreateSecretPostcard(c *gin.Context) {
-	// Validar token de acceso
+	// Obtener evento del contexto (inyectado por EventMiddleware)
+	event, exists := c.Get("event")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Event not in context"})
+		return
+	}
+	eventModel := event.(*models.Event)
+
+	// Validar token de acceso contra el token del evento (no el global)
 	token := c.GetHeader("X-Secret-Token")
-	expectedToken := os.Getenv("SECRET_BOX_TOKEN")
+	expectedToken := ""
+	if eventModel.SecretBoxToken != nil {
+		expectedToken = *eventModel.SecretBoxToken
+	}
+
 	if expectedToken == "" || subtle.ConstantTimeCompare([]byte(token), []byte(expectedToken)) != 1 {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing secret token"})
 		return

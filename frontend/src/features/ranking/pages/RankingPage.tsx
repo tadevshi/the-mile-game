@@ -85,7 +85,7 @@ export function RankingPage() {
   // Si está cargando, mostrar skeleton
   if (isLoading) {
     return (
-      <PageLayout background="watercolor" showSparkles={false}>
+      <PageLayout background="theme" showSparkles={false}>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -100,7 +100,7 @@ export function RankingPage() {
   // Si hay error
   if (error) {
     return (
-      <PageLayout background="watercolor" showSparkles={false}>
+      <PageLayout background="theme" showSparkles={false}>
         <div className="flex-1 flex flex-col items-center justify-center px-6">
           <div className="text-center max-w-md space-y-6">
             <div className="text-6xl mb-4">⚠️</div>
@@ -139,7 +139,7 @@ export function RankingPage() {
   // Si no hay jugadores, mostrar mensaje
   if (ranking.length === 0) {
     return (
-      <PageLayout background="watercolor" showSparkles={false}>
+      <PageLayout background="theme" showSparkles={false}>
         <div className="flex-1 flex flex-col items-center justify-center px-6">
           <div className="text-center max-w-md space-y-6">
             <div className="text-6xl mb-4">🎮</div>
@@ -176,7 +176,7 @@ export function RankingPage() {
   }
 
   return (
-    <PageLayout background="watercolor" showSparkles={false}>
+    <PageLayout background="theme" showSparkles={false}>
       <div className="flex-1 flex flex-col px-6 py-8">
         {/* Celebration Animation for Top 3 */}
         <CelebrationAnimation

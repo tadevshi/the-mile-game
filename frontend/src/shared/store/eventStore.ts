@@ -78,10 +78,9 @@ export const useEventStore = create<EventState>((set, get) => ({
         features
       );
       
-      // Transform response from snake_case (API) to camelCase (store)
-      // API returns: { owner_id, is_active, features: { secret_box } }
-      // Store expects: { ownerId, isActive, features: { secretBox } }
-      const apiFeatures = response.features as unknown as Record<string, boolean>;
+      // Transform response from API to store format
+      // API returns: { owner_id, is_active, features: { quiz, corkboard, secretBox } }
+      // Store expects: { ownerId, isActive, features: { quiz, corkboard, secretBox } }
       const transformedEvent: Event = {
         id: response.id,
         slug: response.slug,
@@ -93,7 +92,7 @@ export const useEventStore = create<EventState>((set, get) => ({
         features: {
           quiz: response.features.quiz,
           corkboard: response.features.corkboard,
-          secretBox: apiFeatures['secret_box'] ?? false,
+          secretBox: response.features.secretBox ?? false,
         },
       };
       

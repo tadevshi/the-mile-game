@@ -21,7 +21,11 @@ type EventUpdater interface {
 
 // UpdateFeaturesRequest body para actualizar features del evento
 type UpdateFeaturesRequest struct {
-	Features models.EventFeatures `json:"features" binding:"required"`
+	Features struct {
+		Quiz      bool `json:"quiz"`
+		Corkboard bool `json:"corkboard"`
+		SecretBox bool `json:"secret_box"` // Accept snake_case from frontend
+	} `json:"features" binding:"required"`
 }
 
 // allowedFeatures keys que se pueden actualizar
