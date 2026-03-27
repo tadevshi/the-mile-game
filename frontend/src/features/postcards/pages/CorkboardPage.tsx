@@ -71,7 +71,9 @@ export function CorkboardPage() {
   }, [searchParams]);
 
   const handleAddPostcard = async (image: File, message: string, senderName?: string) => {
-    await createPostcard(image, message, senderName);
+    // Default sender name if not provided
+    const name = senderName?.trim() || 'Anónimo';
+    await createPostcard(image, message, name);
   };
 
   // When gift box animation finishes, merge revealed postcards into board

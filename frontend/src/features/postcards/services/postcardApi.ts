@@ -3,18 +3,18 @@ import type { Postcard } from '../types/postcards.types';
 
 // Service layer — orquesta llamadas al API client
 export const postcardService = {
-  async fetchAll(): Promise<Postcard[]> {
-    return api.listPostcards();
+  async fetchAll(eventSlug: string): Promise<Postcard[]> {
+    return api.listPostcardsScoped(eventSlug);
   },
 
-  async create(file: File, message: string, senderName?: string): Promise<Postcard> {
+  async create(file: File, message: string, senderName: string, eventSlug: string): Promise<Postcard> {
     // Si es video, no redimensionar (videos no se pueden redimensionar igual que imágenes)
     if (file.type.startsWith('video/')) {
-      return api.createPostcard(file, message, senderName);
+      return api.createPostcardScoped(eventSlug, file, message, { senderName });
     }
     // Para imágenes, redimensionar antes de subir
     const resized = await this.resizeImage(file);
-    return api.createPostcard(resized, message, senderName);
+    return api.createPostcardScoped(eventSlug, resized, message, { senderName });
   },
 
   async createSecret(file: File, message: string, senderName: string, token: string, eventSlug?: string): Promise<Postcard> {

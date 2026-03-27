@@ -65,12 +65,12 @@ export function usePostcards(eventSlug?: string) {
 
   // Fetch inicial de postales
   const fetchPostcards = useCallback(async () => {
-    if (isLoading) return;
+    if (isLoading || !eventSlug) return;
     setLoading(true);
     setError(null);
 
     try {
-      const data = await postcardService.fetchAll();
+      const data = await postcardService.fetchAll(eventSlug);
       setPostcards(data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al cargar postales';
@@ -78,7 +78,7 @@ export function usePostcards(eventSlug?: string) {
     } finally {
       setLoading(false);
     }
-  }, [isLoading, setPostcards, setLoading, setError]);
+  }, [isLoading, eventSlug, setPostcards, setLoading, setError]);
 
   // Fetch automático al montar (una sola vez)
   useEffect(() => {
@@ -90,7 +90,11 @@ export function usePostcards(eventSlug?: string) {
 
   // Crear una postal nueva
   const createPostcard = useCallback(
-    async (imageFile: File, message: string, senderName?: string) => {
+    async (imageFile: File, message: string, senderName: string) => {
+      if (!eventSlug) {
+        setError('No event slug provided');
+        throw new Error('No event slug provided');
+      }
       setLoading(true);
       setError(null);
 
@@ -100,7 +104,7 @@ export function usePostcards(eventSlug?: string) {
         if (!imageFile.type.startsWith('video/')) {
           fileToUpload = await postcardService.resizeImage(imageFile);
         }
-        const newPostcard = await postcardService.create(fileToUpload, message, senderName);
+        const newPostcard = await postcardService.create(fileToUpload, message, senderName, eventSlug);
 
         // Agregar localmente (el WebSocket también la enviará,
         // pero addPostcard deduplica por ID)
@@ -115,7 +119,7 @@ export function usePostcards(eventSlug?: string) {
         setLoading(false);
       }
     },
-    [addPostcard, setLoading, setError]
+    [eventSlug, addPostcard, setLoading, setError]
   );
 
   return {
