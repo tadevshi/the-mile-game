@@ -204,7 +204,7 @@ type mockPostcardRepo struct {
 	createdPostcard *models.Postcard
 }
 
-func (r *mockPostcardRepo) CreateSecret(senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
+func (r *mockPostcardRepo) CreateSecret(eventID uuid.UUID, senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
 	return r.createdPostcard, nil
 }
 

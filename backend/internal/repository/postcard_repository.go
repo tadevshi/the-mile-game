@@ -118,16 +118,16 @@ func (r *PostcardRepository) Create(playerID uuid.UUID, imagePath, message strin
 }
 
 // CreateSecret crea una postal secreta (sin player_id, soporta imágenes y videos)
-func (r *PostcardRepository) CreateSecret(senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
+func (r *PostcardRepository) CreateSecret(eventID uuid.UUID, senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
 	id := uuid.New()
 	createdAt := time.Now()
 
 	query := `
-		INSERT INTO postcards (id, player_id, image_path, message, rotation, sender_name, is_secret, created_at, media_type, thumbnail_path, media_duration_ms)
-		VALUES ($1, NULL, $2, $3, $4, $5, TRUE, $6, $7, $8, $9)
+		INSERT INTO postcards (id, event_id, player_id, image_path, message, rotation, sender_name, is_secret, created_at, media_type, thumbnail_path, media_duration_ms)
+		VALUES ($1, $2, NULL, $3, $4, $5, $6, TRUE, $7, $8, $9, $10)
 	`
 
-	_, err := r.db.Exec(query, id, imagePath, message, rotation, senderName, createdAt, mediaType, thumbnailPath, mediaDurationMs)
+	_, err := r.db.Exec(query, id, eventID, imagePath, message, rotation, senderName, createdAt, mediaType, thumbnailPath, mediaDurationMs)
 	if err != nil {
 		return nil, err
 	}

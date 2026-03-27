@@ -25,7 +25,7 @@ import (
 type PostcardRepo interface {
 	Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
 	CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
-	CreateSecret(senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
+	CreateSecret(eventID uuid.UUID, senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
 	GetByID(id uuid.UUID) (*models.Postcard, error)
 	List() ([]models.Postcard, error)
 	ListByEvent(eventID uuid.UUID) ([]models.Postcard, error)
@@ -920,7 +920,7 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 	message := truncateMessage(c.Request.FormValue("message"), 500)
 	rotation := (rand.Float64() * 60) - 30
 
-	postcard, err := h.postcardRepo.CreateSecret(senderName, mediaResult.PublicPath, message, rotation, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
+	postcard, err := h.postcardRepo.CreateSecret(eventModel.ID, senderName, mediaResult.PublicPath, message, rotation, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
 	if err != nil {
 		os.Remove(mediaResult.DiskPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create secret postcard"})
