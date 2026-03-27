@@ -95,6 +95,7 @@ type PostcardNewMessage struct {
 // SecretRevealMessage mensaje para revelar la Secret Box a todos los clientes
 type SecretRevealMessage struct {
 	Type      string            `json:"type"`
+	EventSlug string            `json:"event_slug"`
 	Postcards []models.Postcard `json:"postcards"`
 }
 
@@ -415,6 +416,7 @@ func (h *Hub) BroadcastSecretRevealToRoom(eventSlug string, postcards []models.P
 
 	msg := SecretRevealMessage{
 		Type:      "secret_box_reveal",
+		EventSlug: eventSlug,
 		Postcards: postcards,
 	}
 

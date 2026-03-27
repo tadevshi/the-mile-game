@@ -44,6 +44,11 @@ export function usePostcards(eventSlug?: string) {
         addPostcard(message.postcard as Postcard);
       }
       if (message.type === 'secret_box_reveal' && Array.isArray(message.postcards)) {
+        // Only process if the message is for this event
+        const msgEventSlug = (message as { event_slug?: string }).event_slug;
+        if (msgEventSlug && msgEventSlug !== eventSlug) {
+          return; // Ignore messages for other events
+        }
         // Trigger gift box animation: set isRevealing=true, then after animation
         // addRevealedPostcards merges them into the board
         setRevealing(true);
