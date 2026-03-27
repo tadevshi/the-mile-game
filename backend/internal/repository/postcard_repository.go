@@ -352,3 +352,18 @@ func (r *PostcardRepository) GetSecretBoxStatusByEvent(eventID uuid.UUID) (*mode
 
 	return &status, nil
 }
+
+// ResetSecretBoxByEvent resetea la Secret Box: marca todas las secretas como no reveladas.
+// Retorna la cantidad de postales reseteadas.
+func (r *PostcardRepository) ResetSecretBoxByEvent(eventID uuid.UUID) (int64, error) {
+	result, err := r.db.Exec(`
+		UPDATE postcards
+		SET revealed_at = NULL
+		WHERE event_id = $1 AND is_secret = TRUE AND revealed_at IS NOT NULL
+	`, eventID)
+	if err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected()
+}

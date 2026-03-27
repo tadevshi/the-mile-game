@@ -247,6 +247,9 @@ func (r *mockPostcardRepo) RevealSecretBox() ([]models.Postcard, error) { return
 func (r *mockPostcardRepo) RevealSecretBoxByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
 	return nil, nil
 }
+func (r *mockPostcardRepo) ResetSecretBoxByEvent(eventID uuid.UUID) (int64, error) {
+	return 0, nil
+}
 
 type mockHub struct {
 	state *mockState
@@ -262,6 +265,7 @@ func (h *mockHub) BroadcastPostcardToRoom(eventSlug string, postcard models.Post
 	h.state.broadcastCalled = true
 }
 func (h *mockHub) BroadcastSecretRevealToRoom(eventSlug string, postcards []models.Postcard) {}
+func (h *mockHub) BroadcastSecretResetToRoom(eventSlug string, count int64)                  {}
 
 // ──────────────────────────────────────────────────────────────────────────
 

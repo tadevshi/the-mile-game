@@ -99,6 +99,13 @@ type SecretRevealMessage struct {
 	Postcards []models.Postcard `json:"postcards"`
 }
 
+// SecretResetMessage mensaje para resetear la Secret Box (ocultar las postcards reveladas)
+type SecretResetMessage struct {
+	Type      string `json:"type"`
+	EventSlug string `json:"event_slug"`
+	Count     int64  `json:"count"`
+}
+
 // getAllowedOrigins returns the list of allowed origins from the CORS_ALLOWED_ORIGINS env var.
 // If empty, defaults to localhost patterns for development.
 func getAllowedOrigins() []string {
@@ -435,6 +442,36 @@ func (h *Hub) BroadcastSecretRevealToRoom(eventSlug string, postcards []models.P
 	roomCount := len(h.rooms[eventSlug])
 	h.mu.RUnlock()
 	log.Printf("WebSocket: Secret Box revelada al room '%s' — %d postales broadcasteadas (%d clientes)", eventSlug, len(postcards), roomCount)
+}
+
+// BroadcastSecretResetToRoom envía el evento de reset de la Secret Box solo a clientes de un evento específico
+func (h *Hub) BroadcastSecretResetToRoom(eventSlug string, count int64) {
+	if eventSlug == "" {
+		log.Printf("WebSocket: Secret Box reset ignorado — no hay eventSlug")
+		return
+	}
+
+	msg := SecretResetMessage{
+		Type:      "secret_box_reset",
+		EventSlug: eventSlug,
+		Count:     count,
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Error marshaling secret reset: %v", err)
+		return
+	}
+
+	h.broadcastToRoom <- &RoomMessage{
+		EventSlug: eventSlug,
+		Message:   data,
+	}
+
+	h.mu.RLock()
+	roomCount := len(h.rooms[eventSlug])
+	h.mu.RUnlock()
+	log.Printf("WebSocket: Secret Box reseteada al room '%s' — %d postcards ocultadas (%d clientes)", eventSlug, count, roomCount)
 }
 
 // readPump bombea mensajes desde el WebSocket al hub

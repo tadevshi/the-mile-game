@@ -54,4 +54,15 @@ export const secretBoxApi = {
     );
     return response.data;
   },
+
+  /**
+   * Reset the secret box (hides all revealed postcards)
+   */
+  resetSecretBox: async (slug: string): Promise<{ message: string; count: number }> => {
+    const response = await api.post<{ message: string; count: number }>(
+      `/admin/events/${slug}/secret-box/reset`,
+      {}
+    );
+    return response.data;
+  },
 };
