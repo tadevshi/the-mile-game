@@ -4,13 +4,14 @@ import { postcardService } from '../services/postcardApi';
 import { useWebSocketStore } from '@/shared/store/websocketStore';
 import type { Postcard } from '../types/postcards.types';
 
-// Construir la URL del WebSocket según entorno
-function getWsUrl(): string {
+// Construir la URL del WebSocket según entorno y evento
+function getWsUrl(eventSlug?: string): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}/ws`;
+  const baseUrl = `${protocol}//${window.location.host}/ws`;
+  return eventSlug ? `${baseUrl}?event=${eventSlug}` : baseUrl;
 }
 
-export function usePostcards() {
+export function usePostcards(eventSlug?: string) {
   const {
     postcards,
     isLoading,
@@ -30,7 +31,7 @@ export function usePostcards() {
   // Initialize WebSocket connection and subscriptions
   useEffect(() => {
     const wsStore = useWebSocketStore.getState();
-    const url = getWsUrl();
+    const url = getWsUrl(eventSlug);
     
     // Connect if not already connected
     if (!wsStore.isConnected && !wsStore.isConnecting) {

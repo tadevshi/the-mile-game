@@ -14,7 +14,7 @@ function EventLandingContent() {
   const { currentTheme: theme } = useTheme();
   
   // Fetch postcards for preview
-  const { postcards } = usePostcards();
+  const { postcards } = usePostcards(slug);
   const recentPostcards = postcards.slice(0, 3);
 
   // Logo with fallback to Gift icon

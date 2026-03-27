@@ -34,7 +34,7 @@ export function CorkboardPage() {
     revealedPostcards,
     createPostcard,
     addRevealedPostcards,
-  } = usePostcards();
+  } = usePostcards(slug);
   
   // Theme colors for dynamic styling
   const primaryColor = theme.primaryColor;
