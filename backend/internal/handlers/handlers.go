@@ -974,24 +974,17 @@ func (h *Handler) GetSecretBoxStatus(c *gin.Context) {
 
 // ListSecretPostcards devuelve todas las postales secretas (para preview del admin)
 func (h *Handler) ListSecretPostcards(c *gin.Context) {
+	var postcards []models.Postcard
+	var err error
+
 	// Si hay event_id en el contexto, usar versión scoped
 	if eventID, exists := c.Get("event_id"); exists {
-		postcards, err := h.postcardRepo.ListSecretByEvent(eventID.(uuid.UUID))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list secret postcards"})
-			return
-		}
-
-		if postcards == nil {
-			postcards = []models.Postcard{}
-		}
-
-		c.JSON(http.StatusOK, postcards)
-		return
+		postcards, err = h.postcardRepo.ListSecretByEvent(eventID.(uuid.UUID))
+	} else {
+		// Fallback: versión global (backward compatibility)
+		postcards, err = h.postcardRepo.ListSecret()
 	}
 
-	// Fallback: versión global (backward compatibility)
-	postcards, err := h.postcardRepo.ListSecret()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list secret postcards"})
 		return
@@ -1001,7 +994,20 @@ func (h *Handler) ListSecretPostcards(c *gin.Context) {
 		postcards = []models.Postcard{}
 	}
 
-	c.JSON(http.StatusOK, postcards)
+	// Verificar si ya fue revelada (alguna postal tiene revealed_at)
+	revealed := false
+	for _, p := range postcards {
+		if p.RevealedAt != nil {
+			revealed = true
+			break
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"postcards": postcards,
+		"total":     len(postcards),
+		"revealed":  revealed,
+	})
 }
 
 // RevealSecretBox revela la Secret Box: actualiza revealed_at y hace broadcast WS.
