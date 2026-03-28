@@ -237,10 +237,8 @@ export function ThemeProvider({
 
     const applyEventTheme = () => {
       const currentEvent = useEventStore.getState().currentEvent;
-      console.log('[ThemeProvider] Applying event theme. Event:', currentEvent?.slug, 'themeId:', currentEvent?.themeId);
       if (currentEvent?.themeId) {
         const preset = getPresetByName(currentEvent.themeId);
-        console.log('[ThemeProvider] Found preset:', preset?.name);
         if (preset) {
           setThemeState(themeFromPreset(preset));
           return true;
@@ -250,23 +248,19 @@ export function ThemeProvider({
     };
 
     if (!applyEventTheme()) {
-      console.log('[ThemeProvider] No event theme found, using default');
       setThemeState(defaultTheme);
     }
 
     let prevThemeId = useEventStore.getState().currentEvent?.themeId;
-    console.log('[ThemeProvider] Initial themeId:', prevThemeId);
     
     const unsubscribe = useEventStore.subscribe(
       (state) => {
         const currentEvent = state.currentEvent;
         const newThemeId = currentEvent?.themeId;
-        console.log('[ThemeProvider] Store updated. New themeId:', newThemeId, 'prev:', prevThemeId);
         if (newThemeId !== prevThemeId) {
           prevThemeId = newThemeId;
           if (newThemeId) {
             const preset = getPresetByName(newThemeId);
-            console.log('[ThemeProvider] Found preset in subscribe:', preset?.name);
             if (preset) {
               setThemeState(themeFromPreset(preset));
             }

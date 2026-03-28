@@ -400,14 +400,18 @@ function AnimatedRoutes() {
           {/* Corkboard inside event */}
           <Route path="corkboard" element={
             <EventLoader>
-              <EventCorkboardPage />
+              <EventLayout>
+                <EventCorkboardPage />
+              </EventLayout>
             </EventLoader>
           } />
 
           {/* Secret Box inside event */}
           <Route path="secret-box" element={
             <EventLoader>
-              <SecretBoxPage />
+              <EventLayout>
+                <SecretBoxPage />
+              </EventLayout>
             </EventLoader>
           } />
 
