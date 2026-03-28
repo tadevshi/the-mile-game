@@ -25,7 +25,7 @@ export function EventLayout({ children }: EventLayoutProps) {
 
   return (
     <ThemeProvider eventSlug={slug}>
-      <div className="relative">
+      <div className="relative min-h-dvh" style={{ backgroundColor: 'var(--color-background)' }}>
         {/* Desktop Header - hidden on mobile, visible on md+ */}
         <header 
           className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b"

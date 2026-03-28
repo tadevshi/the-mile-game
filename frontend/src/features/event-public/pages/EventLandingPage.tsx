@@ -33,7 +33,7 @@ function EventLandingContent() {
 
   return (
     <div 
-      className="min-h-screen"
+      className="min-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))] md:min-h-screen"
       style={{ 
         background: theme.bgColor 
           ? theme.bgColor 
