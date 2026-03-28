@@ -1,0 +1,20 @@
+- generic [ref=e4]:
+  - button "Guardar recuerdo" [ref=e7] [cursor=pointer]: 📷 Guardar recuerdo
+  - generic:
+    - heading "Cartelera de Postales" [level=1]
+    - paragraph: Dejá tu mensaje para Mile
+  - generic [ref=e9]:
+    - generic:
+      - img
+    - generic [ref=e11] [cursor=pointer]:
+      - img "Postal de Luchin" [ref=e13]
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - paragraph [ref=e17]: "mensaje:"
+          - paragraph [ref=e18]: xawd
+        - paragraph [ref=e20]:
+          - generic [ref=e21]: 📸
+          - generic [ref=e22]: Luchin
+  - button "Agregar postal" [ref=e28] [cursor=pointer]: 📸
+  - button "← Volver" [ref=e25] [cursor=pointer]:
+    - generic [ref=e27]: ← Volver
