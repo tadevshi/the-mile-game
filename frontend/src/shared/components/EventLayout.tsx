@@ -28,6 +28,7 @@ export function EventLayout({ children }: EventLayoutProps) {
   const isQuiz = location.pathname.includes('/quiz');
   const isRanking = location.pathname.includes('/ranking');
   const isCorkboard = location.pathname.includes('/corkboard');
+  const hideMobileBottomNav = isCorkboard;
 
   if (!slug) {
     return <div>Error: No event slug provided</div>;
@@ -100,13 +101,13 @@ export function EventLayout({ children }: EventLayoutProps) {
         </header>
 
         {/* Mobile Bottom Navigation */}
-        <MobileBottomNav slug={slug} />
+        {!hideMobileBottomNav && <MobileBottomNav slug={slug} />}
 
         {/* Spacer para compensar la barra fija (desktop) */}
         <div className="hidden md:block h-14" />
 
         {/* Main Content - sin wrapper adicional, las páginas manejan su propio layout */}
-        <main className="pb-20 md:pb-0">
+        <main className={hideMobileBottomNav ? 'md:pb-0' : 'pb-20 md:pb-0'}>
           {children || <Outlet context={{ event: currentEvent }} />}
         </main>
       </div>
