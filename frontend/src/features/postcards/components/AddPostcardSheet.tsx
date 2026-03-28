@@ -23,8 +23,10 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
     text: 'var(--color-on-background, #1E293B)',
   });
 
-  // Update colors on mount and when theme changes
+  // Update colors when modal opens or theme changes
   useEffect(() => {
+    if (!isOpen) return;
+    
     const updateColors = () => {
       const root = getComputedStyle(document.documentElement);
       setColors({
@@ -33,11 +35,13 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
       });
     };
 
+    // Update immediately when opening
     updateColors();
-    // Listen for theme changes
+    
+    // Also listen for theme changes while open
     window.addEventListener('themechange', updateColors);
     return () => window.removeEventListener('themechange', updateColors);
-  }, []);
+  }, [isOpen]);
 
   // Guest mode: el usuario llegó a la cartelera sin haber hecho el quiz.
   const [isGuest, setIsGuest] = useState(!api.getPlayerId());
