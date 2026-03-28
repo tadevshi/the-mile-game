@@ -1,4 +1,4 @@
-import { Home, Camera, Download } from 'lucide-react';
+import { Home, SquarePen, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface CorkboardMobileActionBarProps {
@@ -42,8 +42,8 @@ export function CorkboardMobileActionBar({
           style={{ backgroundColor: 'var(--color-primary)' }}
           type="button"
         >
-          <Camera size={20} />
-          <span className="text-[11px] font-semibold">Agregar</span>
+          <SquarePen size={20} />
+          <span className="text-[11px] font-semibold">Nueva postal</span>
         </motion.button>
 
         <motion.button
@@ -59,7 +59,7 @@ export function CorkboardMobileActionBar({
           type="button"
         >
           <Download size={20} />
-          <span className="text-[11px] font-medium">Guardar</span>
+          <span className="text-[11px] font-medium">Descargar</span>
         </motion.button>
       </div>
     </div>
