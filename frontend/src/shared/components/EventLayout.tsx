@@ -28,7 +28,10 @@ export function EventLayout({ children }: EventLayoutProps) {
   const isQuiz = location.pathname.includes('/quiz');
   const isRanking = location.pathname.includes('/ranking');
   const isCorkboard = location.pathname.includes('/corkboard');
-  const hideMobileBottomNav = isCorkboard;
+  const isRegister = location.pathname.includes('/register');
+  const isThankYou = location.pathname.includes('/thank-you');
+  const isSecretBox = location.pathname.includes('/secret-box');
+  const hideMobileBottomNav = isCorkboard || isQuiz || isRanking || isRegister || isThankYou || isSecretBox;
 
   if (!slug) {
     return <div>Error: No event slug provided</div>;
@@ -36,9 +39,9 @@ export function EventLayout({ children }: EventLayoutProps) {
 
   return (
     <ThemeProvider eventSlug={slug}>
-      <div className="relative">
-        {/* Desktop Header - hidden on mobile, visible on md+ */}
-        <header className="hidden md:block fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-b border-[var(--color-border)]/50 dark:border-slate-700/50">
+      <div className="relative min-h-dvh" style={{ backgroundColor: 'var(--color-background)' }}>
+        {/* Desktop Header - hidden on corkboard to keep focus on the board */}
+        <header className={`${isCorkboard ? 'hidden' : 'hidden md:block'} fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-b border-[var(--color-border)]/50 dark:border-slate-700/50`}>
           <div className="max-w-4xl mx-auto px-4 py-3">
             <div className="flex items-center justify-between gap-4">
               {/* Navegación izquierda */}
@@ -104,7 +107,7 @@ export function EventLayout({ children }: EventLayoutProps) {
         {!hideMobileBottomNav && <MobileBottomNav slug={slug} />}
 
         {/* Spacer para compensar la barra fija (desktop) */}
-        <div className="hidden md:block h-14" />
+        {!isCorkboard && <div className="hidden md:block h-14" />}
 
         {/* Main Content - sin wrapper adicional, las páginas manejan su propio layout */}
         <main className={hideMobileBottomNav ? 'md:pb-0' : 'pb-20 md:pb-0'}>

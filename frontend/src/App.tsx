@@ -113,7 +113,7 @@ function AnimatedPage({
       initial="initial"
       animate="animate"
       exit="exit"
-      className="min-h-screen"
+      className="min-h-dvh"
     >
       {children}
     </motion.div>

@@ -60,7 +60,7 @@ export function PageLayout({
 
   return (
     <div 
-      className="relative h-full min-h-full overflow-x-hidden flex flex-col"
+      className="relative min-h-dvh overflow-x-hidden flex flex-col"
       style={bgStyle}
     >
       {/* Fondo animado con mariposas - solo para tema princess */}

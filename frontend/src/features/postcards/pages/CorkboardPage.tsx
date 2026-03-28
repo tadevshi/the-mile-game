@@ -19,9 +19,6 @@ import { useParams } from 'react-router-dom';
 // Lottie animation for empty state
 import emptyAnimation from '@/../public/animations/empty.json';
 
-// Importar textura de corcho como asset estático
-import corkTexture from '@/assets/cartelera.png';
-
 export function CorkboardPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useEventNavigate();
@@ -86,28 +83,27 @@ export function CorkboardPage() {
     }
   }, [addRevealedPostcards]);
 
+  const defaultBoardBackground = {
+    background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgColor} 88%, white) 0%, color-mix(in srgb, ${theme.secondaryColor} 14%, ${theme.bgColor}) 100%)`,
+  };
+
   return (
-    <div ref={corkboardRef} className="min-h-screen relative">
-      {/* Fondo — custom si está configurado, sino textura de corcho por defecto */}
+    <div ref={corkboardRef} className="relative isolate min-h-dvh overflow-x-hidden">
+      {/* Fondo — custom si está configurado, sino fallback simple del tema */}
       <div
         data-cork-bg="true"
-        className="fixed inset-0 -z-10"
+        className="fixed inset-0 z-0"
         style={backgroundUrl ? {
           backgroundImage: `url(${backgroundUrl})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-        } : {
-          backgroundImage: `url(${corkTexture})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        }}
+        } : defaultBoardBackground}
       />
       {/* Viñeta sutil sobre el corcho — también fija */}
       <div
         data-cork-vignette="true"
-        className="fixed inset-0 -z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]"
+        className="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.18)_100%)]"
       />
 
       {/* ── Estampillas decorativas (desktop / proyección) ──────────────────
