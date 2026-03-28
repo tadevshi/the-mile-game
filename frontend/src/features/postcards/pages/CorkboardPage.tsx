@@ -306,7 +306,6 @@ export function CorkboardPage() {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         onSubmit={handleAddPostcard}
-        theme={theme}
       />
 
       {/* 🎁 Secret Box reveal animation overlay */}
