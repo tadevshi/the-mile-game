@@ -25,7 +25,7 @@ import (
 type PostcardRepo interface {
 	Create(playerID uuid.UUID, imagePath, message string, rotation float64, senderName *string, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
 	CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUID, imagePath, message string, rotation float64, senderName *string, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
-	CreateSecret(senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
+	CreateSecret(eventID uuid.UUID, senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
 	GetByID(id uuid.UUID) (*models.Postcard, error)
 	List() ([]models.Postcard, error)
 	ListByEvent(eventID uuid.UUID) ([]models.Postcard, error)
@@ -36,6 +36,7 @@ type PostcardRepo interface {
 	RevealPostcard(id uuid.UUID) (*models.Postcard, error)
 	GetSecretBoxStatus() (*models.SecretBoxStatus, error)
 	GetSecretBoxStatusByEvent(eventID uuid.UUID) (*models.SecretBoxStatus, error)
+	ResetSecretBoxByEvent(eventID uuid.UUID) (int64, error)
 }
 
 // BroadcastHub define las operaciones de broadcast usadas por los handlers.
@@ -48,6 +49,7 @@ type BroadcastHub interface {
 	BroadcastRankingToRoom(eventSlug string, ranking []models.RankingEntry)
 	BroadcastPostcardToRoom(eventSlug string, postcard models.Postcard)
 	BroadcastSecretRevealToRoom(eventSlug string, postcards []models.Postcard)
+	BroadcastSecretResetToRoom(eventSlug string, count int64)
 }
 
 // Handler maneja las peticiones HTTP
@@ -920,7 +922,7 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 	message := truncateMessage(c.Request.FormValue("message"), 500)
 	rotation := (rand.Float64() * 60) - 30
 
-	postcard, err := h.postcardRepo.CreateSecret(senderName, mediaResult.PublicPath, message, rotation, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
+	postcard, err := h.postcardRepo.CreateSecret(eventModel.ID, senderName, mediaResult.PublicPath, message, rotation, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
 	if err != nil {
 		os.Remove(mediaResult.DiskPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create secret postcard"})
@@ -974,24 +976,17 @@ func (h *Handler) GetSecretBoxStatus(c *gin.Context) {
 
 // ListSecretPostcards devuelve todas las postales secretas (para preview del admin)
 func (h *Handler) ListSecretPostcards(c *gin.Context) {
+	var postcards []models.Postcard
+	var err error
+
 	// Si hay event_id en el contexto, usar versión scoped
 	if eventID, exists := c.Get("event_id"); exists {
-		postcards, err := h.postcardRepo.ListSecretByEvent(eventID.(uuid.UUID))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list secret postcards"})
-			return
-		}
-
-		if postcards == nil {
-			postcards = []models.Postcard{}
-		}
-
-		c.JSON(http.StatusOK, postcards)
-		return
+		postcards, err = h.postcardRepo.ListSecretByEvent(eventID.(uuid.UUID))
+	} else {
+		// Fallback: versión global (backward compatibility)
+		postcards, err = h.postcardRepo.ListSecret()
 	}
 
-	// Fallback: versión global (backward compatibility)
-	postcards, err := h.postcardRepo.ListSecret()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list secret postcards"})
 		return
@@ -1001,7 +996,20 @@ func (h *Handler) ListSecretPostcards(c *gin.Context) {
 		postcards = []models.Postcard{}
 	}
 
-	c.JSON(http.StatusOK, postcards)
+	// Verificar si ya fue revelada (alguna postal tiene revealed_at)
+	revealed := false
+	for _, p := range postcards {
+		if p.RevealedAt != nil {
+			revealed = true
+			break
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"postcards": postcards,
+		"total":     len(postcards),
+		"revealed":  revealed,
+	})
 }
 
 // RevealSecretBox revela la Secret Box: actualiza revealed_at y hace broadcast WS.
@@ -1040,6 +1048,39 @@ func (h *Handler) RevealSecretBox(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message":   "Secret Box revealed",
 		"postcards": postcards,
+	})
+}
+
+// ResetSecretBox resetea la Secret Box: marca todas las secretas como no reveladas.
+// Opcionalmente hace broadcast WS para que los clientes oculten las postcards.
+func (h *Handler) ResetSecretBox(c *gin.Context) {
+	var count int64
+	var err error
+
+	// Si hay event_id en el contexto, usar versión scoped
+	if eventID, exists := c.Get("event_id"); exists {
+		count, err = h.postcardRepo.ResetSecretBoxByEvent(eventID.(uuid.UUID))
+	} else {
+		// Fallback: versión global (no soportada para eventos específicos)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Reset not supported without event context"})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reset secret box"})
+		return
+	}
+
+	// Broadcast a todos los clientes conectados — dispara la animación de ocultar
+	if h.hub != nil && count > 0 {
+		if eventSlug, exists := c.Get("event_slug"); exists {
+			h.hub.BroadcastSecretResetToRoom(eventSlug.(string), count)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Secret Box reset",
+		"count":   count,
 	})
 }
 

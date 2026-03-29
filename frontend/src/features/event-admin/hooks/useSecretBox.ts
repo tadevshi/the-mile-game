@@ -62,3 +62,17 @@ export function useRevealSecretBox(slug: string) {
     },
   });
 }
+
+// Hook to reset secret box (hide revealed postcards)
+export function useResetSecretBox(slug: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => secretBoxApi.resetSecretBox(slug),
+    onSuccess: () => {
+      // Invalidate postcards to refetch
+      queryClient.invalidateQueries({ queryKey: ['secret-postcards', slug] });
+      queryClient.invalidateQueries({ queryKey: ['secret-box-status', slug] });
+    },
+  });
+}

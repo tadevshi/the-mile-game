@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, CheckCircle, Save, Share2, Upload, Trash2, Image as ImageIcon, Eye } from 'lucide-react';
+import { Copy, CheckCircle, Save, Share2, Upload, Trash2, Eye } from 'lucide-react';
 import { Button } from '@/shared/components/Button';
 import { Switch } from '@/shared/components/Switch';
 import { useEventAdmin, type AdminTab } from '../hooks/useEventAdmin';
@@ -8,9 +8,6 @@ import type { EventFeatures } from '@/shared/lib/api';
 import { api } from '@/shared/lib/api';
 import type { PreviewTheme } from '@/themes';
 import { useTheme } from '@/shared/theme/useTheme';
-import { TokenSection } from './TokenSection';
-import { PostcardsPreviewGrid } from './PostcardsPreviewGrid';
-import { RevealButton } from './RevealButton';
 
 interface ConfigTabProps {
   slug: string;
@@ -31,26 +28,20 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const [isUploadingBackground, setIsUploadingBackground] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   
   // Logo upload state
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const backgroundInputRef = useRef<HTMLInputElement>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
 
   // Initialize previews from event data (from nested settings)
   useEffect(() => {
     if (event?.settings?.logo_url) {
       setLogoPreview(event.settings.logo_url);
     }
-    if (event?.settings?.background_url) {
-      setBackgroundPreview(event.settings.background_url);
-    }
-  }, [event?.settings?.logo_url, event?.settings?.background_url]);
+  }, [event?.settings?.logo_url]);
 
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -76,30 +67,6 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
     }
   };
 
-  const handleBackgroundChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Preview local
-    const reader = new FileReader();
-    reader.onload = () => setBackgroundPreview(reader.result as string);
-    reader.readAsDataURL(file);
-
-    // Upload
-    setIsUploadingBackground(true);
-    try {
-      const result = await api.uploadEventMedia(slug, 'background', file);
-      setBackgroundPreview(result.url);
-      refetchEvent();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al subir fondo');
-      setBackgroundPreview(event?.settings?.background_url || null);
-    } finally {
-      setIsUploadingBackground(false);
-      if (backgroundInputRef.current) backgroundInputRef.current.value = '';
-    }
-  };
-
   const handleDeleteLogo = async () => {
     if (!event?.settings?.logo_url) return;
     setIsUploadingLogo(true);
@@ -111,20 +78,6 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
       setError(err instanceof Error ? err.message : 'Error al eliminar logo');
     } finally {
       setIsUploadingLogo(false);
-    }
-  };
-
-  const handleDeleteBackground = async () => {
-    if (!event?.settings?.background_url) return;
-    setIsUploadingBackground(true);
-    try {
-      await api.deleteEventMedia(slug, 'background');
-      setBackgroundPreview(null);
-      refetchEvent();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar fondo');
-    } finally {
-      setIsUploadingBackground(false);
     }
   };
 
@@ -246,195 +199,74 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
         </div>
       </div>
 
-      {/* Secret Box Management — solo visible si secretBox está habilitado */}
-      {features.secretBox && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="space-y-4 pt-2 border-t"
-          style={{ borderColor: `${theme.secondaryColor}50` }}
-        >
-          <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: `${theme.textColor}80` }}>
-            Gestión de Secret Box
-          </h3>
+      {/* Logo / Imagen representativa */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: `${theme.textColor}80` }}>
+          Logo del Evento
+        </h3>
 
-          {/* Token / Link Sharing */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="p-4 rounded-xl"
-            style={{ backgroundColor: `${theme.secondaryColor}20` }}
-          >
-            <TokenSection slug={slug} theme={theme} />
-          </motion.div>
+        <div className="p-4 rounded-xl" style={{ backgroundColor: `${theme.secondaryColor}30`, borderColor: `${theme.secondaryColor}50`, borderWidth: '1px' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: theme.primaryColor }} />
+            <p className="font-medium" style={{ color: theme.textColor }}>Logo o imagen representativa</p>
+          </div>
+          <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
+            Se usa como imagen de respaldo para videos y otros elementos del evento.
+          </p>
 
-          {/* Postcards Preview Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="p-4 rounded-xl"
-            style={{ backgroundColor: `${theme.secondaryColor}20` }}
-          >
-            <PostcardsPreviewGrid slug={slug} theme={theme} />
-          </motion.div>
-
-          {/* Reveal Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="p-4 rounded-xl"
-            style={{ backgroundColor: `${theme.secondaryColor}20` }}
-          >
-            <RevealButton slug={slug} theme={theme} />
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Personalización del Corkboard — solo visible si corkboard está habilitado */}
-      {features.corkboard && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="space-y-3 pt-2"
-        >
-          <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: `${theme.textColor}80` }}>
-            Personalización del Corkboard
-          </h3>
-
-          <div className="space-y-4">
-            {/* Logo / Imagen representativa */}
-            <div className="p-4 rounded-xl" style={{ backgroundColor: `${theme.secondaryColor}30`, borderColor: `${theme.secondaryColor}50`, borderWidth: '1px' }}>
-              <div className="flex items-center gap-2 mb-2">
-                <ImageIcon className="w-4 h-4" style={{ color: theme.primaryColor }} />
-                <p className="font-medium" style={{ color: theme.textColor }}>Logo o imagen representativa</p>
+          {/* Preview con iconos superpuestos */}
+          <div className="relative w-full h-32 rounded-lg border-2 border-dashed bg-white overflow-hidden" style={{ borderColor: `${theme.primaryColor}30` }}>
+            {logoPreview ? (
+              <img
+                src={logoPreview}
+                alt="Logo del evento"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full" style={{ backgroundColor: `${theme.primaryColor}50` }} />
               </div>
-              <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
-                Se usa como imagen de respaldo para videos y otros elementos del evento.
-              </p>
+            )}
 
-              {/* Preview con iconos superpuestos */}
-              <div className="relative w-full h-32 rounded-lg border-2 border-dashed bg-white overflow-hidden" style={{ borderColor: `${theme.primaryColor}30` }}>
-                {logoPreview ? (
-                  <img
-                    src={logoPreview}
-                    alt="Logo del evento"
-                    className="w-full h-full object-cover"
-                  />
+            {/* Botones superpuestos */}
+            <div className="absolute top-2 right-2 flex gap-2">
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLogoChange}
+                className="hidden"
+              />
+              <button
+                onClick={() => logoInputRef.current?.click()}
+                disabled={isUploadingLogo}
+                className="p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition-all hover:scale-105 disabled:opacity-50"
+                title="Subir logo"
+              >
+                {isUploadingLogo ? (
+                  <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: theme.primaryColor, borderTopColor: 'transparent' }} />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="w-8 h-8" style={{ color: `${theme.primaryColor}50` }} />
-                  </div>
+                  <Upload className="w-4 h-4" style={{ color: theme.primaryColor }} />
                 )}
-
-                {/* Botones superpuestos */}
-                <div className="absolute top-2 right-2 flex gap-2">
-                  <input
-                    ref={logoInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoChange}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => logoInputRef.current?.click()}
-                    disabled={isUploadingLogo}
-                    className="p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition-all hover:scale-105 disabled:opacity-50"
-                    title="Subir logo"
-                  >
-                    {isUploadingLogo ? (
-                      <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: theme.primaryColor, borderTopColor: 'transparent' }} />
-                    ) : (
-                      <Upload className="w-4 h-4" style={{ color: theme.primaryColor }} />
-                    )}
-                  </button>
-                  {logoPreview && (
-                    <button
-                      onClick={handleDeleteLogo}
-                      disabled={isUploadingLogo}
-                      className="p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition-all hover:scale-105 disabled:opacity-50"
-                      title="Eliminar logo"
-                    >
-                      {isUploadingLogo ? (
-                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      )}
-                    </button>
+              </button>
+              {logoPreview && (
+                <button
+                  onClick={handleDeleteLogo}
+                  disabled={isUploadingLogo}
+                  className="p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition-all hover:scale-105 disabled:opacity-50"
+                  title="Eliminar logo"
+                >
+                  {isUploadingLogo ? (
+                    <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 text-red-500" />
                   )}
-                </div>
-              </div>
-            </div>
-
-            {/* Fondo personalizado */}
-            <div className="p-4 rounded-xl" style={{ backgroundColor: `${theme.secondaryColor}30`, borderColor: `${theme.secondaryColor}50`, borderWidth: '1px' }}>
-              <div className="flex items-center gap-2 mb-2">
-                <ImageIcon className="w-4 h-4" style={{ color: theme.primaryColor }} />
-                <p className="font-medium" style={{ color: theme.textColor }}>Fondo personalizado</p>
-              </div>
-              <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
-                Imagen de fondo para la cartelera de postales. Si no se configura, se usa la textura de corcho por defecto.
-              </p>
-
-              {/* Preview con iconos superpuestos */}
-              <div className="relative w-full h-32 rounded-lg border-2 border-dashed bg-white overflow-hidden" style={{ borderColor: `${theme.primaryColor}30` }}>
-                {backgroundPreview ? (
-                  <img
-                    src={backgroundPreview}
-                    alt="Fondo del corkboard"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="w-8 h-8" style={{ color: `${theme.primaryColor}50` }} />
-                  </div>
-                )}
-
-                {/* Botones superpuestos */}
-                <div className="absolute top-2 right-2 flex gap-2">
-                  <input
-                    ref={backgroundInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleBackgroundChange}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => backgroundInputRef.current?.click()}
-                    disabled={isUploadingBackground}
-                    className="p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition-all hover:scale-105 disabled:opacity-50"
-                    title="Subir fondo"
-                  >
-                    {isUploadingBackground ? (
-                      <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: theme.primaryColor, borderTopColor: 'transparent' }} />
-                    ) : (
-                      <Upload className="w-4 h-4" style={{ color: theme.primaryColor }} />
-                    )}
-                  </button>
-                  {backgroundPreview && (
-                    <button
-                      onClick={handleDeleteBackground}
-                      disabled={isUploadingBackground}
-                      className="p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition-all hover:scale-105 disabled:opacity-50"
-                      title="Eliminar fondo"
-                    >
-                      {isUploadingBackground ? (
-                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
+                </button>
+              )}
             </div>
           </div>
-        </motion.div>
-      )}
+        </div>
+      </div>
 
       <div className="space-y-3">
         <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: `${theme.textColor}80` }}>

@@ -141,7 +141,7 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl }: PostcardModal
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleDownload}
-                  className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium shadow-lg border flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium shadow-lg border flex items-center justify-center gap-2 cursor-pointer"
                   style={{ color: 'var(--color-on-surface)', borderColor: 'var(--color-border-light)' }}
                 >
                   <span>📥</span> Descargar
@@ -151,7 +151,7 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl }: PostcardModal
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onClose}
-                className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium shadow-lg border cursor-pointer"
+                className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium shadow-lg border flex items-center justify-center cursor-pointer"
                 style={{ color: 'var(--color-on-surface)', borderColor: 'var(--color-border-light)' }}
               >
                 Cerrar

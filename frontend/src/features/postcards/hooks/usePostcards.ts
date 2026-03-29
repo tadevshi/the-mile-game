@@ -4,13 +4,14 @@ import { postcardService } from '../services/postcardApi';
 import { useWebSocketStore } from '@/shared/store/websocketStore';
 import type { Postcard } from '../types/postcards.types';
 
-// Construir la URL del WebSocket según entorno
-function getWsUrl(): string {
+// Construir la URL del WebSocket según entorno y evento
+function getWsUrl(eventSlug?: string): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}/ws`;
+  const baseUrl = `${protocol}//${window.location.host}/ws`;
+  return eventSlug ? `${baseUrl}?event=${eventSlug}` : baseUrl;
 }
 
-export function usePostcards() {
+export function usePostcards(eventSlug?: string) {
   const {
     postcards,
     isLoading,
@@ -30,7 +31,7 @@ export function usePostcards() {
   // Initialize WebSocket connection and subscriptions
   useEffect(() => {
     const wsStore = useWebSocketStore.getState();
-    const url = getWsUrl();
+    const url = getWsUrl(eventSlug);
     
     // Connect if not already connected
     if (!wsStore.isConnected && !wsStore.isConnecting) {
@@ -43,6 +44,11 @@ export function usePostcards() {
         addPostcard(message.postcard as Postcard);
       }
       if (message.type === 'secret_box_reveal' && Array.isArray(message.postcards)) {
+        // Only process if the message is for this event
+        const msgEventSlug = (message as { event_slug?: string }).event_slug;
+        if (msgEventSlug && msgEventSlug !== eventSlug) {
+          return; // Ignore messages for other events
+        }
         // Trigger gift box animation: set isRevealing=true, then after animation
         // addRevealedPostcards merges them into the board
         setRevealing(true);
@@ -59,12 +65,12 @@ export function usePostcards() {
 
   // Fetch inicial de postales
   const fetchPostcards = useCallback(async () => {
-    if (isLoading) return;
+    if (isLoading || !eventSlug) return;
     setLoading(true);
     setError(null);
 
     try {
-      const data = await postcardService.fetchAll();
+      const data = await postcardService.fetchAll(eventSlug);
       setPostcards(data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al cargar postales';
@@ -72,7 +78,7 @@ export function usePostcards() {
     } finally {
       setLoading(false);
     }
-  }, [isLoading, setPostcards, setLoading, setError]);
+  }, [isLoading, eventSlug, setPostcards, setLoading, setError]);
 
   // Fetch automático al montar (una sola vez)
   useEffect(() => {
@@ -84,7 +90,11 @@ export function usePostcards() {
 
   // Crear una postal nueva
   const createPostcard = useCallback(
-    async (imageFile: File, message: string, senderName?: string) => {
+    async (imageFile: File, message: string, senderName: string) => {
+      if (!eventSlug) {
+        setError('No event slug provided');
+        throw new Error('No event slug provided');
+      }
       setLoading(true);
       setError(null);
 
@@ -94,7 +104,7 @@ export function usePostcards() {
         if (!imageFile.type.startsWith('video/')) {
           fileToUpload = await postcardService.resizeImage(imageFile);
         }
-        const newPostcard = await postcardService.create(fileToUpload, message, senderName);
+        const newPostcard = await postcardService.create(fileToUpload, message, senderName, eventSlug);
 
         // Agregar localmente (el WebSocket también la enviará,
         // pero addPostcard deduplica por ID)
@@ -109,7 +119,7 @@ export function usePostcards() {
         setLoading(false);
       }
     },
-    [addPostcard, setLoading, setError]
+    [eventSlug, addPostcard, setLoading, setError]
   );
 
   return {

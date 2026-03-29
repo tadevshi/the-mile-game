@@ -6,6 +6,7 @@ import { usePostcards } from '../hooks/usePostcards';
 import { PostcardCard } from '../components/PostcardCard';
 import { PostcardModal } from '../components/PostcardModal';
 import { AddPostcardSheet } from '../components/AddPostcardSheet';
+import { CorkboardMobileActionBar } from '../components/CorkboardMobileActionBar';
 import { StampLayer } from '../components/StampLayer';
 import { GiftBox } from '../components/GiftBox';
 import { Button, LottieAnimation } from '@/shared';
@@ -17,9 +18,6 @@ import { useParams } from 'react-router-dom';
 
 // Lottie animation for empty state
 import emptyAnimation from '@/../public/animations/empty.json';
-
-// Importar textura de corcho como asset estático
-import corkTexture from '@/assets/cartelera.png';
 
 export function CorkboardPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -34,7 +32,7 @@ export function CorkboardPage() {
     revealedPostcards,
     createPostcard,
     addRevealedPostcards,
-  } = usePostcards();
+  } = usePostcards(slug);
   
   // Theme colors for dynamic styling
   const primaryColor = theme.primaryColor;
@@ -71,7 +69,9 @@ export function CorkboardPage() {
   }, [searchParams]);
 
   const handleAddPostcard = async (image: File, message: string, senderName?: string) => {
-    await createPostcard(image, message, senderName);
+    // Default sender name if not provided
+    const name = senderName?.trim() || 'Anónimo';
+    await createPostcard(image, message, name);
   };
 
   // When gift box animation finishes, merge revealed postcards into board
@@ -83,28 +83,27 @@ export function CorkboardPage() {
     }
   }, [addRevealedPostcards]);
 
+  const defaultBoardBackground = {
+    background: `linear-gradient(180deg, color-mix(in srgb, ${theme.bgColor} 88%, white) 0%, color-mix(in srgb, ${theme.secondaryColor} 14%, ${theme.bgColor}) 100%)`,
+  };
+
   return (
-    <div ref={corkboardRef} className="min-h-screen relative">
-      {/* Fondo — custom si está configurado, sino textura de corcho por defecto */}
+    <div ref={corkboardRef} className="relative isolate min-h-dvh overflow-x-hidden">
+      {/* Fondo — custom si está configurado, sino fallback simple del tema */}
       <div
         data-cork-bg="true"
-        className="fixed inset-0 -z-10"
+        className="fixed inset-0 z-0"
         style={backgroundUrl ? {
           backgroundImage: `url(${backgroundUrl})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-        } : {
-          backgroundImage: `url(${corkTexture})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        }}
+        } : defaultBoardBackground}
       />
       {/* Viñeta sutil sobre el corcho — también fija */}
       <div
         data-cork-vignette="true"
-        className="fixed inset-0 -z-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]"
+        className="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.18)_100%)]"
       />
 
       {/* ── Estampillas decorativas (desktop / proyección) ──────────────────
@@ -114,8 +113,8 @@ export function CorkboardPage() {
         <StampLayer />
       </div>
 
-      {/* Botón guardar recuerdo — arriba a la derecha */}
-      <div data-export-hide="true" className="fixed top-4 right-4 z-40">
+      {/* Botón guardar recuerdo — arriba a la derecha (desktop) */}
+      <div data-export-hide="true" className="fixed top-4 right-4 z-40 hidden md:block">
         <motion.button
           className="flex items-center gap-2 px-3 py-2 rounded-full backdrop-blur-sm text-sm font-medium shadow-lg border cursor-pointer disabled:opacity-50"
           style={{ 
@@ -171,8 +170,8 @@ export function CorkboardPage() {
         </motion.p>
       </div>
 
-      {/* Contenido principal - pb-36 en mobile para no quedar tapado por el FAB y bottom nav */}
-      <div className="relative z-10 px-4 pb-36 md:pb-28 pointer-events-none">
+      {/* Contenido principal */}
+      <div className="relative z-10 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-28 pointer-events-none">
         {/* Estado: cargando */}
         {isLoading && postcards.length === 0 && (
           <div className="flex justify-center items-center py-20">
@@ -256,10 +255,10 @@ export function CorkboardPage() {
         )}
       </div>
 
-      {/* FAB — Agregar postal (visible para todos, con o sin quiz) */}
+      {/* FAB — Agregar postal (desktop only) */}
       <motion.button
         data-export-hide="true"
-        className="fixed md:bottom-6 bottom-24 right-6 z-40 w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center text-2xl cursor-pointer border-2 border-white/20"
+        className="fixed bottom-6 right-6 z-40 hidden h-14 w-14 items-center justify-center rounded-full border-2 border-white/20 text-2xl text-white shadow-xl cursor-pointer md:flex"
         style={{ 
           backgroundColor: primaryColor,
           boxShadow: `0 10px 15px -3px ${primaryColor}30`
@@ -275,8 +274,8 @@ export function CorkboardPage() {
         📸
       </motion.button>
 
-      {/* Botón volver — abajo izquierda */}
-      <div data-export-hide="true" className="fixed md:bottom-6 bottom-24 left-6 z-40">
+      {/* Botón volver — desktop only */}
+      <div data-export-hide="true" className="fixed bottom-6 left-6 z-40 hidden md:block">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -304,6 +303,13 @@ export function CorkboardPage() {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         onSubmit={handleAddPostcard}
+      />
+
+      <CorkboardMobileActionBar
+        onGoHome={() => navigate('/')}
+        onAddPostcard={() => setIsAddOpen(true)}
+        onSaveSnapshot={downloadCorkboard}
+        isSaving={isCapturing}
       />
 
       {/* 🎁 Secret Box reveal animation overlay */}

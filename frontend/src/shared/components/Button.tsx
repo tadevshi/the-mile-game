@@ -97,7 +97,7 @@ export function Button({
       )}
       
       {/* Contenido */}
-      <span className="relative z-10 flex items-center gap-2">
+      <span className="relative z-10 flex items-center justify-center gap-2">
         {isLoading ? (
           <span className="animate-spin">⏳</span>
         ) : (

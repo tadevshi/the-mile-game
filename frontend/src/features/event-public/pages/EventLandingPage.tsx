@@ -14,7 +14,7 @@ function EventLandingContent() {
   const { currentTheme: theme } = useTheme();
   
   // Fetch postcards for preview
-  const { postcards } = usePostcards();
+  const { postcards } = usePostcards(slug);
   const recentPostcards = postcards.slice(0, 3);
 
   // Logo with fallback to Gift icon
@@ -33,7 +33,7 @@ function EventLandingContent() {
 
   return (
     <div 
-      className="min-h-screen"
+      className="min-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))] md:min-h-screen"
       style={{ 
         background: theme.bgColor 
           ? theme.bgColor 

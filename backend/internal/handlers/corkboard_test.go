@@ -63,7 +63,7 @@ func (m *MockPostcardRepo) CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUI
 	return nil, errors.New("not implemented")
 }
 
-func (m *MockPostcardRepo) CreateSecret(senderName, imagePath, message string, rotation float64) (*models.Postcard, error) {
+func (m *MockPostcardRepo) CreateSecret(eventID uuid.UUID, senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error) {
 	return nil, errors.New("not implemented")
 }
 
