@@ -140,14 +140,32 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
       setCameraStatus('opening');
       setError(null);
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'user' } },
-        audio: false,
-      });
+      let stream: MediaStream;
+
+      if (mediaMode === 'video') {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'user' } },
+            audio: true,
+          });
+          setCameraInfo('Cámara y micrófono activos. Tu video se grabará con sonido.');
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'user' } },
+            audio: false,
+          });
+          setCameraInfo('No pudimos activar el micrófono. Podés grabar igual, pero el video se guardará sin audio.');
+        }
+      } else {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'user' } },
+          audio: false,
+        });
+        setCameraInfo(null);
+      }
 
       streamRef.current = stream;
       setIsCameraActive(true);
-      setCameraInfo(mediaMode === 'video' ? 'Si tu dispositivo no permite grabar sonido, igual podés grabar video sin audio.' : null);
     } catch (err) {
       setError(getMediaAccessError(err));
       stopCamera('error');
@@ -540,7 +558,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                               )}
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
-                                onClick={stopCamera}
+                                onClick={() => stopCamera()}
                                 className="w-10 h-10 rounded-full bg-white/80 text-gray-700 flex items-center justify-center"
                               >
                                 ✕
