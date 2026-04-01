@@ -4,6 +4,7 @@ import { Button } from '@/shared';
 import { useQuizStore } from '@features/quiz/store/quizStore';
 import { api } from '@/shared/lib/api';
 import { useEventStore } from '@/shared/store/eventStore';
+import { useTheme } from '@/shared/theme';
 
 type MediaMode = 'photo' | 'video';
 
@@ -18,32 +19,12 @@ const MAX_VIDEO_DURATION = 30; // segundos
 export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheetProps) {
   const playerName = useQuizStore((s) => s.playerName);
   const currentEvent = useEventStore((state) => state.currentEvent);
+  const { currentTheme } = useTheme();
 
-  // Use CSS variables for theme colors - these update automatically when theme changes
-  const [colors, setColors] = useState({
-    primary: 'var(--color-primary, #D22E7F)',
-    text: 'var(--color-on-background, #1E293B)',
-  });
-
-  // Update colors when modal opens or theme changes
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    const updateColors = () => {
-      const root = getComputedStyle(document.documentElement);
-      setColors({
-        primary: root.getPropertyValue('--color-primary').trim() || '#D22E7F',
-        text: root.getPropertyValue('--color-on-background').trim() || '#1E293B',
-      });
-    };
-
-    // Update immediately when opening
-    updateColors();
-    
-    // Also listen for theme changes while open
-    window.addEventListener('themechange', updateColors);
-    return () => window.removeEventListener('themechange', updateColors);
-  }, [isOpen]);
+  const colors = {
+    primary: currentTheme.primaryColor || '#D22E7F',
+    text: currentTheme.textColor || '#1E293B',
+  };
 
   // Guest mode: el usuario llegó a la cartelera sin haber hecho el quiz.
   const [isGuest, setIsGuest] = useState(!api.getPlayerId());
@@ -61,11 +42,13 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
 
   // Video recording refs
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraStatus, setCameraStatus] = useState<'idle' | 'opening' | 'active' | 'error'>('idle');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [cameraInfo, setCameraInfo] = useState<string | null>(null);
 
@@ -124,54 +107,100 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
     }
   };
 
+  const stopCamera = useCallback((nextStatus: 'idle' | 'error' = 'idle') => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject = null;
+    }
+
+    setIsCameraActive(false);
+    setCameraStatus(nextStatus);
+    setCameraInfo(null);
+  }, []);
+
   const startCamera = useCallback(async () => {
     try {
       if (!window.isSecureContext) {
         setError('La cámara en vivo necesita HTTPS o localhost. Podés seguir subiendo un archivo desde tu galería.');
+        setCameraStatus('error');
         return;
       }
 
       if (!navigator.mediaDevices?.getUserMedia) {
         setError('Este navegador no soporta cámara en vivo desde esta pantalla. Probá subiendo un archivo.');
+        setCameraStatus('error');
         return;
       }
+
+      stopCamera();
+      setCameraStatus('opening');
+      setError(null);
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: 'user' } },
         audio: false,
       });
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        setIsCameraActive(true);
-        setError(null);
-        setCameraInfo(mediaMode === 'video' ? 'Si tu dispositivo no permite grabar sonido, igual podés grabar video sin audio.' : null);
-      }
+      streamRef.current = stream;
+      setIsCameraActive(true);
+      setCameraInfo(mediaMode === 'video' ? 'Si tu dispositivo no permite grabar sonido, igual podés grabar video sin audio.' : null);
     } catch (err) {
       setError(getMediaAccessError(err));
+      stopCamera('error');
     }
-  }, [mediaMode]);
+  }, [mediaMode, stopCamera]);
 
-  const stopCamera = useCallback(() => {
-    if (videoRef.current?.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach((track) => track.stop());
-      videoRef.current.srcObject = null;
+  useEffect(() => {
+    if (!isCameraActive || !videoRef.current || !streamRef.current) {
+      return;
     }
-    setIsCameraActive(false);
-    setCameraInfo(null);
-  }, []);
+
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    let cancelled = false;
+
+    video.srcObject = stream;
+
+    const attachPreview = async () => {
+      try {
+        await video.play();
+
+        if (cancelled) return;
+
+        const videoTrack = stream.getVideoTracks()[0];
+        if (!videoTrack || videoTrack.readyState !== 'live') {
+          throw new Error('track-not-live');
+        }
+
+        setCameraStatus('active');
+        setError(null);
+      } catch {
+        if (cancelled) return;
+        setError('No pudimos iniciar la vista previa de la cámara. Probá de nuevo o subí un archivo.');
+        stopCamera('error');
+      }
+    };
+
+    void attachPreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isCameraActive, stopCamera]);
 
   const startRecording = useCallback(() => {
-    if (!videoRef.current?.srcObject) return;
+    if (!streamRef.current) return;
 
     if (typeof MediaRecorder === 'undefined') {
       setError('Tu navegador no soporta grabación en vivo. Podés subir un video desde tu galería.');
       return;
     }
 
-    const stream = videoRef.current.srcObject as MediaStream;
+    const stream = streamRef.current;
     recordedChunksRef.current = [];
 
     const supportedMimeType = mediaMode === 'video' ? getSupportedVideoMimeType() : '';
@@ -464,16 +493,21 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                     ) : (
                       /* Modo video con cámara en vivo */
                       <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-900">
-                        {isCameraActive ? (
-                          <>
-                            <video
-                              ref={videoRef}
+                         {isCameraActive ? (
+                           <>
+                             <video
+                               ref={videoRef}
                               className="w-full h-full object-cover mirror"
                               playsInline
                               muted
-                            />
-                            {/* Timer overlay */}
-                            <div className="absolute top-3 left-3 bg-black/70 text-white text-sm px-3 py-1 rounded-full font-mono">
+                             />
+                             {cameraStatus === 'opening' && (
+                               <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-white text-sm">
+                                 Iniciando cámara...
+                               </div>
+                             )}
+                             {/* Timer overlay */}
+                             <div className="absolute top-3 left-3 bg-black/70 text-white text-sm px-3 py-1 rounded-full font-mono">
                               {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:
                               {String(recordingTime % 60).padStart(2, '0')} /
                               {MAX_VIDEO_DURATION}s

@@ -70,15 +70,17 @@ export function EventLayout({ children }: EventLayoutProps) {
                   </Link>
                 )}
                 
-                <Link to={`/e/${slug}/ranking`}>
-                  <Button 
-                    variant={isRanking ? 'primary' : 'outline'} 
-                    size="sm"
-                    className="whitespace-nowrap"
-                  >
-                    🏆 Ranking
-                  </Button>
-                </Link>
+                {quizEnabled && (
+                  <Link to={`/e/${slug}/ranking`}>
+                    <Button 
+                      variant={isRanking ? 'primary' : 'outline'} 
+                      size="sm"
+                      className="whitespace-nowrap"
+                    >
+                      🏆 Ranking
+                    </Button>
+                  </Link>
+                )}
                 
                 {corkboardEnabled && (
                   <Link to={`/e/${slug}/corkboard`}>

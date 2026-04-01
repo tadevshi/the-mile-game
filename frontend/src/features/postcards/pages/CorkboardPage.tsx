@@ -308,6 +308,7 @@ export function CorkboardPage() {
       <PostcardModal
         postcard={selectedPostcard}
         onClose={() => setSelectedPostcard(null)}
+        theme={theme}
       />
 
       {/* Sheet para agregar postal */}
