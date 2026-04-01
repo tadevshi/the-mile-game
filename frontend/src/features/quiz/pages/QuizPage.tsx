@@ -213,7 +213,7 @@ export function QuizPage() {
           <ScrollReveal variant="fadeDown" className="text-center space-y-4">
             <Header
               title="¡Juguemos!"
-              subtitle={`¿Qué tanto conocés a ${currentEvent?.name ?? 'la cumpleañera'}, ${playerName}?`}
+              subtitle={`¿Qué tanto conocés a ${currentEvent?.name ?? 'la persona homenajeada'}, ${playerName}?`}
               size="md"
               decoration="dots"
             />

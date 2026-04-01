@@ -15,6 +15,7 @@ import { useTheme } from '@/shared/theme/useTheme';
 import type { Postcard } from '../types/postcards.types';
 import { api } from '@/shared/lib/api';
 import { useParams } from 'react-router-dom';
+import { useEventStore } from '@/shared/store/eventStore';
 
 // Lottie animation for empty state
 import emptyAnimation from '@/../public/animations/empty.json';
@@ -24,6 +25,7 @@ export function CorkboardPage() {
   const navigate = useEventNavigate();
   const [searchParams] = useSearchParams();
   const { currentTheme: theme } = useTheme();
+  const currentEvent = useEventStore((state) => state.currentEvent);
   const {
     postcards,
     isLoading,
@@ -58,7 +60,17 @@ export function CorkboardPage() {
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const corkboardRef = useRef<HTMLDivElement>(null);
-  const { isFlashing, isCapturing, captureError, downloadCorkboard } = useCorkboardCapture(corkboardRef);
+  const honoreeLabel = currentEvent?.name?.trim() || 'este evento';
+  const safeFilenameBase = (currentEvent?.slug || slug || honoreeLabel)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'evento';
+  const { isFlashing, isCapturing, captureError, downloadCorkboard } = useCorkboardCapture(
+    corkboardRef,
+    `cartelera-${safeFilenameBase}.png`
+  );
 
   // Auto-abrir el sheet si viene de "Dejar tu Foto para Mile" (WelcomePage)
   // Funciona tanto para jugadores registrados como para invitados
@@ -166,7 +178,7 @@ export function CorkboardPage() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          Dejá tu mensaje para Mile
+          Dejá tu mensaje para {honoreeLabel}
         </motion.p>
       </div>
 
@@ -305,12 +317,14 @@ export function CorkboardPage() {
         onSubmit={handleAddPostcard}
       />
 
-      <CorkboardMobileActionBar
-        onGoHome={() => navigate('/')}
-        onAddPostcard={() => setIsAddOpen(true)}
-        onSaveSnapshot={downloadCorkboard}
-        isSaving={isCapturing}
-      />
+      {!isAddOpen && (
+        <CorkboardMobileActionBar
+          onGoHome={() => navigate('/')}
+          onAddPostcard={() => setIsAddOpen(true)}
+          onSaveSnapshot={downloadCorkboard}
+          isSaving={isCapturing}
+        />
+      )}
 
       {/* 🎁 Secret Box reveal animation overlay */}
       {isRevealing && revealedPostcards.length > 0 && (

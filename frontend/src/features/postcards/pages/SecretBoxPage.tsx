@@ -3,6 +3,7 @@ import { useSearchParams, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { postcardService } from '../services/postcardApi';
 import { Button } from '@/shared';
+import { useEventStore } from '@/shared/store/eventStore';
 
 // Importar textura de corcho como asset estático
 import corkTexture from '@/assets/cartelera.png';
@@ -13,6 +14,8 @@ export function SecretBoxPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') ?? '';
+  const currentEvent = useEventStore((state) => state.currentEvent);
+  const honoreeLabel = currentEvent?.name?.trim() || 'este evento';
 
   // Si no hay token en la URL → página de error
   const initialState: PageState = token ? 'form' : 'invalid_token';
@@ -53,7 +56,7 @@ export function SecretBoxPage() {
       return;
     }
     if (!message.trim()) {
-      setError('Escribí un mensaje para Mile');
+      setError(`Escribí un mensaje para ${honoreeLabel}`);
       return;
     }
 
@@ -133,10 +136,10 @@ export function SecretBoxPage() {
                   🎁
                 </motion.p>
                 <h1 className="text-2xl font-display text-white drop-shadow">
-                  Secret Box para Mile
+                  Secret Box para {honoreeLabel}
                 </h1>
                 <p className="text-white/90 text-sm mt-1">
-                  Enviá un mensaje especial que se revelará en su cumpleaños
+                  Enviá un mensaje especial que se revelará durante el evento
                 </p>
               </div>
 
@@ -150,7 +153,7 @@ export function SecretBoxPage() {
                     type="text"
                     value={senderName}
                     onChange={(e) => setSenderName(e.target.value)}
-                    placeholder="¿Cómo te llama Mile?"
+                    placeholder="¿Cómo te llamás?"
                     maxLength={80}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 text-gray-700"
                   />
@@ -202,12 +205,12 @@ export function SecretBoxPage() {
                 {/* Mensaje */}
                 <div className="space-y-1.5">
                   <label className="text-xs text-gray-500 uppercase tracking-wider font-medium">
-                    Tu mensaje para Mile:
+                    Tu mensaje para {honoreeLabel}:
                   </label>
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Escribile algo especial a la cumpleañera..."
+                    placeholder={`Escribile algo especial a ${honoreeLabel}...`}
                     maxLength={500}
                     rows={4}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 font-serif italic text-gray-700 placeholder:text-gray-300 placeholder:not-italic"
@@ -245,7 +248,7 @@ export function SecretBoxPage() {
                 </Button>
 
                 <p className="text-[10px] text-gray-400 text-center">
-                  Tu postal quedará guardada en secreto hasta que Mile la abra en su fiesta ✨
+                  Tu postal quedará guardada en secreto hasta el momento del reveal ✨
                 </p>
               </div>
             </div>
@@ -273,7 +276,7 @@ export function SecretBoxPage() {
                 ¡Tu postal fue guardada!
               </h1>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Mile va a ver tu mensaje cuando abra la Secret Box en su fiesta.
+                {honoreeLabel} va a ver tu mensaje cuando se abra la Secret Box en el evento.
                 ¡Va a ser una sorpresa hermosa! 🩷
               </p>
               <div className="bg-pink-50 rounded-2xl p-4" style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}>
