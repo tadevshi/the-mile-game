@@ -66,7 +66,7 @@ See [Authentication](AUTH.md) for details on obtaining tokens.
 |--------|----------|-------------|------|
 | GET | `/postcards` | List postcards (query: ?event_id=) | No |
 | POST | `/postcards` | Create postcard (image OR media) | Yes (Player) |
-| POST | `/postcards/secret` | Create secret postcard | No (X-Secret-Token) |
+| POST | `/events/:slug/secret-box` | Create secret postcard | No (X-Secret-Token for that event) |
 
 ### Themes
 | Method | Endpoint | Description | Auth |

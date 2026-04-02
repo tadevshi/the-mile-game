@@ -6,7 +6,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -326,12 +325,16 @@ func TestSecretPostcardAutoRevealLogic(t *testing.T) {
 
 			tmpDir := t.TempDir()
 			h := &Handler{postcardRepo: repo, hub: hub, uploadsDir: tmpDir}
-
-			os.Setenv("SECRET_BOX_TOKEN", "test-token")
-			defer os.Unsetenv("SECRET_BOX_TOKEN")
+			eventToken := "test-token"
+			event := &models.Event{ID: uuid.New(), Slug: "test-event", IsActive: true, SecretBoxToken: &eventToken}
 
 			r := gin.New()
-			r.POST("/api/postcards/secret", h.CreateSecretPostcard)
+			r.POST("/api/postcards/secret", func(c *gin.Context) {
+				c.Set("event", event)
+				c.Set("event_id", event.ID)
+				c.Set("event_slug", event.Slug)
+				h.CreateSecretPostcard(c)
+			})
 
 			var body bytes.Buffer
 			mw := multipart.NewWriter(&body)
@@ -370,20 +373,16 @@ func TestSecretPostcardAutoRevealLogic(t *testing.T) {
 
 func TestCreateSecretPostcardMissingToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-
-	// Setear el token esperado en el entorno
-	os.Setenv("SECRET_BOX_TOKEN", "test-secret-token")
-	defer os.Unsetenv("SECRET_BOX_TOKEN")
+	eventToken := "test-secret-token"
+	event := &models.Event{ID: uuid.New(), Slug: "test-event", IsActive: true, SecretBoxToken: &eventToken}
 
 	r := gin.New()
 	r.POST("/api/postcards/secret", func(c *gin.Context) {
-		token := c.GetHeader("X-Secret-Token")
-		expected := os.Getenv("SECRET_BOX_TOKEN")
-		if expected == "" || token != expected {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing secret token"})
-			return
-		}
-		c.JSON(http.StatusCreated, gin.H{"id": uuid.New().String()})
+		c.Set("event", event)
+		c.Set("event_id", event.ID)
+		c.Set("event_slug", event.Slug)
+		h := &Handler{}
+		h.CreateSecretPostcard(c)
 	})
 
 	tests := []struct {
@@ -393,7 +392,7 @@ func TestCreateSecretPostcardMissingToken(t *testing.T) {
 	}{
 		{"no token", "", http.StatusUnauthorized},
 		{"wrong token", "wrong-token", http.StatusUnauthorized},
-		{"correct token", "test-secret-token", http.StatusCreated},
+		{"correct token", "test-secret-token", http.StatusBadRequest},
 	}
 
 	for _, tt := range tests {

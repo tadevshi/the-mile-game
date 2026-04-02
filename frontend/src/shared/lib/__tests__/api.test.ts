@@ -193,17 +193,12 @@ describe('ApiClient', () => {
   // ─── getSecretBoxStatus ──────────────────────────────────────────────────────
 
   describe('getSecretBoxStatus', () => {
-    it('GETs /admin/status with X-Admin-Key header', async () => {
+    it('GETs /admin/status without legacy admin headers', async () => {
       mockGet.mockResolvedValueOnce({ data: { total: 5, revealed: false, revealed_at: null } })
 
       await api.getSecretBoxStatus()
 
-      expect(mockGet).toHaveBeenCalledWith(
-        '/admin/status',
-        expect.objectContaining({
-          headers: expect.objectContaining({ 'X-Admin-Key': 'admin-passphrase' }),
-        })
-      )
+      expect(mockGet).toHaveBeenCalledWith('/admin/status')
     })
 
     it('returns the secret box status', async () => {
@@ -218,17 +213,12 @@ describe('ApiClient', () => {
   // ─── listSecretPostcards ─────────────────────────────────────────────────────
 
   describe('listSecretPostcards', () => {
-    it('GETs /admin/secret-box with X-Admin-Key header', async () => {
+    it('GETs /admin/secret-box without legacy admin headers', async () => {
       mockGet.mockResolvedValueOnce({ data: [] })
 
       await api.listSecretPostcards()
 
-      expect(mockGet).toHaveBeenCalledWith(
-        '/admin/secret-box',
-        expect.objectContaining({
-          headers: expect.objectContaining({ 'X-Admin-Key': 'admin-passphrase' }),
-        })
-      )
+      expect(mockGet).toHaveBeenCalledWith('/admin/secret-box')
     })
 
     it('returns the list of secret postcards', async () => {
@@ -329,18 +319,12 @@ describe('ApiClient', () => {
   // ─── revealSecretBox ─────────────────────────────────────────────────────────
 
   describe('revealSecretBox', () => {
-    it('POSTs to /admin/reveal with X-Admin-Key header', async () => {
+    it('POSTs to /admin/reveal without legacy admin headers', async () => {
       mockPost.mockResolvedValueOnce({ data: { message: 'Revealed!', postcards: [] } })
 
       await api.revealSecretBox()
 
-      expect(mockPost).toHaveBeenCalledWith(
-        '/admin/reveal',
-        {},
-        expect.objectContaining({
-          headers: expect.objectContaining({ 'X-Admin-Key': 'admin-passphrase' }),
-        })
-      )
+      expect(mockPost).toHaveBeenCalledWith('/admin/reveal', {})
     })
 
     it('returns the revealed postcards', async () => {

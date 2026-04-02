@@ -160,9 +160,9 @@ curl -X POST http://localhost:8080/api/postcards \
 ### Create Secret Postcard
 
 ```
-POST /api/postcards/secret
+POST /api/events/:slug/secret-box
 Content-Type: multipart/form-data
-X-Secret-Token: {SECRET_BOX_TOKEN}
+X-Secret-Token: {EVENT_SECRET_BOX_TOKEN}
 ```
 
 Secret postcards are hidden until the admin reveals them via WebSocket.
@@ -172,17 +172,15 @@ Secret postcards are hidden until the admin reveals them via WebSocket.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `media` OR `image` | file | Yes | Media file |
-| `event_id` | string | Yes | Event UUID |
 | `sender_name` | string | Yes | Name of the sender |
 | `message` | string | No | Message |
 
 **Example:**
 
 ```bash
-curl -X POST http://localhost:8080/api/postcards/secret \
-  -H "X-Secret-Token: {SECRET_BOX_TOKEN}" \
+curl -X POST http://localhost:8080/api/events/ale-roy/secret-box \
+  -H "X-Secret-Token: {EVENT_SECRET_BOX_TOKEN}" \
   -F "image=@surprise.jpg" \
-  -F "event_id=550e8400-e29b-41d4-a716-446655440001" \
   -F "sender_name=Tío Juan" \
   -F "message=I couldn't make it but wanted to say..."
 ```

@@ -687,7 +687,7 @@ REFRESH_TOKEN_EXPIRY_DAYS=7
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8080
 
 # Secret Box
-SECRET_BOX_TOKEN=un-token-seguro-compartido-por-whatsapp
+# El token se genera por evento desde el panel admin y se valida vía X-Secret-Token
 
 # Frontend
 VITE_API_URL=http://localhost:8080
