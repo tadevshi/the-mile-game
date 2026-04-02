@@ -49,7 +49,7 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl, theme }: Postca
     <AnimatePresence>
       {postcard && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] md:p-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -66,7 +66,7 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl, theme }: Postca
 
           {/* Contenido */}
           <motion.div
-            className="relative z-10 w-full max-w-md md:max-w-2xl"
+            className="relative z-10 w-full max-w-md md:max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto"
             initial={{ scale: 0.8, opacity: 0, y: 30 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 30 }}
