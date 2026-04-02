@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Gift, Clock } from 'lucide-react';
 import { useSecretPostcards } from '../hooks/useSecretBox';
 import { Skeleton } from '@/shared/components/Skeleton';
 import type { PreviewTheme } from '@/themes';
 import type { Postcard } from '@features/postcards/types/postcards.types';
+
+const VIDEO_PLACEHOLDER = '/eventhub-video-placeholder.svg';
 
 interface PostcardsPreviewGridProps {
   slug: string;
@@ -42,6 +44,7 @@ function PostcardCard({ postcard, theme }: PostcardCardProps) {
   const isNew = isNewerThan24Hours(postcard.created_at);
   const displayName = postcard.sender_name || 'Anónimo';
   const imagePath = postcard.thumbnail_path || postcard.image_path;
+  const [imageError, setImageError] = useState(false);
 
   return (
     <motion.div
@@ -59,17 +62,19 @@ function PostcardCard({ postcard, theme }: PostcardCardProps) {
       >
         {/* Image */}
         <div className="aspect-square bg-gray-100 relative">
-          {postcard.media_type === 'video' && postcard.thumbnail_path ? (
+          {postcard.media_type === 'video' ? (
             <img
-              src={postcard.thumbnail_path}
+              src={imageError ? VIDEO_PLACEHOLDER : (postcard.thumbnail_path || VIDEO_PLACEHOLDER)}
               alt={displayName}
               className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
             />
           ) : imagePath ? (
             <img
               src={imagePath}
               alt={displayName}
               className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">

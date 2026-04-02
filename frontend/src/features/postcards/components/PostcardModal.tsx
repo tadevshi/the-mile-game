@@ -4,18 +4,26 @@ import { toPng } from 'html-to-image';
 import { PushPin } from './PushPin';
 import { VideoPlayer } from './VideoPlayer';
 import type { Postcard } from '../types/postcards.types';
+import type { Theme } from '@/shared/theme/ThemeProvider';
 
 interface PostcardModalProps {
   postcard: Postcard | null;
   onClose: () => void;
   eventLogoUrl?: string;
+  theme?: Theme;
 }
 
-export function PostcardModal({ postcard, onClose, eventLogoUrl }: PostcardModalProps) {
+export function PostcardModal({ postcard, onClose, eventLogoUrl, theme }: PostcardModalProps) {
   const postcardRef = useRef<HTMLDivElement>(null);
   const [imageError, setImageError] = useState(false);
 
   const isVideo = postcard?.media_type === 'video';
+  const bgColor = theme?.bgColor || '#FFFFFF';
+  const textColor = theme?.textColor || '#1E293B';
+  const primaryColor = theme?.primaryColor || '#EC4899';
+  const secondaryColor = theme?.secondaryColor || '#FBCFE8';
+  const headingFont = theme?.headingFont || 'Playfair Display';
+  const bodyFont = theme?.bodyFont || 'Montserrat';
 
   const handleDownload = async () => {
     // Videos can't be downloaded as PNG easily, so skip download for videos
@@ -74,14 +82,19 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl }: PostcardModal
             {/* Postal expandida — esquinas rectas como postal real */}
             <div
               ref={postcardRef}
-              className="bg-white shadow-2xl overflow-hidden"
-              style={{ borderColor: 'var(--color-border)' }}
+              className="shadow-2xl overflow-hidden"
+              style={{
+                backgroundColor: bgColor,
+                borderColor: `${primaryColor}20`,
+                borderWidth: '1px',
+                fontFamily: bodyFont,
+              }}
             >
               {/* Mobile: vertical (media arriba, mensaje abajo) */}
               {/* Desktop: horizontal (media izquierda, mensaje derecha) */}
               <div className="flex flex-col md:flex-row">
                 {/* Media (imagen o video) */}
-                <div className="md:w-1/2 overflow-hidden flex items-center justify-center" style={{ backgroundColor: 'var(--color-secondary-light)' }}>
+                <div className="md:w-1/2 overflow-hidden flex items-center justify-center" style={{ backgroundColor: secondaryColor }}>
                   {isVideo ? (
                     <VideoPlayer
                       src={postcard.image_path} // video_path para videos
@@ -100,32 +113,38 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl }: PostcardModal
                 </div>
 
                 {/* Separador */}
-                <div className="h-px md:h-auto md:w-px" style={{ backgroundColor: 'var(--color-border-light)' }} />
+                <div className="h-px md:h-auto md:w-px" style={{ backgroundColor: `${primaryColor}30` }} />
 
                 {/* Mensaje */}
                 <div className="md:w-1/2 p-6 flex flex-col justify-between relative min-h-[200px]">
                   {/* Líneas decorativas */}
                   <div className="absolute inset-x-5 top-12 space-y-5 pointer-events-none">
-                    <div className="h-px" style={{ backgroundColor: 'var(--color-border-light)' }} />
-                    <div className="h-px" style={{ backgroundColor: 'var(--color-border-light)' }} />
-                    <div className="h-px" style={{ backgroundColor: 'var(--color-border-light)' }} />
-                    <div className="h-px" style={{ backgroundColor: 'var(--color-border-light)' }} />
+                    <div className="h-px" style={{ backgroundColor: `${primaryColor}15` }} />
+                    <div className="h-px" style={{ backgroundColor: `${primaryColor}15` }} />
+                    <div className="h-px" style={{ backgroundColor: `${primaryColor}15` }} />
+                    <div className="h-px" style={{ backgroundColor: `${primaryColor}15` }} />
                   </div>
 
                   <div className="relative z-10">
-                    <p className="text-xs uppercase tracking-wider font-medium mb-2" style={{ color: 'var(--color-on-surface-muted)' }}>
+                    <p className="text-xs uppercase tracking-wider font-medium mb-2" style={{ color: `${textColor}80` }}>
                       mensaje:
                     </p>
-                    <p className="text-sm md:text-base leading-relaxed font-serif italic whitespace-pre-wrap" style={{ color: 'var(--color-on-surface)' }}>
+                    <p
+                      className="text-sm md:text-base leading-relaxed italic whitespace-pre-wrap"
+                      style={{
+                        color: textColor,
+                        fontFamily: headingFont.includes('Vibes') || headingFont.includes('Script') ? headingFont : `${headingFont}, serif`,
+                      }}
+                    >
                       {postcard.message || '...'}
                     </p>
                   </div>
 
                   {/* From */}
-                  <div className="relative z-10 mt-4 pt-3 border-t" style={{ borderColor: 'var(--color-border-light)' }}>
-                    <p className="text-sm flex items-center gap-2" style={{ color: 'var(--color-on-surface-muted)' }}>
+                  <div className="relative z-10 mt-4 pt-3 border-t" style={{ borderColor: `${primaryColor}30` }}>
+                    <p className="text-sm flex items-center gap-2" style={{ color: `${textColor}80` }}>
                       <span className="text-xl">{postcard.player_avatar}</span>
-                      <span className="font-semibold" style={{ color: 'var(--color-primary)' }}>
+                      <span className="font-semibold" style={{ color: primaryColor }}>
                         {postcard.player_name}
                       </span>
                     </p>
@@ -142,7 +161,7 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl }: PostcardModal
                   whileTap={{ scale: 0.95 }}
                   onClick={handleDownload}
                   className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium shadow-lg border flex items-center justify-center gap-2 cursor-pointer"
-                  style={{ color: 'var(--color-on-surface)', borderColor: 'var(--color-border-light)' }}
+                  style={{ color: textColor, borderColor: `${primaryColor}30` }}
                 >
                   <span>📥</span> Descargar
                 </motion.button>
@@ -152,7 +171,7 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl }: PostcardModal
                 whileTap={{ scale: 0.95 }}
                 onClick={onClose}
                 className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium shadow-lg border flex items-center justify-center cursor-pointer"
-                style={{ color: 'var(--color-on-surface)', borderColor: 'var(--color-border-light)' }}
+                style={{ color: textColor, borderColor: `${primaryColor}30` }}
               >
                 Cerrar
               </motion.button>

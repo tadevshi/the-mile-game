@@ -146,6 +146,19 @@ function EventQuizPage() {
 }
 
 function EventRankingPage() {
+  const quizEnabled = useFeatureEnabled('quiz');
+
+  if (!quizEnabled) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-display text-accent mb-4">Ranking no disponible</h1>
+          <p className="font-serif text-slate-500">Este evento no tiene el quiz habilitado.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AnimatedPage variants={slideLeftVariants}>
       <RankingPage />

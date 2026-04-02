@@ -167,7 +167,7 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
           <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: `${theme.secondaryColor}30` }}>
             <div>
               <p className="font-medium" style={{ color: theme.textColor }}>Quiz</p>
-              <p className="text-sm" style={{ color: `${theme.textColor}80` }}>Trivia sobre la cumpleañera</p>
+              <p className="text-sm" style={{ color: `${theme.textColor}80` }}>Trivia personalizada para este evento</p>
             </div>
             <Switch
               checked={features.quiz}

@@ -125,7 +125,7 @@ export function EventSettingsPage() {
             <FeatureToggle
               name="secretBox"
               label="Caja Secreta"
-              description="Activar secret box para Mile"
+              description={`Activar Secret Box para ${currentEvent?.name || 'este evento'}`}
               checked={features.secretBox}
               onChange={handleToggle('secretBox')}
             />

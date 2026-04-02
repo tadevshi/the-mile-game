@@ -21,8 +21,8 @@ FROM alpine:3.20
 
 WORKDIR /app
 
-# Instalar ca-certificates para HTTPS
-RUN apk --no-cache add ca-certificates
+# Instalar ca-certificates para HTTPS y ffmpeg/ffprobe para thumbnails de video
+RUN apk --no-cache add ca-certificates ffmpeg
 
 # Crear directorio para uploads (el volumen se montará aquí)
 RUN mkdir -p /app/uploads/postcards

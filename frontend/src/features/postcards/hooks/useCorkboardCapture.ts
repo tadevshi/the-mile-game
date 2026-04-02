@@ -78,7 +78,7 @@ function dataUrlToBlob(dataUrl: string): Blob {
  *   temporalmente de `fixed` a `absolute` con altura = scrollHeight, para que el
  *   fondo de corcho cubra todo el contenido aunque las postales excedan el viewport.
  */
-export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | null>) {
+export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | null>, fileName = 'cartelera-evento.png') {
   const [isFlashing, setIsFlashing] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [captureError, setCaptureError] = useState<string | null>(null);
@@ -157,7 +157,7 @@ export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | nul
       // Evitamos navigator.share porque el proceso asíncrono de toPng es muy largo
       // y rompe el "user gesture requirement" de la Web Share API
       const link = document.createElement('a');
-      link.download = 'cartelera-de-mile.png';
+      link.download = fileName;
       link.href = blobUrl;
       document.body.appendChild(link);
       link.click();
@@ -195,7 +195,7 @@ export function useCorkboardCapture(containerRef: RefObject<HTMLDivElement | nul
         isCapturingRef.current = false;
       }, 700);
     }
-  }, [containerRef]);
+  }, [containerRef, fileName]);
 
   return { isFlashing, isCapturing, captureError, downloadCorkboard };
 }

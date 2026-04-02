@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Target, Trophy, Gift, Camera } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
@@ -5,6 +6,8 @@ import { useFeatureEnabled, useEventStore } from '@/shared/store/eventStore';
 import { EventLayout } from './EventLayout';
 import { useTheme } from '@/shared/theme';
 import { usePostcards } from '@/features/postcards/hooks/usePostcards';
+
+const VIDEO_PLACEHOLDER = '/eventhub-video-placeholder.svg';
 
 function EventLandingContent() {
   const { slug } = useParams<{ slug: string }>();
@@ -16,6 +19,7 @@ function EventLandingContent() {
   // Fetch postcards for preview
   const { postcards } = usePostcards(slug);
   const recentPostcards = postcards.slice(0, 3);
+  const [brokenPreviewIds, setBrokenPreviewIds] = useState<string[]>([]);
 
   // Logo with fallback to Gift icon
   const logoUrl = currentEvent?.settings?.logo_url;
@@ -139,39 +143,41 @@ function EventLandingContent() {
             </Link>
           )}
 
-          {/* Ranking Card - Estilo minimalista */}
-          <Link to={`/e/${slug}/ranking`} className="group">
-            <motion.div
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className="rounded-2xl p-4 h-40 cursor-pointer border transition-all active:scale-[0.98] flex flex-col justify-between"
-              style={{ 
-                backgroundColor: `${theme.secondaryColor}33`, // 20% opacity
-                borderColor: `${theme.secondaryColor}40`
-              }}
-            >
-              <div 
-                className="w-10 h-10 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: `${theme.accentColor}20` }}
+          {/* Ranking Card - solo si quiz está habilitado */}
+          {quizEnabled && (
+            <Link to={`/e/${slug}/ranking`} className="group">
+              <motion.div
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="rounded-2xl p-4 h-40 cursor-pointer border transition-all active:scale-[0.98] flex flex-col justify-between"
+                style={{ 
+                  backgroundColor: `${theme.secondaryColor}33`, // 20% opacity
+                  borderColor: `${theme.secondaryColor}40`
+                }}
               >
-                <Trophy 
-                  className="w-5 h-5" 
-                  style={{ color: theme.accentColor }} 
-                />
-              </div>
-              <div>
-                <h3 
-                  className="font-bold text-base leading-tight"
-                  style={{ color: theme.primaryColor, fontFamily: `var(--font-display)` }}
+                <div 
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: `${theme.accentColor}20` }}
                 >
-                  Ranking
-                </h3>
-                <p className="text-[10px] mt-0.5 line-clamp-2" style={{ color: theme.textColor }}>
-                  Ver la tabla de posiciones
-                </p>
-              </div>
-            </motion.div>
-          </Link>
+                  <Trophy 
+                    className="w-5 h-5" 
+                    style={{ color: theme.accentColor }} 
+                  />
+                </div>
+                <div>
+                  <h3 
+                    className="font-bold text-base leading-tight"
+                    style={{ color: theme.primaryColor, fontFamily: `var(--font-display)` }}
+                  >
+                    Ranking
+                  </h3>
+                  <p className="text-[10px] mt-0.5 line-clamp-2" style={{ color: theme.textColor }}>
+                    Ver la tabla de posiciones
+                  </p>
+                </div>
+              </motion.div>
+            </Link>
+          )}
 
           {/* Cartelera Card - Full width con imagen de fondo */}
           {corkboardEnabled && (
@@ -202,11 +208,12 @@ function EventLandingContent() {
                           zIndex: recentPostcards.length - idx 
                         }}
                       >
-                        {postcard.media_type === 'video' && postcard.thumbnail_path ? (
+                        {postcard.media_type === 'video' ? (
                           <img 
-                            src={postcard.thumbnail_path} 
+                            src={brokenPreviewIds.includes(postcard.id) ? VIDEO_PLACEHOLDER : (postcard.thumbnail_path || VIDEO_PLACEHOLDER)} 
                             alt="" 
                             className="w-full h-full object-cover"
+                            onError={() => setBrokenPreviewIds((prev) => prev.includes(postcard.id) ? prev : [...prev, postcard.id])}
                           />
                         ) : (
                           <img 

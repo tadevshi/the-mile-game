@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/shared';
 import { useQuizStore } from '@features/quiz/store/quizStore';
 import { api } from '@/shared/lib/api';
+import { useEventStore } from '@/shared/store/eventStore';
+import { useTheme } from '@/shared/theme';
 
 type MediaMode = 'photo' | 'video';
 
@@ -16,32 +18,13 @@ const MAX_VIDEO_DURATION = 30; // segundos
 
 export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheetProps) {
   const playerName = useQuizStore((s) => s.playerName);
+  const currentEvent = useEventStore((state) => state.currentEvent);
+  const { currentTheme } = useTheme();
 
-  // Use CSS variables for theme colors - these update automatically when theme changes
-  const [colors, setColors] = useState({
-    primary: 'var(--color-primary, #D22E7F)',
-    text: 'var(--color-on-background, #1E293B)',
-  });
-
-  // Update colors when modal opens or theme changes
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    const updateColors = () => {
-      const root = getComputedStyle(document.documentElement);
-      setColors({
-        primary: root.getPropertyValue('--color-primary').trim() || '#D22E7F',
-        text: root.getPropertyValue('--color-on-background').trim() || '#1E293B',
-      });
-    };
-
-    // Update immediately when opening
-    updateColors();
-    
-    // Also listen for theme changes while open
-    window.addEventListener('themechange', updateColors);
-    return () => window.removeEventListener('themechange', updateColors);
-  }, [isOpen]);
+  const colors = {
+    primary: currentTheme.primaryColor || '#D22E7F',
+    text: currentTheme.textColor || '#1E293B',
+  };
 
   // Guest mode: el usuario llegó a la cartelera sin haber hecho el quiz.
   const [isGuest, setIsGuest] = useState(!api.getPlayerId());
@@ -59,12 +42,15 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
 
   // Video recording refs
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraStatus, setCameraStatus] = useState<'idle' | 'opening' | 'active' | 'error'>('idle');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [cameraInfo, setCameraInfo] = useState<string | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -74,40 +60,169 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
     };
   }, []);
 
-  const startCamera = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-        audio: mediaMode === 'video',
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        setIsCameraActive(true);
-      }
-    } catch (err) {
-      setError('No se pudo acceder a la cámara');
-    }
-  }, [mediaMode]);
+  const honoreeLabel = currentEvent?.name?.trim() || 'este evento';
 
-  const stopCamera = useCallback(() => {
+  const getSupportedVideoMimeType = () => {
+    if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
+      return '';
+    }
+
+    const candidates = [
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm',
+      'video/mp4',
+    ];
+
+    return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || '';
+  };
+
+  const getMediaAccessError = (err: unknown) => {
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+      return 'La cámara en vivo necesita HTTPS o localhost. Podés seguir subiendo un archivo desde tu galería.';
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      return 'Este navegador no soporta cámara en vivo desde esta pantalla. Probá subiendo un archivo.';
+    }
+
+    const errorName = err && typeof err === 'object' && 'name' in err ? String((err as { name?: string }).name) : '';
+    switch (errorName) {
+      case 'NotAllowedError':
+      case 'PermissionDeniedError':
+        return 'No nos diste permiso para usar la cámara. Revisá los permisos del navegador o subí un archivo desde tu galería.';
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+        return 'No encontramos una cámara disponible en este dispositivo.';
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return 'La cámara está siendo usada por otra app o no se pudo iniciar correctamente.';
+      case 'OverconstrainedError':
+      case 'ConstraintNotSatisfiedError':
+        return 'Tu cámara no soporta la configuración solicitada. Probá nuevamente o subí un archivo desde tu galería.';
+      case 'SecurityError':
+        return 'La cámara requiere un contexto seguro (HTTPS o localhost).';
+      default:
+        return 'No se pudo acceder a la cámara. Probá subiendo un archivo desde tu galería.';
+    }
+  };
+
+  const stopCamera = useCallback((nextStatus: 'idle' | 'error' = 'idle') => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
     if (videoRef.current?.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach((track) => track.stop());
       videoRef.current.srcObject = null;
     }
+
     setIsCameraActive(false);
+    setCameraStatus(nextStatus);
+    setCameraInfo(null);
   }, []);
 
-  const startRecording = useCallback(() => {
-    if (!videoRef.current?.srcObject) return;
+  const startCamera = useCallback(async () => {
+    try {
+      if (!window.isSecureContext) {
+        setError('La cámara en vivo necesita HTTPS o localhost. Podés seguir subiendo un archivo desde tu galería.');
+        setCameraStatus('error');
+        return;
+      }
 
-    const stream = videoRef.current.srcObject as MediaStream;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError('Este navegador no soporta cámara en vivo desde esta pantalla. Probá subiendo un archivo.');
+        setCameraStatus('error');
+        return;
+      }
+
+      stopCamera();
+      setCameraStatus('opening');
+      setError(null);
+
+      let stream: MediaStream;
+
+      if (mediaMode === 'video') {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'user' } },
+            audio: true,
+          });
+          setCameraInfo('Cámara y micrófono activos. Tu video se grabará con sonido.');
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'user' } },
+            audio: false,
+          });
+          setCameraInfo('No pudimos activar el micrófono. Podés grabar igual, pero el video se guardará sin audio.');
+        }
+      } else {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'user' } },
+          audio: false,
+        });
+        setCameraInfo(null);
+      }
+
+      streamRef.current = stream;
+      setIsCameraActive(true);
+    } catch (err) {
+      setError(getMediaAccessError(err));
+      stopCamera('error');
+    }
+  }, [mediaMode, stopCamera]);
+
+  useEffect(() => {
+    if (!isCameraActive || !videoRef.current || !streamRef.current) {
+      return;
+    }
+
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    let cancelled = false;
+
+    video.srcObject = stream;
+
+    const attachPreview = async () => {
+      try {
+        await video.play();
+
+        if (cancelled) return;
+
+        const videoTrack = stream.getVideoTracks()[0];
+        if (!videoTrack || videoTrack.readyState !== 'live') {
+          throw new Error('track-not-live');
+        }
+
+        setCameraStatus('active');
+        setError(null);
+      } catch {
+        if (cancelled) return;
+        setError('No pudimos iniciar la vista previa de la cámara. Probá de nuevo o subí un archivo.');
+        stopCamera('error');
+      }
+    };
+
+    void attachPreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isCameraActive, stopCamera]);
+
+  const startRecording = useCallback(() => {
+    if (!streamRef.current) return;
+
+    if (typeof MediaRecorder === 'undefined') {
+      setError('Tu navegador no soporta grabación en vivo. Podés subir un video desde tu galería.');
+      return;
+    }
+
+    const stream = streamRef.current;
     recordedChunksRef.current = [];
 
-    const options = mediaMode === 'video'
-      ? { mimeType: 'video/webm;codecs=vp9' }
-      : undefined;
+    const supportedMimeType = mediaMode === 'video' ? getSupportedVideoMimeType() : '';
+    const options = supportedMimeType ? { mimeType: supportedMimeType } : undefined;
 
     try {
       const mediaRecorder = new MediaRecorder(stream, options);
@@ -120,11 +235,14 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
       };
 
       mediaRecorder.onstop = () => {
+        const mimeType = mediaRecorder.mimeType || supportedMimeType || 'video/webm';
         const blob = new Blob(recordedChunksRef.current, {
-          type: mediaMode === 'video' ? 'video/webm' : 'image/webp',
+          type: mimeType,
         });
         const url = URL.createObjectURL(blob);
-        setMediaFile(blob as unknown as File);
+        const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const recordedFile = new File([blob], `postcard-${Date.now()}.${extension}`, { type: mimeType });
+        setMediaFile(recordedFile);
         setMediaPreview(url);
         stopCamera();
         setIsRecording(false);
@@ -145,7 +263,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
         });
       }, 1000);
     } catch {
-      setError('No se pudo grabar. Probá con otro navegador.');
+      setError('No se pudo grabar el video en este navegador. Probá subiendo un archivo desde tu galería.');
     }
   }, [mediaMode, stopCamera]);
 
@@ -215,6 +333,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
     setIsRecording(false);
     setRecordingTime(0);
     setIsCameraActive(false);
+    setCameraInfo(null);
     if (timerRef.current) clearInterval(timerRef.current);
     stopCamera();
   };
@@ -242,7 +361,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
+          className="fixed inset-0 z-[70] flex items-end md:items-center justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -258,7 +377,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
 
           {/* Sheet */}
           <motion.div
-            className="relative z-10 w-full max-w-md bg-white rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden"
+            className="relative z-10 w-full max-w-md max-h-[92dvh] overflow-y-auto bg-white rounded-t-3xl md:rounded-2xl shadow-2xl"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -269,7 +388,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
               <div className="w-10 h-1 rounded-full" style={{ backgroundColor: `${colors.primary}40` }} />
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="space-y-4 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
               {/* Título */}
               <div className="text-center">
                 <h2 className="text-xl font-display" style={{ color: colors.primary }}>
@@ -392,16 +511,21 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                     ) : (
                       /* Modo video con cámara en vivo */
                       <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-900">
-                        {isCameraActive ? (
-                          <>
-                            <video
-                              ref={videoRef}
+                         {isCameraActive ? (
+                           <>
+                             <video
+                               ref={videoRef}
                               className="w-full h-full object-cover mirror"
                               playsInline
                               muted
-                            />
-                            {/* Timer overlay */}
-                            <div className="absolute top-3 left-3 bg-black/70 text-white text-sm px-3 py-1 rounded-full font-mono">
+                             />
+                             {cameraStatus === 'opening' && (
+                               <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-white text-sm">
+                                 Iniciando cámara...
+                               </div>
+                             )}
+                             {/* Timer overlay */}
+                             <div className="absolute top-3 left-3 bg-black/70 text-white text-sm px-3 py-1 rounded-full font-mono">
                               {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:
                               {String(recordingTime % 60).padStart(2, '0')} /
                               {MAX_VIDEO_DURATION}s
@@ -434,7 +558,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                               )}
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
-                                onClick={stopCamera}
+                                onClick={() => stopCamera()}
                                 className="w-10 h-10 rounded-full bg-white/80 text-gray-700 flex items-center justify-center"
                               >
                                 ✕
@@ -456,6 +580,11 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                             <p className="text-xs" style={{ color: `${colors.text}50` }}>
                               O elegí un video de tu galería
                             </p>
+                            {cameraInfo && (
+                              <p className="max-w-xs text-center text-[11px]" style={{ color: `${colors.text}65` }}>
+                                {cameraInfo}
+                              </p>
+                            )}
                             <motion.button
                               whileTap={{ scale: 0.95 }}
                               onClick={() => fileInputRef.current?.click()}
@@ -485,7 +614,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                   id="postcard-message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Escribí tu mensaje para Mile..."
+                  placeholder={`Escribí tu mensaje para ${honoreeLabel}...`}
                   maxLength={500}
                   rows={3}
                   className="w-full px-3 py-2.5 border rounded-xl text-sm resize-none focus:outline-none font-serif italic text-gray-700 placeholder:text-gray-400 placeholder:not-italic"
@@ -530,9 +659,6 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                 </Button>
               </div>
             </div>
-
-            {/* Safe area para mobile */}
-            <div className="h-[env(safe-area-inset-bottom)]" />
           </motion.div>
         </motion.div>
       )}

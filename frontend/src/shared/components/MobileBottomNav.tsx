@@ -36,7 +36,7 @@ export function MobileBottomNav({ slug }: MobileBottomNavProps) {
       icon: Trophy,
       label: 'Ranking',
       path: (s) => `/e/${s}/ranking`,
-      enabled: true,
+      enabled: quizEnabled,
     },
     {
       icon: Pin,

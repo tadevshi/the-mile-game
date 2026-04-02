@@ -72,3 +72,4 @@ backend/api
 register-page.yml
 
 .gga
+openspec/*

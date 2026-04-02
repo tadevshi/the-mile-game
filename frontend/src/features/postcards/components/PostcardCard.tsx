@@ -19,7 +19,7 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
   const isVideo = postcard.media_type === 'video';
   
   // Fallback para thumbnails: thumbnail_path -> eventLogoUrl -> placeholder por defecto
-  const videoFallback = eventLogoUrl || '/logo.png';
+  const videoFallback = eventLogoUrl || '/eventhub-video-placeholder.svg';
   const imageFallback = eventLogoUrl || '/logo.png';
 
   // Colores del tema con fallbacks
