@@ -731,8 +731,8 @@ func (h *Handler) generateVideoThumbnail(videoPath string) (string, error) {
 		return "", err
 	}
 
-	// Comando ffmpeg: extraer frame en segundo 1, escalar a 400x400
-	cmd := exec.Command("ffmpeg", "-y", "-i", videoPath, "-ss", "00:00:01", "-vframes", "1", "-vf", "scale='min(400,iw)':min'(400,ih)':force_original_aspect_ratio=decrease", "-q:v", "2", thumbnailPath)
+	// Comando ffmpeg: extraer frame en segundo 1 y escalar manteniendo aspect ratio
+	cmd := exec.Command("ffmpeg", "-y", "-i", videoPath, "-ss", "00:00:01", "-vframes", "1", "-vf", "scale='min(400,iw)':'min(400,ih)':force_original_aspect_ratio=decrease", "-q:v", "2", thumbnailPath)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
