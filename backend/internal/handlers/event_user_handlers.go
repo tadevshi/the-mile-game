@@ -17,6 +17,7 @@ type EventRepo interface {
 	Create(ownerID uuid.UUID, slug, name, description string,
 		features models.EventFeatures, settings models.EventSettings,
 		startsAt, endsAt *time.Time) (*models.Event, error)
+	Delete(id uuid.UUID) error
 }
 
 // EventHandler handles user event endpoints
@@ -134,4 +135,24 @@ func (h *EventHandler) CreateEvent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, event)
+}
+
+// DeleteEvent deletes an event owned by the authenticated user.
+// Expects the event to already be loaded in context by EventMiddleware,
+// and ownership verified by OwnerMiddleware (admin route).
+func (h *EventHandler) DeleteEvent(c *gin.Context) {
+	event, exists := c.Get("event")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Event not in context"})
+		return
+	}
+
+	eventModel := event.(*models.Event)
+
+	if err := h.eventRepo.Delete(eventModel.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete event"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Event deleted"})
 }

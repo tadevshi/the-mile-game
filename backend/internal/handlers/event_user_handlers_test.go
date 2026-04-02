@@ -49,6 +49,19 @@ func (m *MockUserEventRepo) Create(ownerID uuid.UUID, slug, name, description st
 	return event, nil
 }
 
+func (m *MockUserEventRepo) Delete(id uuid.UUID) error {
+	if m.Err != nil {
+		return m.Err
+	}
+	for i, e := range m.Events {
+		if e.ID == id {
+			m.Events = append(m.Events[:i], m.Events[i+1:]...)
+			return nil
+		}
+	}
+	return nil
+}
+
 // ========== TESTS FOR GetUserEvents ==========
 
 func TestGetUserEvents_Success(t *testing.T) {
@@ -174,6 +187,59 @@ func TestGetUserEvents_Error(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/users/me/events", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+}
+
+// ========== TESTS FOR DeleteEvent ==========
+
+func TestDeleteEvent_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	eventID := uuid.New()
+	events := []models.Event{
+		{ID: eventID, Slug: "test-event", Name: "Test", IsActive: true, CreatedAt: time.Now()},
+	}
+
+	mockRepo := &MockUserEventRepo{Events: events}
+	handler := &EventHandler{eventRepo: mockRepo}
+
+	r := gin.New()
+	r.DELETE("/api/admin/events/:slug", func(c *gin.Context) {
+		c.Set("event", &events[0])
+		handler.DeleteEvent(c)
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("DELETE", "/api/admin/events/test-event", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+
+	if len(mockRepo.Events) != 0 {
+		t.Errorf("Expected 0 events after delete, got %d", len(mockRepo.Events))
+	}
+}
+
+func TestDeleteEvent_Error(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	mockRepo := &MockUserEventRepo{Err: errors.New("database error")}
+	handler := &EventHandler{eventRepo: mockRepo}
+
+	r := gin.New()
+	r.DELETE("/api/admin/events/:slug", func(c *gin.Context) {
+		c.Set("event", &models.Event{ID: uuid.New(), Slug: "test-event"})
+		handler.DeleteEvent(c)
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("DELETE", "/api/admin/events/test-event", nil)
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusInternalServerError {

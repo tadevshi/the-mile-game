@@ -251,6 +251,8 @@ func main() {
 		adminEvents.Use(authMiddleware)
 		adminEvents.Use(middleware.OwnerMiddleware())
 		{
+			// Event management
+			adminEvents.DELETE("", eventHandler.DeleteEvent)
 			adminEvents.GET("/status", handler.GetSecretBoxStatus)
 			adminEvents.GET("/secret-box", handler.ListSecretPostcards)
 			adminEvents.POST("/reveal", handler.RevealSecretBox)
