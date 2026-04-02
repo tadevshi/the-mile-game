@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/the-mile-game/backend/internal/handlers"
 	"github.com/the-mile-game/backend/internal/middleware"
+	"github.com/the-mile-game/backend/internal/migrations"
 	"github.com/the-mile-game/backend/internal/repository"
 	"github.com/the-mile-game/backend/internal/services"
 	"github.com/the-mile-game/backend/internal/websocket"
@@ -53,8 +55,13 @@ func main() {
 	}
 	gin.SetMode(ginMode)
 
+	databaseURL := repository.DatabaseURL()
+	if err := migrations.Run(context.Background(), databaseURL); err != nil {
+		log.Fatal("Failed to run database migrations:", err)
+	}
+
 	// Conectar a la base de datos
-	db, err := repository.NewDB()
+	db, err := repository.NewDBWithURL(databaseURL)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}

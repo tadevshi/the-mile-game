@@ -1,4 +1,5 @@
--- Crear tabla de jugadores
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS players (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -7,7 +8,6 @@ CREATE TABLE IF NOT EXISTS players (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Crear tabla de respuestas del quiz
 CREATE TABLE IF NOT EXISTS quiz_answers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     player_id UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
@@ -18,6 +18,5 @@ CREATE TABLE IF NOT EXISTS quiz_answers (
     UNIQUE(player_id)
 );
 
--- Crear índices para mejorar rendimiento
 CREATE INDEX IF NOT EXISTS idx_players_score ON players(score DESC);
 CREATE INDEX IF NOT EXISTS idx_quiz_answers_player_id ON quiz_answers(player_id);
