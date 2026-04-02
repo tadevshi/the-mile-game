@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // vi.hoisted ensures these are available inside vi.mock factories (before imports)
-const { mockPost, mockGet, mockInterceptorsUse } = vi.hoisted(() => ({
+const { mockPost, mockGet, mockInterceptorsUse, mockRequestInterceptorsUse } = vi.hoisted(() => ({
   mockPost: vi.fn(),
   mockGet: vi.fn(),
   mockInterceptorsUse: vi.fn(),
+  mockRequestInterceptorsUse: vi.fn(),
 }))
 
 vi.mock('axios', () => ({
@@ -13,6 +14,7 @@ vi.mock('axios', () => ({
       post: mockPost,
       get: mockGet,
       interceptors: {
+        request: { use: mockRequestInterceptorsUse },
         response: { use: mockInterceptorsUse },
       },
     })),
@@ -313,6 +315,49 @@ describe('ApiClient', () => {
 
       const formDataArg = mockPost.mock.calls[0][1] as FormData
       expect(formDataArg.get('sender_name')).toBeNull()
+    })
+  })
+
+  describe('createPostcardScoped', () => {
+    it('reuses the current player only when it belongs to the same event', async () => {
+      api.setPlayerId('event-player-uuid', 'ale-roy')
+      mockPost.mockResolvedValueOnce({ data: { id: 'pc-1', message: 'Hola!' } })
+
+      const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' })
+      await api.createPostcardScoped('ale-roy', file, 'Hola!', { senderName: 'Laura' })
+
+      expect(mockPost).toHaveBeenCalledWith(
+        '/events/ale-roy/postcards',
+        expect.any(FormData),
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'X-Player-ID': 'event-player-uuid' }),
+        })
+      )
+    })
+
+    it('creates a guest player when the stored player belongs to another event', async () => {
+      api.setPlayerId('other-event-player', 'cumple-meli')
+      const guest = { id: 'guest-uuid', name: 'Laura', avatar: '📸', score: 0, created_at: '' }
+      const postcard = { id: 'pc-2', message: 'Hola!', sender_name: 'Laura', is_secret: false }
+
+      mockPost
+        .mockResolvedValueOnce({ data: guest })
+        .mockResolvedValueOnce({ data: postcard })
+
+      const file = new File(['img'], 'photo.jpg', { type: 'image/jpeg' })
+      const result = await api.createPostcardScoped('ale-roy', file, 'Hola!', { senderName: 'Laura' })
+
+      expect(mockPost).toHaveBeenNthCalledWith(1, '/events/ale-roy/players', { name: 'Laura', avatar: '📸' })
+      expect(mockPost).toHaveBeenNthCalledWith(
+        2,
+        '/events/ale-roy/postcards',
+        expect.any(FormData),
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'X-Player-ID': 'guest-uuid' }),
+        })
+      )
+      expect(api.getPlayerEventSlug()).toBe('ale-roy')
+      expect(result).toEqual(postcard)
     })
   })
 

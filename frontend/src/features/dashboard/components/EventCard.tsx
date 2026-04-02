@@ -6,7 +6,7 @@ import type { Event } from '@/shared/lib/api';
 
 interface EventCardProps {
   event: Event;
-  onDelete?: (id: string) => void;
+  onDelete?: (slug: string) => void;
 }
 
 // Theme color mappings for event cards
@@ -44,7 +44,7 @@ export function EventCard({ event, onDelete }: EventCardProps) {
 
   const handleDelete = () => {
     if (onDelete && confirm('¿Estás seguro de eliminar este evento?')) {
-      onDelete(event.id);
+      onDelete(event.slug);
     }
     setShowMenu(false);
   };

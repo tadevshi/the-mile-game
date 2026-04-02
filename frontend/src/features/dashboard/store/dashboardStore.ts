@@ -10,7 +10,7 @@ interface DashboardState {
   
   // Actions
   fetchEvents: () => Promise<void>;
-  deleteEvent: (id: string) => Promise<void>;
+  deleteEvent: (slug: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -33,13 +33,13 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     }
   },
 
-  deleteEvent: async (id: string) => {
+  deleteEvent: async (slug: string) => {
     try {
-      // Call delete endpoint
-      await api.delete(`/events/${id}`);
+      // Call delete endpoint (requires slug, which resolves to the event via admin middleware)
+      await api.delete(`/admin/events/${slug}`);
       // Update local state
       set((state) => ({
-        events: state.events.filter((e) => e.id !== id),
+        events: state.events.filter((e) => e.slug !== slug),
       }));
     } catch (error) {
       console.error('Error deleting event:', error);

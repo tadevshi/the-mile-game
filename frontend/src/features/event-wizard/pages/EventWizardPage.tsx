@@ -59,9 +59,13 @@ export function EventWizardPage() {
         }
       }
 
+      if (!newEvent.slug) {
+        throw new Error('El evento se creo, pero no se recibio un slug valido para redirigir al panel admin.');
+      }
+
       reset();
       console.log('Event created, redirecting to:', newEvent.slug);
-      navigate(`/e/${newEvent.slug}/admin?tab=config`, { replace: true });
+      navigate(`/admin/${newEvent.slug}?tab=config`, { replace: true });
     } catch (err) {
       console.error('Error creating event:', err);
       setSubmitError(
