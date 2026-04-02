@@ -117,7 +117,7 @@ func main() {
 	config.AllowOrigins = strings.Split(allowedOrigins, ",")
 
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Player-ID", "X-Secret-Token", "X-Admin-Key"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Player-ID", "X-Secret-Token"}
 	config.AllowCredentials = true
 	r.Use(cors.New(config))
 

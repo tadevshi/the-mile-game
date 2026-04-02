@@ -165,9 +165,8 @@ DB_NAME=milegame
 # CORS (agregar dominios de producción aquí)
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8081
 
-# Secret Box (generar tokens seguros antes de la fiesta)
-SECRET_BOX_TOKEN=token-secreto-para-el-link   # Token del link compartible
-ADMIN_PASSPHRASE=passphrase-del-admin          # Contraseña del panel admin
+# Secret Box
+# El token se genera por evento desde el panel admin (no hace falta env global)
 
 # Feature flags (habilitar funcionalidades)
 VITE_ENABLE_CORKBOARD=true
@@ -204,13 +203,11 @@ milegame-web   nginx                            Up (healthy)   0.0.0.0:8081->80/
 
 La **Secret Box** permite que familiares o amigos que no pueden asistir envíen fotos y mensajes secretos para el homenajeado. Se guardan ocultos y se revelan con una animación durante la celebración.
 
-### **Paso 1 — Configurar tokens antes de la fiesta**
+### **Paso 1 — Habilitar la feature antes de la fiesta**
 
-Editá el `.env` con valores seguros (no usar los defaults en producción):
+Editá el `.env` para habilitar la feature si hace falta:
 
 ```env
-SECRET_BOX_TOKEN=TmG_2026_x4Qp!9zBf7L       # Lo que va en el link compartible
-ADMIN_PASSPHRASE=Adm!n_Secr3t_9vL2#         # Para acceder al panel de admin
 VITE_ENABLE_SECRET_BOX=true                 # Habilitar la feature
 ```
 
@@ -220,30 +217,30 @@ Rebuild necesario si cambiás `VITE_ENABLE_SECRET_BOX` (está bakeado en el bund
 docker-compose up -d --build
 ```
 
-### **Paso 2 — Construir el link a compartir**
+### **Paso 2 — Generar el link a compartir desde el panel admin**
 
-La URL tiene el siguiente formato:
+El token ya no viene de una env global. Se genera por evento desde el panel admin y el link compartible tiene este formato:
 
 ```
-http://<HOST>/secret-box?token=<SECRET_BOX_TOKEN>
+http://<HOST>/e/<EVENT_SLUG>/secret-box?token=<TOKEN_GENERADO>
 ```
 
 **Ejemplos:**
 
 | Entorno | URL |
 |---------|-----|
-| Local | `http://localhost:8081/secret-box?token=cumple-mile-2026-secreto` |
-| Red local (fiesta) | `http://192.168.100.82:8081/secret-box?token=cumple-mile-2026-secreto` |
-| Producción | `https://milejuego.com/secret-box?token=cumple-mile-2026-secreto` |
+| Local | `http://localhost:8081/e/mi-evento/secret-box?token=abc123` |
+| Red local (fiesta) | `http://192.168.100.82:8081/e/mi-evento/secret-box?token=abc123` |
+| Producción | `https://midominio.com/e/mi-evento/secret-box?token=abc123` |
 
-> ⚠️ **El token en la URL debe coincidir exactamente con `SECRET_BOX_TOKEN` en el `.env`.**
+> ⚠️ **El token en la URL debe coincidir exactamente con el token generado para ese evento desde el panel admin.**
 
 ### **Paso 3 — Compartir el link**
 
 Enviá el link por **WhatsApp, email o cualquier canal** a las personas que no pueden asistir. Cada persona:
 
 1. Abre el link en su celular
-2. Sube una foto y escribe un mensaje para Mile
+2. Sube una foto y escribe un mensaje para el homenajeado
 3. Ve una confirmación de envío exitoso
 
 No necesitan registrarse ni haber jugado el quiz.
@@ -252,15 +249,7 @@ No necesitan registrarse ni haber jugado el quiz.
 
 El panel de admin te muestra cuántas postales secretas fueron enviadas y un preview de cada una:
 
-```
-http://<HOST>/admin?key=<ADMIN_PASSPHRASE>
-```
-
-**Ejemplo:**
-
-```
-http://192.168.100.82:8081/admin?key=solo-yo-lo-se-123
-```
+El acceso admin ahora usa login con JWT y ownership del evento; ya no usa passphrase por query param.
 
 ### **Paso 5 — Revelar la Secret Box durante la fiesta**
 
@@ -281,13 +270,13 @@ Cuando llegue el momento emotivo, desde el panel admin:
 
 **El link dice "Token inválido":**
 - Verificá que `VITE_ENABLE_SECRET_BOX=true` en el `.env` y que hiciste rebuild
-- Verificá que el token en la URL coincide exactamente con `SECRET_BOX_TOKEN` (case-sensitive, sin espacios)
+- Verificá que el token en la URL coincide exactamente con el token generado para ese evento (case-sensitive, sin espacios)
 
 **La ruta `/secret-box` no existe (404):**
 - La feature está deshabilitada. Verificá `VITE_ENABLE_SECRET_BOX=true` y rebuild del frontend
 
 **El admin dice "No autorizado":**
-- El valor del query param `key` debe coincidir exactamente con `ADMIN_PASSPHRASE` en el `.env`
+- Verificá que estás logueado como owner del evento
 
 **Resetear estado del reveal (para volver a ejecutar la animación):**
 
