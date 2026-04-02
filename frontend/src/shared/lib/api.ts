@@ -540,7 +540,7 @@ class ApiClient {
     message: string, 
     options?: { senderName?: string; name?: string; avatar?: string }
   ): Promise<Postcard> {
-    let effectivePlayerId = this.playerId;
+    let effectivePlayerId = this.isPlayerForEvent(eventSlug) ? this.playerId : null;
 
     // Auto-registro: si no hay jugador y se provee name+avatar, registrar como invitado
     if (!effectivePlayerId && options?.name && options?.avatar) {
