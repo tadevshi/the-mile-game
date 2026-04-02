@@ -1,0 +1,19 @@
+<svg width="800" height="800" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="800" rx="64" fill="#F8F3EE"/>
+  <rect x="56" y="56" width="688" height="688" rx="48" fill="#F2E8DE" stroke="#D7C0AE" stroke-width="8"/>
+  <rect x="120" y="160" width="560" height="400" rx="32" fill="#A0563E"/>
+  <circle cx="400" cy="360" r="92" fill="#FFF8F1" fill-opacity="0.18"/>
+  <path d="M377 309.5C377 300.074 387.327 294.35 395.295 299.331L472.779 347.768C480.277 352.455 480.277 363.345 472.779 368.032L395.295 416.469C387.327 421.45 377 415.726 377 406.3V309.5Z" fill="#FFF8F1"/>
+  <rect x="120" y="596" width="254" height="76" rx="22" fill="#FFF8F1" fill-opacity="0.78"/>
+  <rect x="142" y="618" width="86" height="12" rx="6" fill="#A0563E" fill-opacity="0.30"/>
+  <rect x="142" y="640" width="188" height="10" rx="5" fill="#A0563E" fill-opacity="0.18"/>
+  <circle cx="618" cy="635" r="44" fill="#FFF8F1"/>
+  <path d="M605 619H631V651H605V619Z" fill="#A0563E" fill-opacity="0.18"/>
+  <path d="M596 610C596 603.373 601.373 598 608 598H628C634.627 598 640 603.373 640 610V660C640 666.627 634.627 672 628 672H608C601.373 672 596 666.627 596 660V610Z" stroke="#A0563E" stroke-width="8"/>
+  <circle cx="618" cy="643" r="8" fill="#A0563E"/>
+  <path d="M613 580L607 595H629L623 580H613Z" fill="#A0563E"/>
+  <path d="M120 96H680" stroke="#A0563E" stroke-opacity="0.18" stroke-width="10" stroke-linecap="round" stroke-dasharray="1 28"/>
+  <path d="M120 704H680" stroke="#A0563E" stroke-opacity="0.12" stroke-width="10" stroke-linecap="round" stroke-dasharray="1 28"/>
+  <text x="142" y="630" fill="#8B4A35" font-family="Montserrat, Arial, sans-serif" font-size="28" font-weight="700">EventHub</text>
+  <text x="142" y="658" fill="#A0563E" font-family="Montserrat, Arial, sans-serif" font-size="20">Video postcard</text>
+</svg>

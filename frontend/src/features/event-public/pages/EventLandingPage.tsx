@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Target, Trophy, Gift, Camera } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
@@ -5,6 +6,8 @@ import { useFeatureEnabled, useEventStore } from '@/shared/store/eventStore';
 import { EventLayout } from './EventLayout';
 import { useTheme } from '@/shared/theme';
 import { usePostcards } from '@/features/postcards/hooks/usePostcards';
+
+const VIDEO_PLACEHOLDER = '/eventhub-video-placeholder.svg';
 
 function EventLandingContent() {
   const { slug } = useParams<{ slug: string }>();
@@ -16,6 +19,7 @@ function EventLandingContent() {
   // Fetch postcards for preview
   const { postcards } = usePostcards(slug);
   const recentPostcards = postcards.slice(0, 3);
+  const [brokenPreviewIds, setBrokenPreviewIds] = useState<string[]>([]);
 
   // Logo with fallback to Gift icon
   const logoUrl = currentEvent?.settings?.logo_url;
@@ -204,11 +208,12 @@ function EventLandingContent() {
                           zIndex: recentPostcards.length - idx 
                         }}
                       >
-                        {postcard.media_type === 'video' && postcard.thumbnail_path ? (
+                        {postcard.media_type === 'video' ? (
                           <img 
-                            src={postcard.thumbnail_path} 
+                            src={brokenPreviewIds.includes(postcard.id) ? VIDEO_PLACEHOLDER : (postcard.thumbnail_path || VIDEO_PLACEHOLDER)} 
                             alt="" 
                             className="w-full h-full object-cover"
+                            onError={() => setBrokenPreviewIds((prev) => prev.includes(postcard.id) ? prev : [...prev, postcard.id])}
                           />
                         ) : (
                           <img 
