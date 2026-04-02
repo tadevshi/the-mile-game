@@ -1,0 +1,6 @@
+ALTER TABLE postcards ALTER COLUMN player_id DROP NOT NULL;
+ALTER TABLE postcards ADD COLUMN IF NOT EXISTS sender_name VARCHAR(255);
+ALTER TABLE postcards ADD COLUMN IF NOT EXISTS is_secret BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE postcards ADD COLUMN IF NOT EXISTS revealed_at TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS idx_postcards_is_secret ON postcards(is_secret) WHERE is_secret = TRUE;

@@ -1,160 +1,157 @@
 # Database Migrations Guide
 
-> How to run, create, and manage database migrations for The Mile Game.
+This project now uses `golang-migrate` from inside the backend process.
 
-## 🚀 Running Migrations
+## Startup Strategy
 
-### Automatic (Docker)
+The backend runs migrations before creating repositories, handlers, or HTTP routes.
 
-When using Docker Compose, migrations run automatically on container startup:
+Behavior at startup:
 
-```bash
-docker-compose up -d
+1. Resolve the migrations directory.
+2. Wait for PostgreSQL to accept connections.
+3. Run `migrate.Up()` once.
+4. Treat `ErrNoChange` as success.
+5. Exit immediately if a real migration error occurs.
+
+This replaces the old `docker-entrypoint-initdb.d` approach, which only worked when PostgreSQL booted with an empty volume.
+
+## Migrations Directory
+
+Runtime migrations live in `backend/migrations` and use `golang-migrate` naming:
+
+```text
+001_initial_schema.up.sql
+001_initial_schema.down.sql
+002_postcards.up.sql
+002_postcards.down.sql
+...
+010_secret_box_token.up.sql
+010_secret_box_token.down.sql
 ```
 
-The backend container executes migrations in `/backend/cmd/api/main.go` on startup.
+Important:
 
-### Manual (Development)
+- The application only runs `up` migrations automatically.
+- `down` files are intentionally non-destructive placeholders today.
+- Production rollback should be handled with backup/restore or a forward fix migration.
 
-To run migrations manually against your local database:
+## Environment Variables
 
-```bash
-# Connect to PostgreSQL and run migration file
-cat backend/migrations/006_themes.sql | docker exec -i $(docker ps --filter "name=milegame-db" --format "{{.ID}}") psql -U user -d milegame
+Optional runtime knobs:
+
+```env
+MIGRATIONS_PATH=/app/migrations
+DB_WAIT_MAX_ATTEMPTS=20
+DB_WAIT_RETRY_DELAY=3s
 ```
 
-Or with psql directly:
+Notes:
+
+- `MIGRATIONS_PATH` defaults to the first existing path among `./migrations`, `backend/migrations`, and `/app/migrations`.
+- `DATABASE_URL` is preferred.
+- If `DATABASE_URL` is missing, the backend builds it from `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, and optional `DB_SSLMODE`.
+
+## Local Development
+
+Local Docker Compose stays compatible.
 
 ```bash
-# If you have psql installed locally
-export PGPASSWORD=password
-psql -h localhost -U user -d milegame -f backend/migrations/006_themes.sql
+docker compose up -d
 ```
 
-## 📝 Creating New Migrations
+What changed:
 
-### Naming Convention
+- Postgres no longer mounts SQL files into `/docker-entrypoint-initdb.d`.
+- The backend container owns schema migration on every startup.
+- Reusing an existing Postgres volume is now safe because pending migrations still run.
 
-Format: `XXX_descriptive_name.sql`
+If you run the API locally outside Docker, start it from `backend/` or set `MIGRATIONS_PATH` explicitly.
 
-Examples:
-- `006_themes.sql`
-- `007_dynamic_flags.sql`
-- `008_question_reorder.sql`
+## Dokploy Deployment
 
-### Migration Template
+Recommended Dokploy setup:
+
+1. Deploy Postgres as a managed service or sidecar.
+2. Deploy the backend container from `backend/Dockerfile`.
+3. Set `DATABASE_URL` in Dokploy.
+4. Optionally set `DB_WAIT_MAX_ATTEMPTS` and `DB_WAIT_RETRY_DELAY` if your database is slow to become ready.
+
+The backend image already ships with `/app/migrations`, and the container sets:
+
+```env
+MIGRATIONS_PATH=/app/migrations
+```
+
+That means no separate migration job is required for standard deployments.
+
+## Creating a New Migration
+
+Create both files with the next numeric version:
+
+```text
+011_feature_name.up.sql
+011_feature_name.down.sql
+```
+
+Guidelines:
+
+1. Make the `up` migration idempotent when practical.
+2. Prefer `IF EXISTS` / `IF NOT EXISTS` for additive changes.
+3. Keep data backfills re-runnable.
+4. If rollback is unsafe, keep the `down` file as a documented no-op and use a forward fix later.
+
+Example:
 
 ```sql
--- Migration: XXX_feature_name.sql
--- Description: What this migration does
-
--- Up migration
-CREATE TABLE IF NOT EXISTS table_name (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    -- ... fields
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_name ON table_name(field);
-
--- Down migration (for rollback)
--- DROP TABLE IF EXISTS table_name;
+-- 011_feature_name.up.sql
+ALTER TABLE events ADD COLUMN IF NOT EXISTS hero_title TEXT;
 ```
 
-### Best Practices
-
-1. **Always include down migration** (commented out)
-2. **Use IF EXISTS / IF NOT EXISTS** for safety
-3. **Add indexes** for frequently queried fields
-4. **Use transactions** for complex migrations
-5. **Test migrations** on a copy of production data
-
-## 📊 Current Migrations
-
-| Version | File | Description | Status |
-|---------|------|-------------|--------|
-| 001 | `001_initial.sql` | Initial schema (players, quiz_answers) | ✅ Applied |
-| 002 | `002_postcards.sql` | Postcards table for corkboard | ✅ Applied |
-| 003 | `003_secret_box.sql` | Secret box postcards | ✅ Applied |
-| 004 | `004_multi_event.sql` | Multi-event foundation | ✅ Applied |
-| 005 | `005_seed_quiz_questions.sql` | Quiz questions seed | ✅ Applied |
-| 006 | `006_themes.sql` + `006_video_postcards.sql` | Theme customization + Video postcards | ✅ Applied |
-| 007 | `007_analytics.sql` | Analytics tracking tables | ✅ Applied |
-
-## 🔄 Rollback Strategy
-
-### Individual Migration
-
-```bash
-# Run down migration manually
-psql -h localhost -U user -d milegame -c "DROP TABLE IF EXISTS themes;"
+```sql
+-- 011_feature_name.down.sql
+SELECT 1;
 ```
 
-### Full Reset (⚠️ DESTRUCTIVE)
+## Validation
+
+Useful checks:
 
 ```bash
-# Stop containers
-docker-compose down
-
-# Remove database volume
-docker volume rm the-mile-game_milegame-data
-
-# Restart (will recreate DB with all migrations)
-docker-compose up -d
-```
-
-## 🧪 Testing Migrations
-
-### Test Database
-
-We use a separate test database for running tests:
-
-```bash
-# Test DB is configured automatically via docker-compose.test.yml
-# Or set env vars:
-export TEST_DB_HOST=localhost
-export TEST_DB_PORT=5432
-export TEST_DB_USER=user
-export TEST_DB_PASSWORD=password
-export TEST_DB_NAME=milegame_test
-
-# Run tests
-cd backend && go test ./...
-```
-
-### Verifying Applied Migrations
-
-```bash
-# Check applied migrations
+docker compose logs backend
+docker exec milegame-db psql -U user -d milegame -c "SELECT version, dirty FROM schema_migrations;"
 docker exec milegame-db psql -U user -d milegame -c "\dt"
-
-# Check specific table structure
-docker exec milegame-db psql -U user -d milegame -c "\d themes"
 ```
 
-## 🐛 Troubleshooting
+Expected runtime log behavior:
 
-### Migration Failed
+- If the DB is still booting: retry logs.
+- If everything is current: startup continues normally.
+- If a migration is broken: backend exits fast.
 
-```bash
-# Check what failed
-docker logs milegame-api
+## Troubleshooting
 
-# Check database state
-docker exec milegame-db psql -U user -d milegame -c "SELECT * FROM pg_tables WHERE tablename = 'your_table';"
+### `migrations path does not exist`
+
+Set `MIGRATIONS_PATH` explicitly for the environment.
+
+### `database not ready after N attempts`
+
+Increase:
+
+```env
+DB_WAIT_MAX_ATTEMPTS
+DB_WAIT_RETRY_DELAY
 ```
 
-### Manual Fix
+### Dirty migration state
 
-If a migration fails partially:
+If `schema_migrations.dirty = true`, the previous migration failed partway through. Fix the SQL and repair the DB state before restarting the backend.
 
-1. Check what's already applied
-2. Comment out already-applied parts in the migration file
-3. Re-run the migration
-4. Uncomment for future runs
+## Related Files
 
-## 📚 Related Docs
-
-- [Backend Architecture](../AGENTS.md#backend)
-- [API Documentation](api/README.md)
+- `backend/cmd/api/main.go`
+- `backend/internal/migrations/migrations.go`
+- `backend/internal/repository/db.go`
+- `backend/Dockerfile`
+- `docker-compose.yml`

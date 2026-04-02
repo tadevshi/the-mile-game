@@ -21,6 +21,8 @@ FROM alpine:3.20
 
 WORKDIR /app
 
+ENV MIGRATIONS_PATH=/app/migrations
+
 # Instalar ca-certificates para HTTPS y ffmpeg/ffprobe para thumbnails de video
 RUN apk --no-cache add ca-certificates ffmpeg
 

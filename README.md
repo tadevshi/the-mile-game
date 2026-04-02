@@ -518,7 +518,7 @@ the-mile-game/
 │   │   │                     # postcard_repository, db
 │   │   ├── services/         # normalizer, scorer (+tests 100% cov)
 │   │   └── websocket/        # hub.go (gorilla, ping/pong, broadcast)
-│   ├── migrations/           # 001_initial_schema.sql, 002_postcards.sql
+│   ├── migrations/           # 001_initial_schema.up.sql, 002_postcards.up.sql, ...
 │   ├── Dockerfile
 │   ├── go.mod
 │   └── go.sum
