@@ -94,7 +94,7 @@ export function Step3_Theme() {
           <p>No hay temas disponibles. Se usará el tema por defecto.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           {presets.map((preset) => {
             const presetData = THEME_PRESETS.find(p => p.name === preset.name);
             const isSelected = selectedThemeId === preset.name;
@@ -104,7 +104,7 @@ export function Step3_Theme() {
                 key={preset.name}
                 onClick={() => handleSelect(preset)}
                 className={`
-                  relative h-24 rounded-xl p-4 border-2 transition-all duration-200
+                  relative flex min-h-[8.25rem] flex-col rounded-xl p-3 border-2 transition-all duration-200
                   hover:shadow-lg hover:scale-[1.02]
                   text-left
                   ${isSelected
@@ -117,20 +117,20 @@ export function Step3_Theme() {
                 }}
               >
                 <div
-                  className="h-20 rounded-lg mb-3"
+                  className="h-16 min-h-16 rounded-lg"
                   style={{
                     background: `linear-gradient(135deg, ${presetData?.primaryColor || '#F48FB1'} 0%, ${presetData?.secondaryColor || '#FBCFE8'} 100%)`,
                   }}
                 />
                 <p 
-                  className="text-sm font-medium capitalize"
+                  className="mt-2 text-sm font-medium capitalize leading-tight break-words"
                   style={{ color: 'var(--color-on-surface)' }}
                 >
-                  {preset.label || preset.name}
+                  {presetData?.label || preset.name}
                 </p>
                 {isSelected && (
                   <div 
-                    className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-sm"
+                    className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm"
                   >
                     <span className="text-xs" style={{ color: presetData?.primaryColor || '#EC4899' }}>✓</span>
                   </div>
