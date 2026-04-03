@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ButterflyBackground } from './ButterflyBackground';
 import { useTheme } from '@/shared/theme/useTheme';
+import { useEventStore } from '@/shared/store/eventStore';
 
 interface PageLayoutProps {
   children: ReactNode;
@@ -20,6 +21,7 @@ export function PageLayout({
   themeId: _themeId, // eslint-disable-line @typescript-eslint/no-unused-vars
 }: PageLayoutProps) {
   const { currentTheme: theme } = useTheme();
+  const { currentEvent } = useEventStore();
   
   // Check if we should show decorative background
   // For dark themes, skip decorative backgrounds to avoid color clashes
@@ -49,9 +51,13 @@ export function PageLayout({
     return bgClasses[background] || `theme-${theme.backgroundStyle || 'watercolor'}`;
   };
 
-  // Solo mostrar蝴蝶Background si background es butterfly-animated
-  // No condicionar a un tema específico - el background style ya lo determina
-  const showButterflyAnimation = background === 'butterfly-animated';
+  // Show butterfly animation ONLY when:
+  // 1. Explicitly requested via prop (legacy), OR
+  // 2. The event's theme is 'princess' (the only theme with butterfly animation)
+  const isPrincessTheme = currentEvent?.themeId === 'princess';
+  const showButterflyAnimation =
+    background === 'butterfly-animated' ||
+    (background === 'theme' && isPrincessTheme);
 
   // Get background color from theme
   const bgStyle = background === 'none' 

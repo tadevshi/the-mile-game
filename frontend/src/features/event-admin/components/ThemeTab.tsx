@@ -186,6 +186,7 @@ export function ThemeTab({ slug, onPreview, onSave, previewTheme }: ThemeTabProp
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
+          className="space-y-3"
         >
           <Button
             variant="primary"
@@ -203,23 +204,41 @@ export function ThemeTab({ slug, onPreview, onSave, previewTheme }: ThemeTabProp
           >
             Guardar Tema
           </Button>
+
+          <Link to={`/admin/${slug}/theme`} className="block">
+            <Button
+              variant="primary"
+              fullWidth
+              icon={<Palette className="w-4 h-4" />}
+              style={{ 
+                backgroundColor: theme.secondaryColor,
+                color: theme.accentColor || theme.primaryColor,
+                border: `1px solid ${theme.primaryColor}30`
+              }}
+            >
+              Personalizar Tema
+            </Button>
+          </Link>
         </motion.div>
       )}
 
-      <Link to={`/admin/${slug}/theme`} className="block">
-        <Button
-          variant="primary"
-          fullWidth
-          icon={<Palette className="w-4 h-4" />}
-          style={{ 
-            backgroundColor: theme.secondaryColor,
-            color: theme.accentColor || theme.primaryColor,
-            border: `1px solid ${theme.primaryColor}30`
-          }}
-        >
-          Personalizar Tema
-        </Button>
-      </Link>
+      {/* Show customizer link even if no preset selected */}
+      {!selectedPreset && (
+        <Link to={`/admin/${slug}/theme`} className="block">
+          <Button
+            variant="primary"
+            fullWidth
+            icon={<Palette className="w-4 h-4" />}
+            style={{ 
+              backgroundColor: theme.secondaryColor,
+              color: theme.accentColor || theme.primaryColor,
+              border: `1px solid ${theme.primaryColor}30`
+            }}
+          >
+            Personalizar Tema
+          </Button>
+        </Link>
+      )}
 
       <div 
         className="rounded-xl p-4 text-sm"
