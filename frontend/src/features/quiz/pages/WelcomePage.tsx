@@ -14,7 +14,7 @@ export function WelcomePage() {
   // No hacer fallback hardcodeado a mile-2026 — dejar que falle si no hay evento
 
   return (
-    <PageLayout background="butterfly-animated" showSparkles={false} themeId={currentEvent?.themeId}>
+    <PageLayout background="theme" showSparkles={false} themeId={currentEvent?.themeId}>
       <div className="flex flex-col items-center flex-1 px-8 py-12 text-center">
         {/* Sección superior - Título */}
         <ScrollReveal variant="fadeDown" className="w-full h-1/3 flex flex-col items-center justify-center relative mt-4">

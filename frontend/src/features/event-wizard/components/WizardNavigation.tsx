@@ -17,27 +17,31 @@ export function WizardNavigation({ onSubmit }: WizardNavigationProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center justify-between gap-4 pt-6 border-t border-[var(--color-border-light)]"
+      className="grid grid-cols-2 gap-4 pt-6 border-t border-[var(--color-border-light)]"
     >
-      <div>
+      <div className="min-w-0">
         {currentStep > 0 && (
           <Button
             variant="outline"
             onClick={prevStep}
             icon={<ArrowLeft className="w-4 h-4" />}
+            fullWidth
+            className="whitespace-nowrap"
           >
             Anterior
           </Button>
         )}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="min-w-0">
         {isLastStep ? (
           <Button
             variant="primary"
             onClick={onSubmit}
             disabled={isSubmitting}
             isLoading={isSubmitting}
+            fullWidth
+            className="whitespace-nowrap"
           >
             {isSubmitting ? <LoadingSpinner size="sm" /> : 'Crear Evento'}
           </Button>
@@ -46,6 +50,8 @@ export function WizardNavigation({ onSubmit }: WizardNavigationProps) {
             variant="primary"
             onClick={nextStep}
             icon={<ArrowRight className="w-4 h-4" />}
+            fullWidth
+            className="whitespace-nowrap"
           >
             Siguiente
           </Button>

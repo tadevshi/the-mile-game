@@ -59,18 +59,20 @@ export function Step2_Features() {
       <div className="space-y-4">
         {featureItems.map((item) => (
           <div key={item.key} className="p-4 rounded-xl" style={item.bgStyle}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{item.emoji}</span>
-                <div>
+            <div className="flex items-start gap-3">
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <span className="shrink-0 text-2xl leading-none">{item.emoji}</span>
+                <div className="min-w-0 flex-1">
                   <p className="font-medium text-gray-800">{item.label}</p>
                   <p className="text-sm text-gray-500">{item.description}</p>
                 </div>
               </div>
-              <Switch
-                checked={formData.features[item.key]}
-                onChange={handleToggle(item.key)}
-              />
+              <div className="shrink-0 pt-0.5">
+                <Switch
+                  checked={formData.features[item.key]}
+                  onChange={handleToggle(item.key)}
+                />
+              </div>
             </div>
           </div>
         ))}
