@@ -28,7 +28,12 @@ export function ThemeTab({ slug, onPreview, onSave, previewTheme }: ThemeTabProp
     accentColor: '#DB2777',
     bgColor: '#FFF5F7',
     textColor: '#1E293B',
+    backgroundStyle: 'watercolor',
   };
+  const isDarkTheme = theme.backgroundStyle === 'dark';
+  const secondaryButtonBg = isDarkTheme ? 'rgba(15, 23, 42, 0.92)' : theme.secondaryColor;
+  const secondaryButtonText = isDarkTheme ? theme.textColor : (theme.accentColor || theme.primaryColor);
+  const secondaryButtonBorder = isDarkTheme ? 'rgba(103, 232, 249, 0.35)' : `${theme.primaryColor}30`;
 
   // Get current theme from event settings (backend stores preset name in settings.theme)
   const currentThemeId = event?.settings?.theme || null;
@@ -211,9 +216,9 @@ export function ThemeTab({ slug, onPreview, onSave, previewTheme }: ThemeTabProp
               fullWidth
               icon={<Palette className="w-4 h-4" />}
               style={{ 
-                backgroundColor: theme.secondaryColor,
-                color: theme.accentColor || theme.primaryColor,
-                border: `1px solid ${theme.primaryColor}30`
+                backgroundColor: secondaryButtonBg,
+                color: secondaryButtonText,
+                border: `1px solid ${secondaryButtonBorder}`
               }}
             >
               Personalizar Tema
@@ -230,9 +235,9 @@ export function ThemeTab({ slug, onPreview, onSave, previewTheme }: ThemeTabProp
             fullWidth
             icon={<Palette className="w-4 h-4" />}
             style={{ 
-              backgroundColor: theme.secondaryColor,
-              color: theme.accentColor || theme.primaryColor,
-              border: `1px solid ${theme.primaryColor}30`
+              backgroundColor: secondaryButtonBg,
+              color: secondaryButtonText,
+              border: `1px solid ${secondaryButtonBorder}`
             }}
           >
             Personalizar Tema
@@ -257,5 +262,3 @@ export function ThemeTab({ slug, onPreview, onSave, previewTheme }: ThemeTabProp
     </div>
   );
 }
-
-

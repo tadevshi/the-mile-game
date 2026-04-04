@@ -1,20 +1,24 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/shared';
 import { useQuestionEditor } from '../hooks/useQuestionEditor';
 import { useTheme } from '@/shared/theme/useTheme';
+import { useEventAdmin } from '@/features/event-admin/hooks/useEventAdmin';
+import { getPresetByName, createTheme, applyCSSVariables } from '@/shared/theme';
 import { QuestionList } from '../components/QuestionList';
 import { QuestionForm } from '../components/QuestionForm';
 import { QuestionPreview } from '../components/QuestionPreview';
 import { ImportExportPanel } from '../components/ImportExportPanel';
+import type { PreviewTheme } from '@/themes';
 import type { QuizQuestion, QuestionFormData, QuestionSection } from '../types/questions.types';
 
 export function QuestionEditorPage() {
   const navigate = useNavigate();
   const { slug: eventSlug } = useParams<{ slug: string }>();
   const { currentTheme } = useTheme();
+  const { event } = useEventAdmin(eventSlug ?? '');
 
   const [selectedQuestion, setSelectedQuestion] = useState<QuizQuestion | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -34,6 +38,58 @@ export function QuestionEditorPage() {
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const deletingId = deleteMutation.isPending ? showDeleteConfirm : null;
+
+  useEffect(() => {
+    const themeId = event?.settings?.theme;
+    if (!themeId) return;
+
+    const preset = getPresetByName(themeId);
+    if (!preset) return;
+
+    const completeTheme = createTheme({
+      primaryColor: preset.primaryColor,
+      secondaryColor: preset.secondaryColor,
+      accentColor: preset.accentColor,
+      bgColor: preset.bgColor,
+      textColor: preset.textColor,
+      displayFont: preset.displayFont,
+      headingFont: preset.headingFont,
+      bodyFont: preset.bodyFont,
+      backgroundStyle: preset.backgroundStyle,
+    });
+
+    return applyCSSVariables(completeTheme);
+  }, [event?.settings?.theme]);
+
+  const editorThemeId = event?.settings?.theme;
+  const editorPreset = editorThemeId ? getPresetByName(editorThemeId) : null;
+  const editorTheme: PreviewTheme = editorPreset
+    ? {
+        bgColor: editorPreset.bgColor,
+        textColor: editorPreset.textColor,
+        primaryColor: editorPreset.primaryColor,
+        secondaryColor: editorPreset.secondaryColor,
+        accentColor: editorPreset.accentColor,
+        displayFont: editorPreset.displayFont,
+        headingFont: editorPreset.headingFont,
+        bodyFont: editorPreset.bodyFont,
+        backgroundStyle: editorPreset.backgroundStyle,
+      }
+    : {
+        primaryColor: currentTheme.primaryColor,
+        secondaryColor: currentTheme.secondaryColor,
+        accentColor: currentTheme.accentColor,
+        bgColor: currentTheme.bgColor,
+        textColor: currentTheme.textColor,
+        displayFont: currentTheme.displayFont,
+        headingFont: currentTheme.headingFont,
+        bodyFont: currentTheme.bodyFont,
+        backgroundStyle: currentTheme.backgroundStyle,
+      };
+  const isDarkTheme = editorTheme.backgroundStyle === 'dark';
+  const headerSurface = isDarkTheme ? 'rgba(15, 23, 42, 0.84)' : 'rgba(255, 255, 255, 0.8)';
+  const panelSurface = isDarkTheme ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.6)';
+  const mutedText = isDarkTheme ? 'rgba(226, 232, 240, 0.76)' : 'rgba(107, 114, 128, 1)';
 
   // Handle create/update
   const handleSubmit = async (data: QuestionFormData) => {
@@ -179,26 +235,29 @@ export function QuestionEditorPage() {
   return (
     <div 
       className="min-h-screen"
-      style={{ backgroundColor: currentTheme.bgColor }}
+      style={{ backgroundColor: editorTheme.bgColor }}
     >
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-[var(--color-secondary)] sticky top-0 z-10">
+      <header
+        className="backdrop-blur-sm border-b border-[var(--color-secondary)] sticky top-0 z-10"
+        style={{ backgroundColor: headerSurface }}
+      >
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
               className="p-2 rounded-lg hover:bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)] transition-colors"
             >
-              <ArrowLeft size={20} className="text-gray-600" />
+              <ArrowLeft size={20} style={{ color: editorTheme.textColor }} />
             </button>
             <div>
-              <h1 className="font-display text-xl text-gray-800">
+              <h1 className="font-display text-xl" style={{ color: editorTheme.textColor }}>
                 Editor de Preguntas
               </h1>
-              <p className="text-xs text-gray-500">{eventSlug}</p>
+              <p className="text-xs" style={{ color: mutedText }}>{eventSlug}</p>
             </div>
           </div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm" style={{ color: mutedText }}>
             {questions.length} pregunta{questions.length !== 1 ? 's' : ''}
           </div>
         </div>
@@ -214,6 +273,7 @@ export function QuestionEditorPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               deletingId={deletingId}
+              theme={editorTheme}
             />
 
             {/* Import/Export */}
@@ -222,6 +282,7 @@ export function QuestionEditorPage() {
               onImport={handleImport}
               isImporting={importMutation.isPending}
               questionCount={questions.length}
+              theme={editorTheme}
             />
           </div>
 
@@ -242,6 +303,7 @@ export function QuestionEditorPage() {
                     onSubmit={handleSubmit}
                     onCancel={handleCancelForm}
                     onChange={setFormData}
+                    theme={editorTheme}
                   />
                   <div className="mt-4">
                     <QuestionPreview data={formData || {
@@ -251,7 +313,7 @@ export function QuestionEditorPage() {
                       options: selectedQuestion?.options || ['', ''],
                       correct_answers: selectedQuestion?.correct_answers || [],
                       is_scorable: selectedQuestion?.is_scorable ?? true,
-                    }} />
+                    }} theme={editorTheme} />
                   </div>
                 </motion.div>
               ) : (
@@ -259,13 +321,14 @@ export function QuestionEditorPage() {
                   key="empty"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="bg-white/60 backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-6 text-center"
+                  className="backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-6 text-center"
+                  style={{ backgroundColor: panelSurface }}
                 >
                   <div className="text-4xl mb-3">✏️</div>
-                  <p className="text-gray-600 font-medium">
+                  <p className="font-medium" style={{ color: editorTheme.textColor }}>
                     Crear nueva pregunta
                   </p>
-                  <p className="text-gray-400 text-sm mt-1">
+                  <p className="text-sm mt-1" style={{ color: mutedText }}>
                     Completa el formulario para agregar una pregunta al quiz
                   </p>
                   <div className="mt-4 flex flex-col gap-2">

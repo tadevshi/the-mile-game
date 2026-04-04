@@ -21,6 +21,9 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
   
   // Use preview theme colors if provided, otherwise use the event's current theme
   const theme = previewTheme || currentTheme;
+  const isDarkTheme = theme.backgroundStyle === 'dark';
+  const floatingButtonSurface = isDarkTheme ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+  const floatingButtonHoverSurface = isDarkTheme ? 'rgba(30, 41, 59, 0.96)' : '#FFFFFF';
   const [features, setFeatures] = useState<EventFeatures>({
     quiz: true,
     corkboard: true,
@@ -240,7 +243,14 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
               <button
                 onClick={() => logoInputRef.current?.click()}
                 disabled={isUploadingLogo}
-                className="p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition-all hover:scale-105 disabled:opacity-50"
+                className="p-2 rounded-full shadow-md transition-all hover:scale-105 disabled:opacity-50"
+                style={{ backgroundColor: floatingButtonSurface }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = floatingButtonHoverSurface;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = floatingButtonSurface;
+                }}
                 title="Subir logo"
               >
                 {isUploadingLogo ? (
@@ -253,7 +263,14 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
                 <button
                   onClick={handleDeleteLogo}
                   disabled={isUploadingLogo}
-                  className="p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition-all hover:scale-105 disabled:opacity-50"
+                  className="p-2 rounded-full shadow-md transition-all hover:scale-105 disabled:opacity-50"
+                  style={{ backgroundColor: floatingButtonSurface }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = floatingButtonHoverSurface;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = floatingButtonSurface;
+                  }}
                   title="Eliminar logo"
                 >
                   {isUploadingLogo ? (

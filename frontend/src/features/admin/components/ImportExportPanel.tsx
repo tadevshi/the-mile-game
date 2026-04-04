@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Upload, AlertTriangle, Check } from 'lucide-react';
 import { Button } from '@/shared';
+import type { PreviewTheme } from '@/themes';
 
 interface ImportResult {
   imported: number;
@@ -14,6 +15,7 @@ interface ImportExportPanelProps {
   isExporting?: boolean;
   isImporting?: boolean;
   questionCount: number;
+  theme: PreviewTheme;
 }
 
 export function ImportExportPanel({
@@ -22,7 +24,13 @@ export function ImportExportPanel({
   isExporting = false,
   isImporting = false,
   questionCount,
+  theme,
 }: ImportExportPanelProps) {
+  const isDarkTheme = theme.backgroundStyle === 'dark';
+  const panelSurface = isDarkTheme ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.8)';
+  const headingColor = theme.textColor;
+  const mutedText = isDarkTheme ? 'rgba(226, 232, 240, 0.72)' : 'rgba(156, 163, 175, 1)';
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
@@ -52,8 +60,8 @@ export function ImportExportPanel({
   };
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-4">
-      <h3 className="font-display text-gray-700 mb-4">Importar / Exportar</h3>
+    <div className="backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-4" style={{ backgroundColor: panelSurface }}>
+      <h3 className="font-display mb-4" style={{ color: headingColor }}>Importar / Exportar</h3>
 
       <div className="flex flex-wrap gap-3">
         {/* Export Button */}
@@ -130,7 +138,7 @@ export function ImportExportPanel({
         )}
       </AnimatePresence>
 
-      <p className="text-xs text-gray-400 mt-3">
+      <p className="text-xs mt-3" style={{ color: mutedText }}>
         Formato: JSON array de preguntas. Las preguntas existentes no se sobrescriben.
       </p>
     </div>
