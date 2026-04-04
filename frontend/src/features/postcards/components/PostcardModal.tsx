@@ -6,6 +6,41 @@ import { VideoPlayer } from './VideoPlayer';
 import type { Postcard } from '../types/postcards.types';
 import type { Theme } from '@/shared/theme/ThemeProvider';
 
+function sanitizeFilename(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'postcard';
+}
+
+function getFileExtensionFromUrl(url: string, fallback: string): string {
+  try {
+    const pathname = new URL(url, window.location.origin).pathname;
+    const match = pathname.match(/\.([a-z0-9]+)$/i);
+    return match?.[1]?.toLowerCase() || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+async function downloadFile(url: string, filename: string) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download file: ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = objectUrl;
+  link.download = filename;
+  link.click();
+
+  URL.revokeObjectURL(objectUrl);
+}
+
 interface PostcardModalProps {
   postcard: Postcard | null;
   onClose: () => void;
@@ -26,8 +61,22 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl, theme }: Postca
   const bodyFont = theme?.bodyFont || 'Montserrat';
 
   const handleDownload = async () => {
-    // Videos can't be downloaded as PNG easily, so skip download for videos
-    if (isVideo || !postcardRef.current || !postcard) return;
+    if (!postcard) return;
+
+    if (isVideo) {
+      try {
+        const extension = getFileExtensionFromUrl(postcard.image_path, 'mp4');
+        await downloadFile(
+          postcard.image_path,
+          `postal-video-${sanitizeFilename(postcard.player_name)}.${extension}`
+        );
+      } catch (err) {
+        console.error('Error downloading video postcard:', err);
+      }
+      return;
+    }
+
+    if (!postcardRef.current) return;
 
     try {
       const dataUrl = await toPng(postcardRef.current, {
@@ -37,7 +86,7 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl, theme }: Postca
       });
 
       const link = document.createElement('a');
-      link.download = `postal-${postcard.player_name.toLowerCase().replace(/\s+/g, '-')}.png`;
+      link.download = `postal-${sanitizeFilename(postcard.player_name)}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -155,17 +204,15 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl, theme }: Postca
 
             {/* Botones debajo de la postal */}
             <div className="flex justify-center gap-3 mt-4">
-              {!isVideo && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleDownload}
-                  className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium shadow-lg border flex items-center justify-center gap-2 cursor-pointer"
-                  style={{ color: textColor, borderColor: `${primaryColor}30` }}
-                >
-                  <span>📥</span> Descargar
-                </motion.button>
-              )}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleDownload}
+                className="px-5 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-sm font-medium shadow-lg border flex items-center justify-center gap-2 cursor-pointer"
+                style={{ color: textColor, borderColor: `${primaryColor}30` }}
+              >
+                <span>📥</span> {isVideo ? 'Descargar video' : 'Descargar'}
+              </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
