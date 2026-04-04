@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useMediaOrientation, classifyOrientation, type MediaOrientation } from './useMediaOrientation';
+import { useMediaOrientation, classifyOrientation } from './useMediaOrientation';
 
 describe('useMediaOrientation', () => {
   beforeEach(() => {
@@ -91,16 +91,20 @@ describe('useMediaOrientation', () => {
         onloadedmetadata: null as (() => void) | null,
         onerror: null as (() => void) | null,
         load: vi.fn(),
-        _src: '',
-        get src() { return this._src; },
-        set src(value: string) {
-          this._src = value;
-          setTimeout(() => this.onloadedmetadata?.(), 0);
-        },
-      } as unknown as HTMLVideoElement;
+      };
 
       vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-        if (tag === 'video') return mockVideo;
+        if (tag === 'video') {
+          const video = { ...mockVideo, _src: '' };
+          Object.defineProperty(video, 'src', {
+            get() { return this._src; },
+            set(value: string) {
+              this._src = value;
+              setTimeout(() => this.onloadedmetadata?.(), 0);
+            },
+          });
+          return video as unknown as HTMLVideoElement;
+        }
         return originalCreateElement(tag);
       });
 
@@ -125,16 +129,20 @@ describe('useMediaOrientation', () => {
         onloadedmetadata: null as (() => void) | null,
         onerror: null as (() => void) | null,
         load: vi.fn(),
-        _src: '',
-        get src() { return this._src; },
-        set src(value: string) {
-          this._src = value;
-          setTimeout(() => this.onerror?.(), 0);
-        },
-      } as unknown as HTMLVideoElement;
+      };
 
       vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-        if (tag === 'video') return mockVideo;
+        if (tag === 'video') {
+          const video = { ...mockVideo, _src: '' };
+          Object.defineProperty(video, 'src', {
+            get() { return this._src; },
+            set(value: string) {
+              this._src = value;
+              setTimeout(() => this.onerror?.(), 0);
+            },
+          });
+          return video as unknown as HTMLVideoElement;
+        }
         return originalCreateElement(tag);
       });
 

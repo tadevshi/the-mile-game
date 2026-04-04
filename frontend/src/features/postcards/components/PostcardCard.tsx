@@ -1,9 +1,12 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
 import { toPng } from 'html-to-image';
+import { type Theme } from '@/shared/theme/ThemeProvider';
+import { FramedPhoto } from './FramedPhoto';
 import { PushPin } from './PushPin';
+import { getPostcardPresentation } from '../lib/postcardPresentation';
+import { useMediaOrientation } from '../hooks/useMediaOrientation';
 import type { Postcard } from '../types/postcards.types';
-import type { Theme } from '@/shared/theme/ThemeProvider';
 
 interface PostcardCardProps {
   postcard: Postcard;
@@ -17,7 +20,12 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
   const [imageError, setImageError] = useState(false);
 
   const isVideo = postcard.media_type === 'video';
-  
+  const presentation = getPostcardPresentation(postcard);
+
+  // Orientation hook for photo mode
+  const mediaSrc = isVideo ? (postcard.thumbnail_path || postcard.image_path) : postcard.image_path;
+  const { orientation } = useMediaOrientation(mediaSrc);
+
   // Fallback para thumbnails: thumbnail_path -> eventLogoUrl -> placeholder por defecto
   const videoFallback = eventLogoUrl || '/eventhub-video-placeholder.svg';
   const imageFallback = eventLogoUrl || '/logo.png';
@@ -32,6 +40,64 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
   const headingFont = theme?.headingFont || 'Playfair Display';
   const bodyFont = theme?.bodyFont || 'Montserrat';
 
+  const handleSelect = () => onSelect(postcard);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleSelect();
+    }
+  };
+
+  // --- Photo mode: framed photo layout ---
+  if (presentation.mode === 'photo') {
+    return (
+      <div className="relative pt-4">
+        {/* Push pin centrado arriba */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+          <PushPin />
+        </div>
+
+        <motion.div
+          ref={cardRef}
+          className="postcard-card relative shadow-lg cursor-pointer overflow-hidden"
+          style={{
+            rotate: postcard.rotation,
+            backgroundColor: bgColor,
+            borderColor: `${primaryColor}20`,
+            borderWidth: '1px',
+            fontFamily: bodyFont,
+          }}
+          whileHover={{ scale: 1.05, zIndex: 30, rotate: 0 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={handleSelect}
+          onKeyDown={handleKeyDown}
+          role="button"
+          tabIndex={0}
+          aria-label={`Abrir postal de ${presentation.captionName}`}
+          layout
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+        >
+          <div className="p-3 flex flex-col items-center">
+            <FramedPhoto
+              src={postcard.image_path}
+              isVideo={isVideo}
+              orientation={orientation}
+              caption={presentation.captionName}
+              theme={theme}
+              thumbnailPath={postcard.thumbnail_path}
+              durationMs={postcard.media_duration_ms}
+              eventLogoUrl={eventLogoUrl}
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // --- Postcard mode: existing split layout (unchanged) ---
   return (
     <div className="relative pt-4">
       {/* Push pin centrado arriba — z-40 para estar SIEMPRE encima de la postal (hover usa z-30) */}
@@ -43,7 +109,7 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
       <motion.div
         ref={cardRef}
         className="postcard-card relative shadow-lg cursor-pointer overflow-hidden"
-        style={{ 
+        style={{
           rotate: postcard.rotation,
           backgroundColor: bgColor,
           borderColor: `${primaryColor}20`,
@@ -52,7 +118,11 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
         }}
         whileHover={{ scale: 1.05, zIndex: 30, rotate: 0 }}
         whileTap={{ scale: 0.97 }}
-        onClick={() => onSelect(postcard)}
+        onClick={handleSelect}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+        aria-label={`Abrir postal de ${postcard.player_name}`}
         layout
         initial={{ opacity: 0, scale: 0.8, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -62,7 +132,7 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
         {/* Usamos aspect ratio fijo para que siempre mantenga proporción de postal */}
         <div className="flex w-full aspect-[2/1] max-h-[220px]">
           {/* Media (imagen o video thumbnail) — lado izquierdo */}
-          <div 
+          <div
             className="w-1/2 relative overflow-hidden flex items-center justify-center"
             style={{ backgroundColor: secondaryColor }}
           >
@@ -78,7 +148,7 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
                 />
                 {/* Play button overlay */}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <div 
+                  <div
                     className="w-10 h-10 rounded-full flex items-center justify-center shadow-md"
                     style={{ backgroundColor: `${primaryColor}E6` }}
                   >
@@ -98,7 +168,7 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
                   </div>
                 )}
                 {/* Video indicator */}
-                <div 
+                <div
                   className="absolute top-1 left-1 text-white text-[8px] px-1 py-0.5 rounded flex items-center gap-0.5"
                   style={{ backgroundColor: primaryColor }}
                 >
@@ -132,15 +202,15 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
             </div>
 
             <div className="relative z-10">
-              <p 
+              <p
                 className="text-[10px] uppercase tracking-wider font-medium mb-1"
                 style={{ color: `${textColor}80` }}
               >
                 mensaje:
               </p>
-              <p 
+              <p
                 className="text-xs leading-relaxed line-clamp-4 italic whitespace-pre-wrap"
-                style={{ 
+                style={{
                   color: textColor,
                   fontFamily: headingFont.includes('Vibes') || headingFont.includes('Script') ? headingFont : `${headingFont}, serif`,
                 }}

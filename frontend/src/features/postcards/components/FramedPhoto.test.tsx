@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { FramedPhoto } from './FramedPhoto';
 
 // Mock framer-motion to avoid animation complexities in tests
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, ...props }: Record<string, unknown>) => (
+    div: ({ children, className, ...props }: { children?: React.ReactNode; className?: string } & Record<string, unknown>) => (
       <div className={className} {...props}>{children}</div>
     ),
   },
@@ -13,9 +13,9 @@ vi.mock('framer-motion', () => ({
 
 // Mock VideoPlayer component
 vi.mock('./VideoPlayer', () => ({
-  VideoPlayer: ({ src, thumbnail, durationMs, className }: Record<string, unknown>) => (
+  VideoPlayer: ({ src, thumbnail, durationMs, className }: { src?: string; thumbnail?: string; durationMs?: number; className?: string }) => (
     <div className={className} data-testid="video-player" data-src={src}>
-      {thumbnail && <img src={thumbnail as string} alt="video-thumbnail" />}
+      {thumbnail && <img src={thumbnail} alt="video-thumbnail" />}
       {durationMs && <span data-testid="duration-badge">{durationMs}</span>}
     </div>
   ),
@@ -28,7 +28,14 @@ afterEach(() => {
 function makeMinimalTheme() {
   return {
     primaryColor: '#EC4899',
+    secondaryColor: '#FBCFE8',
+    accentColor: '#DB2777',
+    bgColor: '#FFFFFF',
     textColor: '#1E293B',
+    headingFont: 'Playfair Display',
+    bodyFont: 'Montserrat',
+    displayFont: 'Great Vibes',
+    backgroundStyle: 'watercolor' as const,
   };
 }
 
