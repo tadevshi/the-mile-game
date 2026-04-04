@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, Save, ArrowLeft } from 'lucide-react';
 import { Button } from '@/shared';
+import type { PreviewTheme } from '@/themes';
 import type { 
   QuizQuestion, 
   QuestionFormData, 
@@ -18,6 +19,7 @@ interface QuestionFormProps {
   onSubmit: (data: QuestionFormData) => void;
   onCancel: () => void;
   onChange?: (data: QuestionFormData) => void; // NEW - for preview
+  theme: PreviewTheme;
 }
 
 export function QuestionForm({
@@ -27,7 +29,15 @@ export function QuestionForm({
   onSubmit,
   onCancel,
   onChange,
+  theme,
 }: QuestionFormProps) {
+  const isDarkTheme = theme.backgroundStyle === 'dark';
+  const panelSurface = isDarkTheme ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.8)';
+  const textColor = theme.textColor;
+  const mutedText = isDarkTheme ? 'rgba(226, 232, 240, 0.76)' : 'rgba(55, 65, 81, 1)';
+  const subtleText = isDarkTheme ? 'rgba(226, 232, 240, 0.62)' : 'rgba(156, 163, 175, 1)';
+  const fieldBorder = isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : 'rgba(229, 231, 235, 1)';
+
   const [formData, setFormData] = useState<QuestionFormData>(INITIAL_QUESTION_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -162,15 +172,16 @@ export function QuestionForm({
   const showCorrectAnswers = formData.is_scorable;
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-4">
+    <div className="backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-4" style={{ backgroundColor: panelSurface }}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-display text-gray-800">
+        <h2 className="text-lg font-display" style={{ color: textColor }}>
           {question ? 'Editar Pregunta' : 'Nueva Pregunta'}
         </h2>
         {question && (
           <button
             onClick={onCancel}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg transition-colors"
+            style={{ color: mutedText }}
           >
             <ArrowLeft size={18} />
           </button>
@@ -180,7 +191,7 @@ export function QuestionForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Key */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: mutedText }}>
             Clave única
           </label>
           <input
@@ -195,26 +206,28 @@ export function QuestionForm({
               focus:outline-none transition-colors
               ${errors.key 
                 ? 'border-red-400 focus:border-red-500' 
-                : 'border-gray-200 focus:border-primary'
-              }
-            `}
-          />
+                 : 'focus:border-primary'
+               }
+             `}
+             style={!errors.key ? { borderColor: fieldBorder, color: textColor } : { color: textColor }}
+           />
           {errors.key && <p className="text-red-500 text-xs mt-1">{errors.key}</p>}
-          <p className="text-gray-400 text-[10px] mt-0.5">
+          <p className="text-[10px] mt-0.5" style={{ color: subtleText }}>
             Identificador único (sin espacios)
           </p>
         </div>
 
         {/* Section */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: mutedText }}>
             Sección
           </label>
           <select
             value={formData.section}
             onChange={(e) => handleChange('section', e.target.value as QuestionSection)}
-            className="w-full px-3 py-2 bg-transparent border-b-2 border-gray-200 
+            className="w-full px-3 py-2 bg-transparent border-b-2 
                        focus:border-primary rounded-b-lg focus:outline-none text-sm"
+            style={{ borderColor: fieldBorder, color: textColor }}
           >
             <option value="favorites">Favoritos</option>
             <option value="preferences">Preferencias</option>
@@ -224,7 +237,7 @@ export function QuestionForm({
 
         {/* Question Text */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium mb-1" style={{ color: mutedText }}>
             Pregunta
           </label>
           <textarea
@@ -239,10 +252,11 @@ export function QuestionForm({
               focus:outline-none transition-colors resize-none
               ${errors.question_text 
                 ? 'border-red-400 focus:border-red-500' 
-                : 'border-gray-200 focus:border-primary'
-              }
-            `}
-          />
+                 : 'focus:border-primary'
+               }
+             `}
+             style={!errors.question_text ? { borderColor: fieldBorder, color: textColor } : { color: textColor }}
+           />
           {errors.question_text && <p className="text-red-500 text-xs mt-1">{errors.question_text}</p>}
         </div>
 
@@ -264,7 +278,7 @@ export function QuestionForm({
             }}
             className="w-4 h-4 text-primary rounded border-gray-300 focus:ring-primary"
           />
-          <label htmlFor="is_choice" className="text-sm text-gray-700 cursor-pointer">
+          <label htmlFor="is_choice" className="text-sm cursor-pointer" style={{ color: mutedText }}>
             Opción múltiple (en lugar de texto libre)
           </label>
         </div>
@@ -278,7 +292,7 @@ export function QuestionForm({
               exit={{ opacity: 0, height: 0 }}
               className="space-y-2"
             >
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium" style={{ color: mutedText }}>
                 Opciones
               </label>
               {formData.options.map((option, index) => (
@@ -288,15 +302,17 @@ export function QuestionForm({
                     value={option}
                     onChange={(e) => handleOptionChange(index, e.target.value)}
                     placeholder={`Opción ${index + 1}`}
-                    className="flex-1 px-3 py-2 bg-transparent border-b-2 border-gray-200 
+                     className="flex-1 px-3 py-2 bg-transparent border-b-2 
                                focus:border-primary rounded-b-lg focus:outline-none text-sm"
-                  />
+                     style={{ borderColor: fieldBorder, color: textColor }}
+                   />
                   {formData.options.length > 2 && (
                     <button
                       type="button"
                       onClick={() => removeOption(index)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                    >
+                       className="p-1.5 hover:text-red-500 transition-colors"
+                       style={{ color: subtleText }}
+                     >
                       <X size={16} />
                     </button>
                   )}

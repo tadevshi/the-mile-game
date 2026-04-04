@@ -187,6 +187,13 @@ body {
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
 }
 
+.theme-dark .sparkle-dot,
+.dark .sparkle-dot {
+  background: rgba(103, 232, 249, 0.75);
+  opacity: 0.45;
+  box-shadow: 0 0 10px rgba(103, 232, 249, 0.45);
+}
+
 /* Gradientes de texto */
 .text-gradient-primary {
   background-clip: text;
@@ -225,6 +232,13 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
+.theme-dark .stitch-glass-header,
+.dark .stitch-glass-header {
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.38);
+}
+
 /* Stitch Bottom Navigation */
 .stitch-bottom-nav {
   position: fixed;
@@ -240,6 +254,13 @@ body {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
 
+.theme-dark .stitch-bottom-nav,
+.dark .stitch-bottom-nav {
+  background: rgba(15, 23, 42, 0.92);
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 -8px 24px rgba(2, 6, 23, 0.25);
+}
+
 /* Stitch Bento Card */
 .stitch-bento-card {
   border-radius: 2rem;
@@ -249,9 +270,21 @@ body {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+.theme-dark .stitch-bento-card,
+.dark .stitch-bento-card {
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.32);
+}
+
 .stitch-bento-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.theme-dark .stitch-bento-card:hover,
+.dark .stitch-bento-card:hover {
+  box-shadow: 0 16px 36px rgba(2, 6, 23, 0.42);
 }
 
 /* Stitch Primary Button */

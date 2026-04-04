@@ -1,5 +1,5 @@
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Settings, MessageSquare, Palette, BarChart3, TrendingUp, Eye, Camera } from 'lucide-react';
 import { useEventAdmin, type AdminTab } from '../hooks/useEventAdmin';
@@ -12,7 +12,7 @@ import { StatsTab } from '../components/StatsTab';
 import { AnalyticsDashboard } from '@/features/analytics/pages/AnalyticsDashboard';
 import { Skeleton } from '@/shared/components/Skeleton';
 import { api } from '@/shared/lib/api';
-import { getPresetByName } from '@/shared/theme';
+import { getPresetByName, createTheme, applyCSSVariables } from '@/shared/theme';
 import type { PreviewTheme } from '@/themes';
 
 const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
@@ -47,8 +47,17 @@ export function EventAdminPage() {
   // Preview theme state - allows immediate theme preview without saving
   const [previewTheme, setPreviewTheme] = useState<PreviewTheme>(defaultAdminTheme);
   const [showPreviewBadge, setShowPreviewBadge] = useState(false);
+  const themeCleanupRef = useRef<(() => void) | null>(null);
 
   const currentTab: AdminTab = TABS.find((t) => t.id === tabParam)?.id ?? 'config';
+  const isDarkPreview = previewTheme.backgroundStyle === 'dark';
+  const chromeSurface = isDarkPreview ? 'rgba(15, 23, 42, 0.82)' : 'rgba(255, 255, 255, 0.8)';
+  const chromeBorder = isDarkPreview ? 'rgba(148, 163, 184, 0.18)' : `${previewTheme.secondaryColor}50`;
+  const panelSurface = isDarkPreview ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.8)';
+  const panelBorder = isDarkPreview ? 'rgba(148, 163, 184, 0.14)' : 'rgba(255, 255, 255, 0.5)';
+  const tabRailSurface = isDarkPreview ? 'rgba(30, 41, 59, 0.76)' : `${previewTheme.secondaryColor}30`;
+  const activeTabSurface = isDarkPreview ? 'rgba(15, 23, 42, 0.96)' : '#FFFFFF';
+  const mutedText = isDarkPreview ? 'rgba(226, 232, 240, 0.78)' : `${previewTheme.textColor}80`;
 
   const { event, isLoadingEvent, errorEvent, refetchEvent } = useEventAdmin(slug);
 
@@ -57,16 +66,19 @@ export function EventAdminPage() {
 
   // Apply theme to CSS variables for preview
   const applyThemeToCSS = useCallback((theme: PreviewTheme) => {
-    const root = document.documentElement;
-    root.style.setProperty('--color-primary', theme.primaryColor);
-    root.style.setProperty('--color-secondary', theme.secondaryColor);
-    root.style.setProperty('--color-accent', theme.accentColor);
-    root.style.setProperty('--color-bg', theme.bgColor);
-    root.style.setProperty('--color-text', theme.textColor);
-    root.style.setProperty('--font-display', `'${theme.displayFont}', cursive`);
-    root.style.setProperty('--font-heading', `'${theme.headingFont}', serif`);
-    root.style.setProperty('--font-body', `'${theme.bodyFont}', sans-serif`);
-    document.body.className = `theme-${theme.backgroundStyle}`;
+    themeCleanupRef.current?.();
+    const completeTheme = createTheme({
+      primaryColor: theme.primaryColor,
+      secondaryColor: theme.secondaryColor,
+      accentColor: theme.accentColor,
+      bgColor: theme.bgColor,
+      textColor: theme.textColor,
+      displayFont: theme.displayFont,
+      headingFont: theme.headingFont,
+      bodyFont: theme.bodyFont,
+      backgroundStyle: theme.backgroundStyle,
+    });
+    themeCleanupRef.current = applyCSSVariables(completeTheme);
   }, []);
 
   // Initialize preview theme from event data when it loads
@@ -96,16 +108,8 @@ export function EventAdminPage() {
   // Cleanup CSS variables when leaving admin page
   useEffect(() => {
     return () => {
-      const root = document.documentElement;
-      root.style.removeProperty('--color-primary');
-      root.style.removeProperty('--color-secondary');
-      root.style.removeProperty('--color-accent');
-      root.style.removeProperty('--color-bg');
-      root.style.removeProperty('--color-text');
-      root.style.removeProperty('--font-display');
-      root.style.removeProperty('--font-heading');
-      root.style.removeProperty('--font-body');
-      document.body.className = '';
+      themeCleanupRef.current?.();
+      themeCleanupRef.current = null;
     };
   }, []);
 
@@ -114,17 +118,8 @@ export function EventAdminPage() {
   };
 
   const handleBack = () => {
-    // Reset CSS variables before leaving
-    const root = document.documentElement;
-    root.style.removeProperty('--color-primary');
-    root.style.removeProperty('--color-secondary');
-    root.style.removeProperty('--color-accent');
-    root.style.removeProperty('--color-bg');
-    root.style.removeProperty('--color-text');
-    root.style.removeProperty('--font-display');
-    root.style.removeProperty('--font-heading');
-    root.style.removeProperty('--font-body');
-    document.body.className = '';
+    themeCleanupRef.current?.();
+    themeCleanupRef.current = null;
     navigate('/dashboard');
   };
 
@@ -184,13 +179,13 @@ export function EventAdminPage() {
         </motion.div>
       )}
 
-      <header 
-        className="backdrop-blur-sm border-b sticky top-0 z-10"
-        style={{ 
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-          borderColor: `${previewTheme.secondaryColor}50`
-        }}
-      >
+        <header 
+          className="backdrop-blur-sm border-b sticky top-0 z-10"
+          style={{ 
+            backgroundColor: chromeSurface,
+            borderColor: chromeBorder
+          }}
+        >
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             <button
@@ -232,7 +227,7 @@ export function EventAdminPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs" style={{ color: `${previewTheme.textColor}80` }}>
+                    <p className="text-xs" style={{ color: mutedText }}>
                       Panel de administración
                     </p>
                   </>
@@ -248,13 +243,13 @@ export function EventAdminPage() {
           animate={{ opacity: 1, y: 0 }}
           className="backdrop-blur-sm rounded-3xl shadow-xl border p-6"
           style={{ 
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-            borderColor: 'rgba(255, 255, 255, 0.5)'
+            backgroundColor: panelSurface,
+            borderColor: panelBorder
           }}
         >
           <nav 
             className="flex gap-1 mb-6 p-1 rounded-xl"
-            style={{ backgroundColor: `${previewTheme.secondaryColor}30` }}
+            style={{ backgroundColor: tabRailSurface }}
           >
             {visibleTabs.map((tab) => {
               const isActive = currentTab === tab.id;
@@ -267,8 +262,8 @@ export function EventAdminPage() {
                     ${isActive ? 'shadow-sm' : ''}
                   `}
                   style={{ 
-                    backgroundColor: isActive ? '#FFFFFF' : 'transparent',
-                    color: isActive ? previewTheme.primaryColor : `${previewTheme.textColor}80`
+                    backgroundColor: isActive ? activeTabSurface : 'transparent',
+                    color: isActive ? previewTheme.primaryColor : mutedText
                   }}
                 >
                   {tab.icon}

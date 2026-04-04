@@ -18,6 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GripVertical, Pencil, Trash2 } from 'lucide-react';
+import type { PreviewTheme } from '@/themes';
 import type { QuizQuestion, QuestionSection } from '../types/questions.types';
 import { SECTION_LABELS } from '../types/questions.types';
 import { groupQuestionsBySection } from '../hooks/useQuestionEditor';
@@ -28,6 +29,7 @@ interface QuestionListProps {
   onEdit: (question: QuizQuestion) => void;
   onDelete: (id: string) => void;
   deletingId?: string | null;
+  theme: PreviewTheme;
 }
 
 // Sortable wrapper component
@@ -36,12 +38,18 @@ function SortableQuestionItem({
   onEdit,
   onDelete,
   isDeleting,
+  theme,
 }: {
   question: QuizQuestion;
   onEdit: (q: QuizQuestion) => void;
   onDelete: (id: string) => void;
   isDeleting: boolean;
+  theme: PreviewTheme;
 }) {
+  const isDarkTheme = theme.backgroundStyle === 'dark';
+  const itemSurface = isDarkTheme ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.8)';
+  const mutedText = isDarkTheme ? 'rgba(226, 232, 240, 0.72)' : 'rgba(107, 114, 128, 1)';
+
   const {
     attributes,
     listeners,
@@ -66,13 +74,13 @@ function SortableQuestionItem({
   return (
     <motion.div
       ref={setNodeRef}
-      style={style}
+      style={{ ...style, backgroundColor: itemSurface }}
       layout
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -20 }}
       className={`
-        relative bg-white/80 backdrop-blur-sm rounded-xl border border-[var(--color-secondary)]
+        relative backdrop-blur-sm rounded-xl border border-[var(--color-secondary)]
         shadow-sm hover:shadow-md transition-shadow p-3
         ${isDragging ? 'ring-2 ring-[var(--color-primary)] shadow-lg z-50' : ''}
         ${isDeleting ? 'opacity-50' : ''}
@@ -81,7 +89,8 @@ function SortableQuestionItem({
       <div className="flex items-center gap-3">
         {/* Drag Handle */}
         <button
-          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 p-1"
+          className="cursor-grab active:cursor-grabbing p-1"
+          style={{ color: mutedText }}
           {...attributes}
           {...listeners}
         >
@@ -91,7 +100,7 @@ function SortableQuestionItem({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-mono text-gray-500">#{question.sort_order}</span>
+            <span className="text-xs font-mono" style={{ color: mutedText }}>#{question.sort_order}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${questionType === 'choice' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
               {typeLabels[questionType]}
             </span>
@@ -101,10 +110,10 @@ function SortableQuestionItem({
               </span>
             )}
           </div>
-          <p className="text-sm font-medium text-gray-800 truncate">
+          <p className="text-sm font-medium truncate" style={{ color: theme.textColor }}>
             {question.question_text}
           </p>
-          <p className="text-xs text-gray-500 font-mono mt-0.5 truncate">
+          <p className="text-xs font-mono mt-0.5 truncate" style={{ color: mutedText }}>
             {question.key}
           </p>
         </div>
@@ -113,7 +122,8 @@ function SortableQuestionItem({
         <div className="flex items-center gap-1">
           <button
             onClick={() => onEdit(question)}
-            className="p-2 rounded-lg text-gray-500 hover:text-[var(--color-primary)] hover:bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)] transition-colors"
+            className="p-2 rounded-lg hover:text-[var(--color-primary)] hover:bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)] transition-colors"
+            style={{ color: mutedText }}
             title="Editar"
           >
             <Pencil size={16} />
@@ -121,7 +131,8 @@ function SortableQuestionItem({
           <button
             onClick={() => onDelete(question.id)}
             disabled={isDeleting}
-            className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="p-2 rounded-lg hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+            style={{ color: mutedText }}
             title="Eliminar"
           >
             <Trash2 size={16} />
@@ -139,23 +150,29 @@ function QuestionSectionGroup({
   onEdit,
   onDelete,
   deletingId,
+  theme,
 }: {
   section: QuestionSection;
   questions: QuizQuestion[];
   onEdit: (q: QuizQuestion) => void;
   onDelete: (id: string) => void;
   deletingId: string | null;
+  theme: PreviewTheme;
 }) {
+  const isDarkTheme = theme.backgroundStyle === 'dark';
+  const mutedText = isDarkTheme ? 'rgba(226, 232, 240, 0.72)' : 'rgba(75, 85, 99, 1)';
+  const dividerColor = isDarkTheme ? 'rgba(148, 163, 184, 0.22)' : 'rgba(229, 231, 235, 1)';
+
   if (questions.length === 0) return null;
 
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 px-1">
-        <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+        <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: mutedText }}>
           {SECTION_LABELS[section]}
         </h3>
-        <div className="flex-1 h-px bg-gray-200" />
-        <span className="text-xs text-gray-400">{questions.length}</span>
+        <div className="flex-1 h-px" style={{ backgroundColor: dividerColor }} />
+        <span className="text-xs" style={{ color: mutedText }}>{questions.length}</span>
       </div>
       <div className="space-y-2">
         <AnimatePresence mode="popLayout">
@@ -166,6 +183,7 @@ function QuestionSectionGroup({
               onEdit={onEdit}
               onDelete={onDelete}
               isDeleting={deletingId === question.id}
+              theme={theme}
             />
           ))}
         </AnimatePresence>
@@ -180,6 +198,7 @@ export function QuestionList({
   onEdit,
   onDelete,
   deletingId = null,
+  theme,
 }: QuestionListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -218,11 +237,15 @@ export function QuestionList({
   );
 
   if (questions.length === 0) {
+    const emptyMutedText = theme.backgroundStyle === 'dark'
+      ? 'rgba(226, 232, 240, 0.72)'
+      : 'color-mix(in srgb, var(--color-text) 70%, transparent)';
+
     return (
       <div className="text-center py-12 px-4">
         <div className="text-4xl mb-3">📝</div>
-        <p className="text-gray-500 font-medium">No hay preguntas todavía</p>
-        <p className="text-gray-400 text-sm mt-1">
+        <p className="font-medium" style={{ color: 'var(--color-text)' }}>No hay preguntas todavía</p>
+        <p className="text-sm mt-1" style={{ color: emptyMutedText }}>
           Crea tu primera pregunta usando el formulario de la derecha
         </p>
       </div>
@@ -244,6 +267,7 @@ export function QuestionList({
             onEdit={onEdit}
             onDelete={onDelete}
             deletingId={deletingId}
+            theme={theme}
           />
           <QuestionSectionGroup
             section="preferences"
@@ -251,6 +275,7 @@ export function QuestionList({
             onEdit={onEdit}
             onDelete={onDelete}
             deletingId={deletingId}
+            theme={theme}
           />
           <QuestionSectionGroup
             section="description"
@@ -258,6 +283,7 @@ export function QuestionList({
             onEdit={onEdit}
             onDelete={onDelete}
             deletingId={deletingId}
+            theme={theme}
           />
         </div>
       </SortableContext>
