@@ -55,7 +55,7 @@ export function FramedPhoto({
       transition={{ type: 'spring', stiffness: 260, damping: 20 }}
     >
       <div
-        className="relative bg-white p-2 shadow-md overflow-hidden"
+        className="relative bg-white px-3 pt-3 pb-4 shadow-md overflow-hidden"
         role={isVideo ? 'group' : 'img'}
         aria-label={isVideo ? `Video de ${caption}` : `Foto de ${caption}`}
       >

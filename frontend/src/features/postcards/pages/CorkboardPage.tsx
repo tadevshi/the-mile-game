@@ -1,24 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
-import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePostcards } from '../hooks/usePostcards';
-import { PostcardCard } from '../components/PostcardCard';
-import { PostcardModal } from '../components/PostcardModal';
+import { useParams, useSearchParams } from 'react-router-dom';
+import emptyAnimation from '@/assets/animations/empty.json';
+import { Button, LottieAnimation } from '@/shared';
+import { api } from '@/shared/lib/api';
+import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
+import { useEventStore } from '@/shared/store/eventStore';
+import { useTheme } from '@/shared/theme/useTheme';
 import { AddPostcardSheet } from '../components/AddPostcardSheet';
 import { CorkboardMobileActionBar } from '../components/CorkboardMobileActionBar';
-import { StampLayer } from '../components/StampLayer';
 import { GiftBox } from '../components/GiftBox';
-import { Button, LottieAnimation } from '@/shared';
+import { PostcardCard } from '../components/PostcardCard';
+import { PostcardModal } from '../components/PostcardModal';
+import { StampLayer } from '../components/StampLayer';
 import { useCorkboardCapture } from '../hooks/useCorkboardCapture';
-import { useTheme } from '@/shared/theme/useTheme';
+import { usePostcards } from '../hooks/usePostcards';
 import type { Postcard } from '../types/postcards.types';
-import { api } from '@/shared/lib/api';
-import { useParams } from 'react-router-dom';
-import { useEventStore } from '@/shared/store/eventStore';
-
-// Lottie animation for empty state
-import emptyAnimation from '@/../public/animations/empty.json';
 
 export function CorkboardPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -40,25 +37,12 @@ export function CorkboardPage() {
   const primaryColor = theme.primaryColor;
   const textColor = theme.textColor;
   
-  // Event data for custom background and logo
-  const [eventLogoUrl, setEventLogoUrl] = useState<string | undefined>();
-  const [backgroundUrl, setBackgroundUrl] = useState<string | undefined>();
-  
-  // Fetch event data for customization
-  useEffect(() => {
-    if (!slug) return;
-    
-    api.getEventBySlug(slug).then((event) => {
-      // Access logo_url and background_url from nested settings
-      setEventLogoUrl(event.settings?.logo_url);
-      setBackgroundUrl(event.settings?.background_url);
-    }).catch(() => {
-      // Silently fail - use defaults
-    });
-  }, [slug]);
+  const eventLogoUrl = currentEvent?.settings?.logo_url;
+  const backgroundUrl = currentEvent?.settings?.background_url;
 
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [hasRegisteredPlayer, setHasRegisteredPlayer] = useState<boolean>(() => Boolean(api.getPlayerId()));
   const corkboardRef = useRef<HTMLDivElement>(null);
   const honoreeLabel = currentEvent?.name?.trim() || 'este evento';
   const safeFilenameBase = (currentEvent?.slug || slug || honoreeLabel)
@@ -84,6 +68,9 @@ export function CorkboardPage() {
     // Default sender name if not provided
     const name = senderName?.trim() || 'Anónimo';
     await createPostcard(image, message, name);
+    if (!hasRegisteredPlayer && senderName?.trim()) {
+      setHasRegisteredPlayer(true);
+    }
   };
 
   // When gift box animation finishes, merge revealed postcards into board
@@ -316,6 +303,7 @@ export function CorkboardPage() {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         onSubmit={handleAddPostcard}
+        requireSenderName={!hasRegisteredPlayer}
       />
 
       {!isAddOpen && (
