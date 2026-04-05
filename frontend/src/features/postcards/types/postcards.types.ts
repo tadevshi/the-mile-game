@@ -1,3 +1,6 @@
+// Presentation mode for postcard rendering
+export type PresentationMode = 'postcard' | 'photo';
+
 // Postcard from the API
 export interface Postcard {
   id: string;

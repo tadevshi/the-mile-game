@@ -1,12 +1,10 @@
-import { useState, useRef } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { postcardService } from '../services/postcardApi';
+import { useParams, useSearchParams } from 'react-router-dom';
+import corkTexture from '@/assets/cartelera.png';
 import { Button } from '@/shared';
 import { useEventStore } from '@/shared/store/eventStore';
-
-// Importar textura de corcho como asset estático
-import corkTexture from '@/assets/cartelera.png';
+import { useSecretBoxSubmission } from '../hooks/useSecretBoxSubmission';
 
 type PageState = 'form' | 'success' | 'invalid_token';
 
@@ -24,48 +22,56 @@ export function SecretBoxPage() {
   // Form state
   const [senderName, setSenderName] = useState('');
   const [message, setMessage] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { isSubmitting, submitSecretPostcard } = useSecretBoxSubmission({ token, slug });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (mediaPreview) {
+        URL.revokeObjectURL(mediaPreview);
+      }
+    };
+  }, [mediaPreview]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setError('Solo se permiten imágenes');
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+
+    if (!isImage && !isVideo) {
+      setError('Solo se permiten imágenes o videos');
       return;
     }
 
     setError(null);
-    setImageFile(file);
+    setMediaFile(file);
+    if (mediaPreview) {
+      URL.revokeObjectURL(mediaPreview);
+    }
     const url = URL.createObjectURL(file);
-    setImagePreview(url);
+    setMediaPreview(url);
   };
 
   const handleSubmit = async () => {
-    if (!imageFile) {
-      setError('Agregá una foto');
+    if (!mediaFile) {
+      setError('Agregá una foto o un video');
       return;
     }
     if (!senderName.trim()) {
       setError('Escribí tu nombre');
       return;
     }
-    if (!message.trim()) {
-      setError(`Escribí un mensaje para ${honoreeLabel}`);
-      return;
-    }
 
-    setIsSubmitting(true);
     setError(null);
 
     try {
-      const resized = await postcardService.resizeImage(imageFile);
-      await postcardService.createSecret(resized, message.trim(), senderName.trim(), token, slug);
+      await submitSecretPostcard(mediaFile, message, senderName);
       setPageState('success');
     } catch (err: unknown) {
       // 401 = token inválido
@@ -77,8 +83,6 @@ export function SecretBoxPage() {
         }
       }
       setError('Algo salió mal. Revisá tu conexión e intentá de nuevo.');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -146,45 +150,56 @@ export function SecretBoxPage() {
               <div className="p-6 space-y-5">
                 {/* Nombre del remitente */}
                 <div className="space-y-1.5">
-                  <label className="text-xs text-gray-500 uppercase tracking-wider font-medium">
+                  <label htmlFor="secret-box-sender-name" className="text-xs text-gray-500 uppercase tracking-wider font-medium">
                     Tu nombre:
                   </label>
                   <input
+                    id="secret-box-sender-name"
                     type="text"
                     value={senderName}
                     onChange={(e) => setSenderName(e.target.value)}
                     placeholder="¿Cómo te llamás?"
                     maxLength={80}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 text-gray-700"
+                    className="w-full px-0 py-2.5 bg-transparent border-b-2 border-gray-200 text-sm focus:outline-none text-gray-700 rounded-none"
                   />
                 </div>
 
                 {/* Zona de foto */}
                 <div>
-                  <label className="text-xs text-gray-500 uppercase tracking-wider font-medium block mb-1.5">
-                    Tu foto:
+                  <label htmlFor="secret-box-image-upload" className="text-xs text-gray-500 uppercase tracking-wider font-medium block mb-1.5">
+                    Tu foto o video:
                   </label>
                   <input
+                    id="secret-box-image-upload"
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     onChange={handleFileChange}
                     className="hidden"
                   />
 
-                  {imagePreview ? (
+                  {mediaPreview ? (
                     <div className="relative rounded-xl overflow-hidden aspect-[4/3] bg-gray-100">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
+                      {mediaFile?.type.startsWith('video/') ? (
+                        <video
+                          src={mediaPreview}
+                          className="w-full h-full object-cover"
+                          controls
+                          playsInline
+                        />
+                      ) : (
+                        <img
+                          src={mediaPreview}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                       <motion.button
                         whileTap={{ scale: 0.9 }}
                         onClick={() => fileInputRef.current?.click()}
                         className="absolute bottom-3 right-3 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-full text-xs font-medium shadow-lg cursor-pointer"
                       >
-                        📷 Cambiar
+                        {mediaFile?.type.startsWith('video/') ? '🎬' : '📷'} Cambiar
                       </motion.button>
                     </div>
                   ) : (
@@ -192,28 +207,33 @@ export function SecretBoxPage() {
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full aspect-[4/3] rounded-xl border-2 border-dashed border-pink-300 bg-pink-50/50 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors hover:border-pink-400 hover:bg-pink-50" style={{ borderColor: 'var(--color-secondary)', backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}
+                      className="w-full aspect-[4/3] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors"
+                      style={{
+                        borderColor: 'var(--color-secondary)',
+                        backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)',
+                      }}
                     >
-                      <span className="text-4xl">📸</span>
+                      <span className="text-4xl">🎞️</span>
                       <span className="text-sm text-gray-500 font-medium">
-                        Elegir una foto
+                        Elegir una foto o video
                       </span>
                     </motion.button>
                   )}
                 </div>
 
-                {/* Mensaje */}
+                {/* Mensaje opcional */}
                 <div className="space-y-1.5">
-                  <label className="text-xs text-gray-500 uppercase tracking-wider font-medium">
-                    Tu mensaje para {honoreeLabel}:
+                  <label htmlFor="secret-box-message" className="text-xs text-gray-500 uppercase tracking-wider font-medium">
+                    Tu mensaje para {honoreeLabel} (opcional):
                   </label>
                   <textarea
+                    id="secret-box-message"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder={`Escribile algo especial a ${honoreeLabel}...`}
+                    placeholder={`Escribile algo especial a ${honoreeLabel} o dejalo vacío para enviar solo la foto...`}
                     maxLength={500}
                     rows={4}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 font-serif italic text-gray-700 placeholder:text-gray-300 placeholder:not-italic"
+                    className="w-full px-0 py-2.5 bg-transparent border-b-2 border-gray-200 text-sm resize-none focus:outline-none font-serif italic text-gray-700 placeholder:text-gray-300 placeholder:not-italic rounded-none"
                   />
                   <p className="text-[10px] text-gray-400 text-right">
                     {message.length}/500
@@ -242,7 +262,7 @@ export function SecretBoxPage() {
                   fullWidth
                   onClick={handleSubmit}
                   isLoading={isSubmitting}
-                  disabled={!imageFile || !senderName.trim() || !message.trim()}
+                  disabled={!mediaFile || !senderName.trim()}
                 >
                   Enviar mi postal secreta 🎁
                 </Button>
@@ -279,7 +299,7 @@ export function SecretBoxPage() {
                 {honoreeLabel} va a ver tu mensaje cuando se abra la Secret Box en el evento.
                 ¡Va a ser una sorpresa hermosa! 🩷
               </p>
-              <div className="bg-pink-50 rounded-2xl p-4" style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}>
+              <div className="rounded-2xl p-4" style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}>
                 <p className="text-xs text-gray-500">
                   Tu postal está guardada de forma segura y quedará oculta hasta el momento del reveal. ✨
                 </p>

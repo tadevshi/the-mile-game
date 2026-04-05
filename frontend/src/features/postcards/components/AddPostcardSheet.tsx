@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/shared';
-import { useQuizStore } from '@features/quiz/store/quizStore';
-import { api } from '@/shared/lib/api';
 import { useEventStore } from '@/shared/store/eventStore';
 import { useTheme } from '@/shared/theme';
 
@@ -12,12 +10,19 @@ interface AddPostcardSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (file: File, message: string, senderName?: string) => Promise<void>;
+  initialSenderName?: string;
+  requireSenderName?: boolean;
 }
 
 const MAX_VIDEO_DURATION = 30; // segundos
 
-export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheetProps) {
-  const playerName = useQuizStore((s) => s.playerName);
+export function AddPostcardSheet({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialSenderName = '',
+  requireSenderName = false,
+}: AddPostcardSheetProps) {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const { currentTheme } = useTheme();
 
@@ -26,14 +31,11 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
     text: currentTheme.textColor || '#1E293B',
   };
 
-  // Guest mode: el usuario llegó a la cartelera sin haber hecho el quiz.
-  const [isGuest, setIsGuest] = useState(!api.getPlayerId());
-
   const [mediaMode, setMediaMode] = useState<MediaMode>('photo');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [message, setMessage] = useState('');
-  const [senderName, setSenderName] = useState(playerName);
+  const [senderName, setSenderName] = useState(initialSenderName);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,9 +58,20 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (mediaPreview) URL.revokeObjectURL(mediaPreview);
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (mediaPreview) {
+        URL.revokeObjectURL(mediaPreview);
+      }
+    };
+  }, [mediaPreview]);
+
+  useEffect(() => {
+    setSenderName(initialSenderName);
+  }, [initialSenderName]);
 
   const honoreeLabel = currentEvent?.name?.trim() || 'este evento';
 
@@ -287,6 +300,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
 
     setError(null);
     setMediaFile(file);
+    if (mediaPreview) URL.revokeObjectURL(mediaPreview);
     const url = URL.createObjectURL(file);
     setMediaPreview(url);
   };
@@ -296,11 +310,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
       setError(mediaMode === 'video' ? 'Grabá un video primero' : 'Tomá una foto primero');
       return;
     }
-    if (!message.trim()) {
-      setError('Escribí un mensaje');
-      return;
-    }
-    if (isGuest && !senderName.trim()) {
+    if (requireSenderName && !senderName.trim()) {
       setError('Escribí tu nombre para poder publicar la postal');
       return;
     }
@@ -310,9 +320,6 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
 
     try {
       await onSubmit(mediaFile, message.trim(), senderName.trim() || undefined);
-      if (isGuest && api.getPlayerId()) {
-        setIsGuest(false);
-      }
       resetForm();
       onClose();
     } catch {
@@ -327,7 +334,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
     if (mediaPreview) URL.revokeObjectURL(mediaPreview);
     setMediaPreview(null);
     setMessage('');
-    setSenderName(playerName);
+    setSenderName(initialSenderName);
     setError(null);
     setMediaMode('photo');
     setIsRecording(false);
@@ -427,7 +434,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                   className="text-xs uppercase tracking-wider font-medium"
                   style={{ color: `${colors.text}80` }}
                 >
-                  Tu nombre:{isGuest && <span className="ml-1" style={{ color: colors.primary }}>*</span>}
+                  Tu nombre:{requireSenderName && <span className="ml-1" style={{ color: colors.primary }}>*</span>}
                 </label>
                 <input
                   id="postcard-sender"
@@ -436,10 +443,10 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                   onChange={(e) => setSenderName(e.target.value)}
                   placeholder="¿Cómo te llamás?"
                   maxLength={100}
-                  className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none text-gray-700"
+                  className="w-full px-0 py-2 bg-transparent border-b-2 text-sm focus:outline-none text-gray-700 rounded-none"
                   style={{ borderColor: `${colors.primary}30` }}
                 />
-                {isGuest && (
+                {requireSenderName && (
                   <p className="text-[10px] font-medium flex items-center gap-1" style={{ color: colors.primary }}>
                     <span>📌</span>
                     <span>Vas a quedar registrado/a en la cartelera automáticamente</span>
@@ -544,6 +551,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                                   whileTap={{ scale: 0.9 }}
                                   onClick={startRecording}
                                   className="w-14 h-14 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg"
+                                  aria-label="Empezar grabación"
                                 >
                                   <span className="text-2xl">●</span>
                                 </motion.button>
@@ -552,6 +560,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                                   whileTap={{ scale: 0.9 }}
                                   onClick={stopRecording}
                                   className="w-14 h-14 rounded-full bg-white text-red-500 flex items-center justify-center shadow-lg"
+                                  aria-label="Detener grabación"
                                 >
                                   <span className="text-xl">■</span>
                                 </motion.button>
@@ -560,6 +569,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => stopCamera()}
                                 className="w-10 h-10 rounded-full bg-white/80 text-gray-700 flex items-center justify-center"
+                                aria-label="Cerrar cámara"
                               >
                                 ✕
                               </motion.button>
@@ -601,23 +611,23 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                 )}
               </div>
 
-              {/* Mensaje */}
+              {/* Mensaje opcional */}
               <div className="space-y-1.5">
                 <label
                   htmlFor="postcard-message"
                   className="text-xs uppercase tracking-wider font-medium"
                   style={{ color: `${colors.text}80` }}
                 >
-                  Tu mensaje:
+                  Tu mensaje (opcional):
                 </label>
                 <textarea
                   id="postcard-message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder={`Escribí tu mensaje para ${honoreeLabel}...`}
+                  placeholder={`Escribí tu mensaje para ${honoreeLabel} o dejalo vacío para subir solo una foto/video...`}
                   maxLength={500}
                   rows={3}
-                  className="w-full px-3 py-2.5 border rounded-xl text-sm resize-none focus:outline-none font-serif italic text-gray-700 placeholder:text-gray-400 placeholder:not-italic"
+                  className="w-full px-0 py-2.5 bg-transparent border-b-2 text-sm resize-none focus:outline-none font-serif italic text-gray-700 placeholder:text-gray-400 placeholder:not-italic rounded-none"
                   style={{ borderColor: `${colors.primary}30` }}
                 />
                 <p className="text-[10px] text-right" style={{ color: `${colors.text}40` }}>
@@ -653,7 +663,7 @@ export function AddPostcardSheet({ isOpen, onClose, onSubmit }: AddPostcardSheet
                   fullWidth
                   onClick={handleSubmit}
                   isLoading={isSubmitting}
-                  disabled={!mediaFile || !message.trim() || (isGuest && !senderName.trim())}
+                  disabled={!mediaFile || (requireSenderName && !senderName.trim())}
                 >
                   Enviar Postal
                 </Button>
