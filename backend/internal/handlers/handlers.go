@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"math/rand"
@@ -481,8 +483,9 @@ func (h *Handler) enqueueBackupIfEnabled(postcard *models.Postcard) {
 		return
 	}
 
-	// Generate idempotency key: postcard_id + media_type
-	idempotencyKey := postcard.ID.String() + ":" + postcard.MediaType
+	// Generate idempotency key from postcard_id + stable media asset hash.
+	mediaHash := buildPostcardMediaHash(postcard)
+	idempotencyKey := services.GenerateIdempotencyKey(postcard.ID.String(), mediaHash)
 
 	// Enqueue the backup job synchronously and update postcard
 	jobID, err := h.backupWorker.EnqueueBackupJob(postcard.ID, idempotencyKey)
@@ -497,6 +500,17 @@ func (h *Handler) enqueueBackupIfEnabled(postcard *models.Postcard) {
 	} else {
 		fmt.Printf("[INFO] Backup job enqueued for postcard %s (job: %s)\n", postcard.ID, jobID)
 	}
+}
+
+func buildPostcardMediaHash(postcard *models.Postcard) string {
+	thumbnail := ""
+	if postcard.ThumbnailPath != nil {
+		thumbnail = *postcard.ThumbnailPath
+	}
+
+	payload := postcard.ImagePath + "|" + thumbnail + "|" + postcard.MediaType
+	sum := sha256.Sum256([]byte(payload))
+	return hex.EncodeToString(sum[:])
 }
 
 // MediaResult contiene el resultado de validar y guardar media (imagen o video)

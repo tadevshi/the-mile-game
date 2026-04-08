@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -368,6 +369,27 @@ func (w *BackupWorker) processJob(job *models.BackupJob) error {
 
 	// Success - update job status
 	driveFileID := result.DriveFileID
+
+	if postcard.ThumbnailPath != nil && *postcard.ThumbnailPath != "" {
+		thumbnailContent, thumbErr := readMediaFile(*postcard.ThumbnailPath)
+		if thumbErr != nil {
+			w.markJobFailed(job, fmt.Errorf("failed to read thumbnail file: %w", thumbErr))
+			return thumbErr
+		}
+
+		thumbnailMime := mimeTypeFromPath(*postcard.ThumbnailPath)
+		if _, thumbErr := w.drive.UploadFile(
+			context.Background(),
+			accessToken,
+			thumbnailContent,
+			thumbnailMime,
+			job.IdempotencyKey+":thumbnail",
+		); thumbErr != nil {
+			w.markJobFailed(job, fmt.Errorf("failed to upload thumbnail: %w", thumbErr))
+			return thumbErr
+		}
+	}
+
 	if err := w.repo.UpdateBackupJobStatus(job.ID, models.BackupJobStatusSynced, &driveFileID, nil); err != nil {
 		return fmt.Errorf("failed to update job status to synced: %w", err)
 	}
@@ -400,6 +422,25 @@ func mediaTypeToMimeType(mediaType string) string {
 		return "video/mp4"
 	case "image":
 		return "image/jpeg"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+func mimeTypeFromPath(path string) string {
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".png":
+		return "image/png"
+	case ".webp":
+		return "image/webp"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".mp4":
+		return "video/mp4"
+	case ".webm":
+		return "video/webm"
+	case ".mov":
+		return "video/quicktime"
 	default:
 		return "application/octet-stream"
 	}
