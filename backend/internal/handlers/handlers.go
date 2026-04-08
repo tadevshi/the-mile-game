@@ -52,6 +52,11 @@ type BroadcastHub interface {
 	BroadcastSecretResetToRoom(eventSlug string, count int64)
 }
 
+// BackupWorkerEnqueuer defines operations for enqueueing backup jobs
+type BackupWorkerEnqueuer interface {
+	EnqueueBackupJob(postcardID uuid.UUID, idempotencyKey string) error
+}
+
 // Handler maneja las peticiones HTTP
 type Handler struct {
 	playerRepo       *repository.PlayerRepository
@@ -61,6 +66,8 @@ type Handler struct {
 	scorer           *services.Scorer
 	hub              BroadcastHub
 	uploadsDir       string
+	driveRepo        *repository.DriveRepository
+	backupWorker     BackupWorkerEnqueuer
 }
 
 // NewHandler crea un nuevo handler
@@ -73,6 +80,30 @@ func NewHandler(playerRepo *repository.PlayerRepository, quizRepo *repository.Qu
 		scorer:           services.NewScorer(),
 		hub:              hub,
 		uploadsDir:       uploadsDir,
+	}
+}
+
+// NewHandlerWithDrive creates a new handler with Drive backup support
+func NewHandlerWithDrive(
+	playerRepo *repository.PlayerRepository,
+	quizRepo *repository.QuizRepository,
+	quizQuestionRepo *repository.QuizQuestionRepository,
+	postcardRepo *repository.PostcardRepository,
+	hub *websocket.Hub,
+	uploadsDir string,
+	driveRepo *repository.DriveRepository,
+	backupWorker BackupWorkerEnqueuer,
+) *Handler {
+	return &Handler{
+		playerRepo:       playerRepo,
+		quizRepo:         quizRepo,
+		quizQuestionRepo: quizQuestionRepo,
+		postcardRepo:     postcardRepo,
+		scorer:           services.NewScorer(),
+		hub:              hub,
+		uploadsDir:       uploadsDir,
+		driveRepo:        driveRepo,
+		backupWorker:     backupWorker,
 	}
 }
 
@@ -415,99 +446,49 @@ func (h *Handler) GetRanking(c *gin.Context) {
 // Helpers internos
 // ==========================================
 
-// validateAndSaveImage valida el archivo de imagen y lo guarda en disco.
-// Retorna la ruta pública y la ruta en disco, o un error con su mensaje HTTP.
-func (h *Handler) validateAndSaveImage(c *gin.Context) (publicPath, diskPath string, httpErr *struct {
-	Code    int
-	Message string
-}) {
-	file, header, err := c.Request.FormFile("image")
-	if err != nil {
-		return "", "", &struct {
-			Code    int
-			Message string
-		}{http.StatusBadRequest, "Image file required"}
-	}
-	defer file.Close()
-
-	// Leer los primeros 512 bytes para detectar tipo real
-	buffer := make([]byte, 512)
-	if _, err := file.Read(buffer); err != nil && err != io.EOF {
-		return "", "", &struct {
-			Code    int
-			Message string
-		}{http.StatusInternalServerError, "Failed to read file"}
-	}
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return "", "", &struct {
-			Code    int
-			Message string
-		}{http.StatusInternalServerError, "Failed to process file"}
-	}
-
-	detectedType := http.DetectContentType(buffer)
-	if detectedType != "image/jpeg" && detectedType != "image/png" && detectedType != "image/webp" {
-		return "", "", &struct {
-			Code    int
-			Message string
-		}{http.StatusBadRequest, "Invalid file content. Only JPEG, PNG, and WebP images are allowed"}
-	}
-
-	if header.Size > 10*1024*1024 {
-		return "", "", &struct {
-			Code    int
-			Message string
-		}{http.StatusBadRequest, "Image too large (max 10MB)"}
-	}
-
-	ext := ".jpg"
-	if detectedType == "image/png" {
-		ext = ".png"
-	} else if detectedType == "image/webp" {
-		ext = ".webp"
-	}
-	filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
-
-	baseDir := h.uploadsDir
-	if baseDir == "" {
-		baseDir = "/app/uploads"
-	}
-	uploadsDir := filepath.Join(baseDir, "postcards")
-	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
-		return "", "", &struct {
-			Code    int
-			Message string
-		}{http.StatusInternalServerError, "Failed to create uploads directory"}
-	}
-
-	diskPath = filepath.Join(uploadsDir, filename)
-	dst, err := os.Create(diskPath)
-	if err != nil {
-		return "", "", &struct {
-			Code    int
-			Message string
-		}{http.StatusInternalServerError, "Failed to save image"}
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, file); err != nil {
-		os.Remove(diskPath)
-		return "", "", &struct {
-			Code    int
-			Message string
-		}{http.StatusInternalServerError, "Failed to write image"}
-	}
-
-	publicPath = "/uploads/postcards/" + filename
-	return publicPath, diskPath, nil
-}
-
 // truncateMessage trunca el mensaje a maxLen caracteres
 func truncateMessage(msg string, maxLen int) string {
 	if len(msg) > maxLen {
 		return msg[:maxLen]
 	}
 	return msg
+}
+
+// enqueueBackupIfEnabled enqueues a backup job for the postcard if Drive is connected
+// This is called after a postcard is successfully created
+func (h *Handler) enqueueBackupIfEnabled(postcard *models.Postcard) {
+	// Skip if backup worker is not configured
+	if h.backupWorker == nil || h.driveRepo == nil {
+		return
+	}
+
+	// Get the event to find the owner using drive repository's helper
+	event, err := h.driveRepo.GetEventByPostcardID(postcard.ID)
+	if err != nil {
+		// Cannot get event - skip backup
+		return
+	}
+
+	ownerID := event.OwnerID
+
+	// Check if the owner has a Drive connection
+	_, err = h.driveRepo.GetDriveConnectionByUserID(ownerID)
+	if err != nil {
+		// No Drive connection - skip backup
+		return
+	}
+
+	// Generate idempotency key: postcard_id + media_type
+	idempotencyKey := postcard.ID.String() + ":" + postcard.MediaType
+
+	// Enqueue the backup job asynchronously (best effort)
+	go func() {
+		if err := h.backupWorker.EnqueueBackupJob(postcard.ID, idempotencyKey); err != nil {
+			fmt.Printf("[WARN] Failed to enqueue backup job for postcard %s: %v\n", postcard.ID, err)
+		} else {
+			fmt.Printf("[INFO] Backup job enqueued for postcard %s\n", postcard.ID)
+		}
+	}()
 }
 
 // MediaResult contiene el resultado de validar y guardar media (imagen o video)
@@ -880,6 +861,9 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 		}
 	}
 
+	// Enqueue backup job if Drive is configured and connected
+	h.enqueueBackupIfEnabled(postcard)
+
 	c.JSON(http.StatusCreated, postcard)
 }
 
@@ -931,7 +915,7 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 
 	// Si la Secret Box ya fue revelada, auto-revelar esta postal y broadcastearla
 	// como postal regular (el momento de sorpresa ya pasó, que aparezca nomás)
-	status, statusErr := h.postcardRepo.GetSecretBoxStatus()
+	status, statusErr := h.postcardRepo.GetSecretBoxStatusByEvent(eventModel.ID)
 	if statusErr == nil && status.Revealed {
 		if revealed, revealErr := h.postcardRepo.RevealPostcard(postcard.ID); revealErr == nil {
 			postcard = revealed
