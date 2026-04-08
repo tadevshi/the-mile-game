@@ -71,11 +71,17 @@ type BackupJobWithPostcard struct {
 	EventSlug         string    `json:"event_slug" db:"event_slug"`
 }
 
-// DriveBackupConfig holds the feature flag configuration
+// DriveBackupConfig holds the feature flag and OAuth configuration
 type DriveBackupConfig struct {
 	Enabled       bool
 	ClientID      string
 	ClientSecret  string
 	RedirectURI   string
 	EncryptionKey string // 32-byte key for AES-256-GCM
+
+	// OAuth endpoints (defaults set in NewDriveService if empty)
+	AuthURL        string // Google OAuth authorization URL
+	TokenEndpoint  string // OAuth token exchange endpoint
+	RevokeEndpoint string // Token revocation endpoint
+	APIEndpoint    string // Google Drive API endpoint
 }
