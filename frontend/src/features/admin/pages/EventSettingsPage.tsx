@@ -3,9 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Save, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared';
-import { useEventStore, type EventFeatures } from '@/shared/store/eventStore';
 import { api } from '@/shared/lib/api';
+import { FEATURES } from '@/shared/lib/featureFlags';
+import { useEventStore, type EventFeatures } from '@/shared/store/eventStore';
 import { FeatureToggle } from '../components/FeatureToggle';
+import { DriveConnectionPanel } from '../components/DriveConnectionPanel';
+import { BackupJobsList } from '../components/BackupJobsList';
 
 const DEFAULT_FEATURES: EventFeatures = {
   quiz: true,
@@ -72,7 +75,7 @@ export function EventSettingsPage() {
         <div className="text-center">
           <p className="text-red-500 mb-2">Faltan parámetros</p>
           <p className="text-gray-500 text-sm">
-            Se requiere <code>/admin/events/:slug/settings?key=...</code>
+            Se requiere un <code>slug</code> de evento válido para abrir esta pantalla.
           </p>
         </div>
       </div>
@@ -88,6 +91,7 @@ export function EventSettingsPage() {
             <button
               onClick={() => navigate(-1)}
               className="p-2 rounded-lg hover:bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)] transition-colors"
+              aria-label="Volver"
             >
               <ArrowLeft size={20} className="text-gray-600" />
             </button>
@@ -131,6 +135,23 @@ export function EventSettingsPage() {
             />
           </div>
         </section>
+
+        {/* Google Drive Backup Section — only visible when feature flag is on */}
+        {FEATURES.GOOGLE_DRIVE && (
+          <>
+            <section className="bg-white/40 backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-4 space-y-4">
+              <DriveConnectionPanel
+                onDisconnect={() => {
+                  // Status will update via useEffect re-fetch
+                }}
+              />
+            </section>
+
+            <section className="bg-white/40 backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-4">
+              <BackupJobsList eventSlug={eventSlug} />
+            </section>
+          </>
+        )}
 
         {/* Feedback Messages */}
         {error && (

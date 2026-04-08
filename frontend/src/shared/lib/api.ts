@@ -61,6 +61,25 @@ export interface Event {
   settings?: EventSettings;  // Ajustado: los campos están anidados en settings
 }
 
+// Google Drive Backup types
+export interface DriveStatus {
+  connected: boolean;
+  connected_at: string | null;
+  last_sync: string | null;
+}
+
+export interface BackupJob {
+  id: string;
+  postcard_id: string;
+  status: 'queued' | 'in_progress' | 'synced' | 'failed';
+  drive_file_id: string | null;
+  retry_count: number;
+  last_error: string | null;
+  queued_at: string;
+  processed_at: string | null;
+  synced_at: string | null;
+}
+
 // Cliente API
 const PLAYER_ID_KEY = 'mile-game-player-id';
 const PLAYER_EVENT_KEY = 'mile-game-player-event'; // Guardar el eventSlug del player
@@ -695,6 +714,59 @@ class ApiClient {
     const response = await this.client.post<{ imported: number; warnings?: string[] }>(
       `/admin/events/${eventSlug}/questions/import`,
       { questions }
+    );
+    return response.data;
+  }
+
+  // ==========================================
+  // Admin — Google Drive Backup
+  // ==========================================
+
+  /**
+   * Get the Google OAuth authorization URL for connecting Drive.
+   * The organizer is redirected to this URL to authorize EventHub.
+   */
+  async getDriveAuthUrl(): Promise<string> {
+    const response = await this.client.get<{ url: string }>('/admin/drive/auth-url');
+    return response.data.url;
+  }
+
+  /**
+   * Get the current Google Drive connection status for the authenticated organizer.
+   */
+  async getDriveStatus(): Promise<DriveStatus> {
+    const response = await this.client.get<DriveStatus>('/admin/drive/status');
+    return response.data;
+  }
+
+  /**
+   * Disconnect the organizer's Google Drive account.
+   * Revokes the OAuth token and removes stored credentials.
+   */
+  async disconnectDrive(): Promise<{ message: string }> {
+    const response = await this.client.post<{ message: string }>('/admin/drive/disconnect', {});
+    return response.data;
+  }
+
+  /**
+   * List backup jobs for a specific event.
+   * Each job shows status (queued/synced/failed), timestamps, and error messages.
+   */
+  async getBackupJobs(eventId: string): Promise<BackupJob[]> {
+    const response = await this.client.get<BackupJob[]>(
+      `/admin/drive/backup-jobs?event_id=${encodeURIComponent(eventId)}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Retry a failed backup job.
+   * Re-queues the job with the same idempotency key to avoid duplicate uploads.
+   */
+  async retryBackupJob(jobId: string): Promise<{ message: string }> {
+    const response = await this.client.post<{ message: string }>(
+      `/admin/drive/backup-jobs/${encodeURIComponent(jobId)}/retry`,
+      {}
     );
     return response.data;
   }
