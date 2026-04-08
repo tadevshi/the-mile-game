@@ -65,7 +65,7 @@ export interface Event {
 export interface DriveStatus {
   connected: boolean;
   connected_at: string | null;
-  last_sync: string | null;
+  last_sync_at: string | null;
 }
 
 export interface BackupJob {
@@ -727,8 +727,8 @@ class ApiClient {
    * The organizer is redirected to this URL to authorize EventHub.
    */
   async getDriveAuthUrl(): Promise<string> {
-    const response = await this.client.get<{ url: string }>('/admin/drive/auth-url');
-    return response.data.url;
+    const response = await this.client.get<{ auth_url: string }>('/admin/drive/auth-url');
+    return response.data.auth_url;
   }
 
   /**
@@ -753,10 +753,10 @@ class ApiClient {
    * Each job shows status (queued/synced/failed), timestamps, and error messages.
    */
   async getBackupJobs(eventId: string): Promise<BackupJob[]> {
-    const response = await this.client.get<BackupJob[]>(
+    const response = await this.client.get<{ jobs: BackupJob[]; total: number }>(
       `/admin/drive/backup-jobs?event_id=${encodeURIComponent(eventId)}`
     );
-    return response.data;
+    return response.data.jobs;
   }
 
   /**

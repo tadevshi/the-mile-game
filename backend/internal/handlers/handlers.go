@@ -37,6 +37,7 @@ type PostcardRepo interface {
 	GetSecretBoxStatus() (*models.SecretBoxStatus, error)
 	GetSecretBoxStatusByEvent(eventID uuid.UUID) (*models.SecretBoxStatus, error)
 	ResetSecretBoxByEvent(eventID uuid.UUID) (int64, error)
+	UpdateBackupStatus(postcardID uuid.UUID, status models.BackupStatus, backupJobID *uuid.UUID) error
 }
 
 // BroadcastHub define las operaciones de broadcast usadas por los handlers.
@@ -54,7 +55,8 @@ type BroadcastHub interface {
 
 // BackupWorkerEnqueuer defines operations for enqueueing backup jobs
 type BackupWorkerEnqueuer interface {
-	EnqueueBackupJob(postcardID uuid.UUID, idempotencyKey string) error
+	EnqueueBackupJob(postcardID uuid.UUID, idempotencyKey string) (uuid.UUID, error)
+	EnqueueExistingJob(postcardID uuid.UUID, idempotencyKey string, jobID uuid.UUID) error
 }
 
 // Handler maneja las peticiones HTTP
@@ -455,10 +457,11 @@ func truncateMessage(msg string, maxLen int) string {
 }
 
 // enqueueBackupIfEnabled enqueues a backup job for the postcard if Drive is connected
-// This is called after a postcard is successfully created
+// and updates the postcard's backup_status to "queued" and backup_job_id.
+// This is called after a postcard is successfully created.
 func (h *Handler) enqueueBackupIfEnabled(postcard *models.Postcard) {
 	// Skip if backup worker is not configured
-	if h.backupWorker == nil || h.driveRepo == nil {
+	if h.backupWorker == nil || h.driveRepo == nil || h.postcardRepo == nil {
 		return
 	}
 
@@ -481,14 +484,19 @@ func (h *Handler) enqueueBackupIfEnabled(postcard *models.Postcard) {
 	// Generate idempotency key: postcard_id + media_type
 	idempotencyKey := postcard.ID.String() + ":" + postcard.MediaType
 
-	// Enqueue the backup job asynchronously (best effort)
-	go func() {
-		if err := h.backupWorker.EnqueueBackupJob(postcard.ID, idempotencyKey); err != nil {
-			fmt.Printf("[WARN] Failed to enqueue backup job for postcard %s: %v\n", postcard.ID, err)
-		} else {
-			fmt.Printf("[INFO] Backup job enqueued for postcard %s\n", postcard.ID)
-		}
-	}()
+	// Enqueue the backup job synchronously and update postcard
+	jobID, err := h.backupWorker.EnqueueBackupJob(postcard.ID, idempotencyKey)
+	if err != nil {
+		fmt.Printf("[WARN] Failed to enqueue backup job for postcard %s: %v\n", postcard.ID, err)
+		return
+	}
+
+	// Update postcard's backup_status and backup_job_id
+	if updateErr := h.postcardRepo.UpdateBackupStatus(postcard.ID, models.BackupStatusQueued, &jobID); updateErr != nil {
+		fmt.Printf("[WARN] Failed to update postcard %s backup status: %v\n", postcard.ID, updateErr)
+	} else {
+		fmt.Printf("[INFO] Backup job enqueued for postcard %s (job: %s)\n", postcard.ID, jobID)
+	}
 }
 
 // MediaResult contiene el resultado de validar y guardar media (imagen o video)

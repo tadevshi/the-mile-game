@@ -5,8 +5,8 @@ import { Button } from '@/shared';
 import { api, type BackupJob } from '@/shared/lib/api';
 
 interface BackupJobsListProps {
-  /** Slug of the event being managed */
-  eventSlug: string;
+  /** UUID of the event being managed */
+  eventId: string;
 }
 
 /** Maps backup status to display label and icon */
@@ -34,7 +34,7 @@ function formatDate(dateStr: string | null): string {
  *
  * NOTE: This component only renders when VITE_ENABLE_GOOGLE_DRIVE_BACKUP=true.
  */
-export function BackupJobsList({ eventSlug }: BackupJobsListProps) {
+export function BackupJobsList({ eventId }: BackupJobsListProps) {
   const [jobs, setJobs] = useState<BackupJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function BackupJobsList({ eventSlug }: BackupJobsListProps) {
     setIsLoading(true);
     setError(null);
 
-    api.getBackupJobs(eventSlug)
+    api.getBackupJobs(eventId)
       .then((data) => {
         setJobs(data);
         setIsLoading(false);
@@ -58,7 +58,7 @@ export function BackupJobsList({ eventSlug }: BackupJobsListProps) {
 
   useEffect(() => {
     fetchJobs();
-  }, [eventSlug]);
+  }, [eventId]);
 
   const handleRetry = async (jobId: string) => {
     setRetryingJobId(jobId);

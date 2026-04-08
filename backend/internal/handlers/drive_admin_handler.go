@@ -452,17 +452,15 @@ func (h *DriveAdminHandler) RetryBackupJob(c *gin.Context) {
 		return
 	}
 
-	// Reset job status to queued for retry
-	if err := h.driveRepo.UpdateBackupJobStatus(jobID, models.BackupJobStatusQueued, nil, nil); err != nil {
+	// Reset job status to queued for retry (preserve last_error for audit per spec)
+	if err := h.driveRepo.ResetBackupJobForRetry(jobID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retry job"})
 		return
 	}
 
-	// Create new idempotency key for retry
-	idempotencyKey := fmt.Sprintf("%s:retry:%d", targetJob.PostcardID.String(), time.Now().UnixNano())
-
-	// Re-enqueue the job
-	if err := h.backupWorker.EnqueueBackupJob(targetJob.PostcardID, idempotencyKey); err != nil {
+	// Re-enqueue the EXISTING job using its original idempotency key
+	// This ensures Drive's idempotency mechanism prevents duplicate uploads
+	if err := h.backupWorker.EnqueueExistingJob(targetJob.PostcardID, targetJob.IdempotencyKey, jobID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to enqueue retry job"})
 		return
 	}

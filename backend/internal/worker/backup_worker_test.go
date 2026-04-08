@@ -249,10 +249,13 @@ func TestBackupWorker_EnqueueBackupJob(t *testing.T) {
 	postcardID := uuid.New()
 	idempotencyKey := "test-key-123"
 
-	err := worker.EnqueueBackupJob(postcardID, idempotencyKey)
+	jobID, err := worker.EnqueueBackupJob(postcardID, idempotencyKey)
 
 	if err != nil {
 		t.Errorf("Expected no error on enqueue, got: %v", err)
+	}
+	if jobID == uuid.Nil {
+		t.Error("Expected non-nil job ID")
 	}
 
 	// Verify job was created in DB
@@ -283,13 +286,13 @@ func TestBackupWorker_EnqueueBackupJob_Idempotent(t *testing.T) {
 	idempotencyKey := "same-key"
 
 	// First enqueue
-	err := worker.EnqueueBackupJob(postcardID, idempotencyKey)
+	_, err := worker.EnqueueBackupJob(postcardID, idempotencyKey)
 	if err != nil {
 		t.Fatalf("First enqueue failed: %v", err)
 	}
 
 	// Second enqueue with same idempotency key should fail
-	err = worker.EnqueueBackupJob(postcardID, idempotencyKey)
+	_, err = worker.EnqueueBackupJob(postcardID, idempotencyKey)
 	if err == nil {
 		t.Error("Expected error for duplicate idempotency key, got nil")
 	}

@@ -148,7 +148,7 @@ export function EventSettingsPage() {
             </section>
 
             <section className="bg-white/40 backdrop-blur-sm rounded-2xl border border-[var(--color-secondary)] p-4">
-              <BackupJobsList eventSlug={eventSlug} />
+              <BackupJobsList eventId={currentEvent?.id ?? ''} />
             </section>
           </>
         )}

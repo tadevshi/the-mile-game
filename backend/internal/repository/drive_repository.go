@@ -193,6 +193,28 @@ func (r *DriveRepository) IncrementRetryCount(jobID uuid.UUID) error {
 	return err
 }
 
+// ResetBackupJobForRetry resets a failed job to queued for retry.
+// Preserves last_error for audit purposes as per spec requirement.
+func (r *DriveRepository) ResetBackupJobForRetry(jobID uuid.UUID) error {
+	query := `
+		UPDATE backup_jobs
+		SET status = 'queued', processed_at = NULL
+		WHERE id = $1 AND status = 'failed'
+	`
+	result, err := r.db.Exec(query, jobID)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return errors.New("job not found or not in failed status")
+	}
+	return nil
+}
+
 // ListBackupJobsByEvent lists all backup jobs for postcards belonging to an event
 func (r *DriveRepository) ListBackupJobsByEvent(eventID uuid.UUID) ([]models.BackupJobWithPostcard, error) {
 	query := `
@@ -348,4 +370,11 @@ func (r *DriveRepository) GetPostcardByID(postcardID uuid.UUID) (*models.Postcar
 		return nil, err
 	}
 	return &postcard, nil
+}
+
+// UpdatePostcardBackupStatus updates the backup_status field of a postcard.
+func (r *DriveRepository) UpdatePostcardBackupStatus(postcardID uuid.UUID, status models.BackupStatus) error {
+	query := `UPDATE postcards SET backup_status = $1 WHERE id = $2`
+	_, err := r.db.Exec(query, status, postcardID)
+	return err
 }

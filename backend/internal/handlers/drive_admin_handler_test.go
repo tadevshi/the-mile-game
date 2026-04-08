@@ -26,12 +26,20 @@ import (
 
 // mockBackupWorker is a mock backup worker for testing
 type mockBackupWorker struct {
-	EnqueueBackupJobFunc func(postcardID uuid.UUID, idempotencyKey string) error
+	EnqueueBackupJobFunc   func(postcardID uuid.UUID, idempotencyKey string) (uuid.UUID, error)
+	EnqueueExistingJobFunc func(postcardID uuid.UUID, idempotencyKey string, jobID uuid.UUID) error
 }
 
-func (m *mockBackupWorker) EnqueueBackupJob(postcardID uuid.UUID, idempotencyKey string) error {
+func (m *mockBackupWorker) EnqueueBackupJob(postcardID uuid.UUID, idempotencyKey string) (uuid.UUID, error) {
 	if m.EnqueueBackupJobFunc != nil {
 		return m.EnqueueBackupJobFunc(postcardID, idempotencyKey)
+	}
+	return uuid.New(), nil
+}
+
+func (m *mockBackupWorker) EnqueueExistingJob(postcardID uuid.UUID, idempotencyKey string, jobID uuid.UUID) error {
+	if m.EnqueueExistingJobFunc != nil {
+		return m.EnqueueExistingJobFunc(postcardID, idempotencyKey, jobID)
 	}
 	return nil
 }
@@ -343,7 +351,10 @@ func TestSignState_UniquePerPayload(t *testing.T) {
 func TestBackupWorkerEnqueuer_Interface(t *testing.T) {
 	// Verify BackupWorkerEnqueuer interface is implemented correctly
 	mock := &mockBackupWorker{
-		EnqueueBackupJobFunc: func(postcardID uuid.UUID, idempotencyKey string) error {
+		EnqueueBackupJobFunc: func(postcardID uuid.UUID, idempotencyKey string) (uuid.UUID, error) {
+			return uuid.New(), nil
+		},
+		EnqueueExistingJobFunc: func(postcardID uuid.UUID, idempotencyKey string, jobID uuid.UUID) error {
 			return nil
 		},
 	}

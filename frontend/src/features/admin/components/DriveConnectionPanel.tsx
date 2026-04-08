@@ -85,7 +85,7 @@ export function DriveConnectionPanel({ onDisconnect }: DriveConnectionPanelProps
 
     try {
       await api.disconnectDrive();
-      setStatus({ connected: false, connected_at: null, last_sync: null });
+      setStatus({ connected: false, connected_at: null, last_sync_at: null });
       setState('disconnected');
       onDisconnect?.();
     } catch {
@@ -142,9 +142,9 @@ export function DriveConnectionPanel({ onDisconnect }: DriveConnectionPanelProps
       </div>
 
       {/* Last sync */}
-      {status?.last_sync && (
+      {status?.last_sync_at && (
         <p className="text-xs text-gray-500">
-          Último respaldo: <span className="text-gray-700">{formatDate(status.last_sync)}</span>
+          Último respaldo: <span className="text-gray-700">{formatDate(status.last_sync_at)}</span>
         </p>
       )}
 

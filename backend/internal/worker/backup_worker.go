@@ -195,8 +195,8 @@ func (w *BackupWorker) fetchJobs() {
 	}
 }
 
-// EnqueueBackupJob adds a new backup job to the queue
-func (w *BackupWorker) EnqueueBackupJob(postcardID uuid.UUID, idempotencyKey string) error {
+// EnqueueBackupJob adds a new backup job to the queue and returns the job ID
+func (w *BackupWorker) EnqueueBackupJob(postcardID uuid.UUID, idempotencyKey string) (uuid.UUID, error) {
 	job := &models.BackupJob{
 		ID:             uuid.New(),
 		PostcardID:     postcardID,
@@ -207,7 +207,7 @@ func (w *BackupWorker) EnqueueBackupJob(postcardID uuid.UUID, idempotencyKey str
 	}
 
 	if err := w.repo.CreateBackupJob(job); err != nil {
-		return fmt.Errorf("failed to create backup job: %w", err)
+		return uuid.Nil, fmt.Errorf("failed to create backup job: %w", err)
 	}
 
 	// If worker is running, enqueue immediately
@@ -217,6 +217,31 @@ func (w *BackupWorker) EnqueueBackupJob(postcardID uuid.UUID, idempotencyKey str
 			log.Printf("[BackupWorker] Enqueued job %s immediately", job.ID)
 		default:
 			log.Printf("[BackupWorker] Job queue full, job %s will be picked up by fetcher", job.ID)
+		}
+	}
+
+	return job.ID, nil
+}
+
+// EnqueueExistingJob adds an existing backup job to the queue (for retries).
+// The job must already exist in the database with status 'queued'.
+func (w *BackupWorker) EnqueueExistingJob(postcardID uuid.UUID, idempotencyKey string, jobID uuid.UUID) error {
+	job := &models.BackupJob{
+		ID:             jobID,
+		PostcardID:     postcardID,
+		IdempotencyKey: idempotencyKey,
+		Status:         models.BackupJobStatusQueued,
+		RetryCount:     0, // Will be incremented by worker if needed
+		QueuedAt:       time.Now(),
+	}
+
+	// If worker is running, enqueue immediately
+	if w.isRunning() {
+		select {
+		case w.jobQueue <- job:
+			log.Printf("[BackupWorker] Enqueued existing job %s immediately", job.ID)
+		default:
+			log.Printf("[BackupWorker] Job queue full, existing job %s will be picked up by fetcher", job.ID)
 		}
 	}
 
@@ -347,6 +372,11 @@ func (w *BackupWorker) processJob(job *models.BackupJob) error {
 		return fmt.Errorf("failed to update job status to synced: %w", err)
 	}
 
+	// Update postcard's backup_status to synced
+	if updateErr := w.repo.UpdatePostcardBackupStatus(job.PostcardID, models.BackupStatusSynced); updateErr != nil {
+		log.Printf("[BackupWorker] Warning: failed to update postcard %s backup status to synced: %v", job.PostcardID, updateErr)
+	}
+
 	log.Printf("[BackupWorker] Job %s completed successfully, drive file ID: %s", job.ID, driveFileID)
 	return nil
 }
@@ -356,6 +386,10 @@ func (w *BackupWorker) markJobFailed(job *models.BackupJob, err error) {
 	errMsg := err.Error()
 	if updateErr := w.repo.UpdateBackupJobStatus(job.ID, models.BackupJobStatusFailed, nil, &errMsg); updateErr != nil {
 		log.Printf("[BackupWorker] Warning: failed to mark job %s as failed: %v", job.ID, updateErr)
+	}
+	// Update postcard's backup_status to failed
+	if updateErr := w.repo.UpdatePostcardBackupStatus(job.PostcardID, models.BackupStatusFailed); updateErr != nil {
+		log.Printf("[BackupWorker] Warning: failed to update postcard %s backup status to failed: %v", job.PostcardID, updateErr)
 	}
 }
 

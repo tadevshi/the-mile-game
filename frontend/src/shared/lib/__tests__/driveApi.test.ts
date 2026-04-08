@@ -38,7 +38,7 @@ describe('ApiClient — Drive Admin', () => {
 
   describe('getDriveAuthUrl', () => {
     it('GETs /api/admin/drive/auth-url', async () => {
-      mockGet.mockResolvedValueOnce({ data: { url: 'https://accounts.google.com/o/oauth2/v2/auth?...' } })
+      mockGet.mockResolvedValueOnce({ data: { auth_url: 'https://accounts.google.com/o/oauth2/v2/auth?...' } })
 
       await api.getDriveAuthUrl()
 
@@ -47,7 +47,7 @@ describe('ApiClient — Drive Admin', () => {
 
     it('returns the auth URL string from the response', async () => {
       const expectedUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=xyz&redirect_uri=...'
-      mockGet.mockResolvedValueOnce({ data: { url: expectedUrl } })
+      mockGet.mockResolvedValueOnce({ data: { auth_url: expectedUrl } })
 
       const result = await api.getDriveAuthUrl()
 
@@ -60,7 +60,7 @@ describe('ApiClient — Drive Admin', () => {
   describe('getDriveStatus', () => {
     it('GETs /api/admin/drive/status', async () => {
       mockGet.mockResolvedValueOnce({
-        data: { connected: true, connected_at: '2026-04-07T10:00:00Z', last_sync: null },
+        data: { connected: true, connected_at: '2026-04-07T10:00:00Z', last_sync_at: null },
       })
 
       await api.getDriveStatus()
@@ -119,7 +119,7 @@ describe('ApiClient — Drive Admin', () => {
     })
 
     it('returns an empty array when no jobs exist', async () => {
-      mockGet.mockResolvedValueOnce({ data: [] })
+      mockGet.mockResolvedValueOnce({ data: { jobs: [], total: 0 } })
 
       const result = await api.getBackupJobs('event-slug-123')
 
@@ -151,7 +151,7 @@ describe('ApiClient — Drive Admin', () => {
           synced_at: null,
         },
       ]
-      mockGet.mockResolvedValueOnce({ data: jobs })
+      mockGet.mockResolvedValueOnce({ data: { jobs, total: 2 } })
 
       const result = await api.getBackupJobs('event-slug-123')
 

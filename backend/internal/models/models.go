@@ -63,6 +63,9 @@ type Postcard struct {
 	MediaType       string  `json:"media_type" db:"media_type"`                   // "image" | "video"
 	ThumbnailPath   *string `json:"thumbnail_path,omitempty" db:"thumbnail_path"` // para videos
 	MediaDurationMs *int    `json:"media_duration_ms,omitempty" db:"media_duration_ms"`
+	// Drive backup fields
+	BackupStatus BackupStatus `json:"backup_status" db:"backup_status"`           // "pending" | "queued" | "synced" | "failed"
+	BackupJobID  *uuid.UUID   `json:"backup_job_id,omitempty" db:"backup_job_id"` // FK to backup_jobs.id
 }
 
 // CreatePostcardResponse respuesta al crear una postal
