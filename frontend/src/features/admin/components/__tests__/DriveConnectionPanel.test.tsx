@@ -7,6 +7,9 @@ vi.mock('framer-motion', () => ({
     div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
       <div {...props}>{children}</div>
     ),
+    button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+      <button {...props}>{children}</button>
+    ),
   },
 }))
 

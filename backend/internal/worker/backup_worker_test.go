@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"os"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -128,12 +130,14 @@ func createTestPlayer(t *testing.T, db *sql.DB, eventID uuid.UUID) *models.Playe
 }
 
 // createTestPostcard creates a test postcard for an event
-func createTestPostcard(t *testing.T, db *sql.DB, eventID uuid.UUID, playerID *uuid.UUID) *models.Postcard {
+// It also creates the actual media file at the path if uploadsDir is set
+func createTestPostcard(t *testing.T, db *sql.DB, eventID uuid.UUID, playerID *uuid.UUID, uploadsDir string) *models.Postcard {
+	filename := "test-" + uuid.New().String()[:8] + ".jpg"
 	postcard := &models.Postcard{
 		ID:        uuid.New(),
 		EventID:   eventID,
 		PlayerID:  playerID,
-		ImagePath: "/uploads/test-" + uuid.New().String()[:8] + ".jpg",
+		ImagePath: filename, // Relative path - will be joined with uploadsDir
 		Message:   "Test message",
 		Rotation:  0,
 		IsSecret:  false,
@@ -148,6 +152,14 @@ func createTestPostcard(t *testing.T, db *sql.DB, eventID uuid.UUID, playerID *u
 	_, err := db.Exec(query, postcard.ID, postcard.EventID, postcard.PlayerID, postcard.ImagePath, postcard.Message, postcard.Rotation, postcard.IsSecret, postcard.CreatedAt, postcard.MediaType)
 	if err != nil {
 		t.Fatalf("Failed to create test postcard: %v", err)
+	}
+
+	// Create the actual media file if uploadsDir is provided
+	if uploadsDir != "" {
+		fullPath := filepath.Join(uploadsDir, filename)
+		if err := os.WriteFile(fullPath, []byte("fake image content for testing"), 0644); err != nil {
+			t.Fatalf("Failed to create test media file: %v", err)
+		}
 	}
 
 	return postcard
@@ -172,7 +184,8 @@ func createTestDriveConnection(t *testing.T, db *sql.DB, userID uuid.UUID, acces
 }
 
 // setupTestWorker creates a worker with mocks for testing
-func setupTestWorker(t *testing.T) (*BackupWorker, *repository.DriveRepository, *MockDriveService, *sql.DB) {
+// It also creates a temp uploads directory and sets UPLOADS_DIR env var
+func setupTestWorker(t *testing.T) (*BackupWorker, *repository.DriveRepository, *MockDriveService, *sql.DB, string) {
 	// Note: This requires a test database connection
 	// Skip if DB is not available
 	db, err := sql.Open("postgres", "host=localhost port=5432 user=user password=password dbname=milegame_test sslmode=disable")
@@ -181,6 +194,16 @@ func setupTestWorker(t *testing.T) (*BackupWorker, *repository.DriveRepository, 
 	}
 	if err := db.Ping(); err != nil {
 		t.Skipf("Skipping: cannot ping test database: %v", err)
+	}
+
+	// Create temp uploads directory
+	tmpDir, err := os.MkdirTemp("", "test-uploads-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp uploads dir: %v", err)
+	}
+	// Set UPLOADS_DIR so readMediaFile uses this directory
+	if err := os.Setenv("UPLOADS_DIR", tmpDir); err != nil {
+		t.Fatalf("Failed to set UPLOADS_DIR: %v", err)
 	}
 
 	// Set encryption key
@@ -201,7 +224,7 @@ func setupTestWorker(t *testing.T) (*BackupWorker, *repository.DriveRepository, 
 
 	worker := NewBackupWorker(cfg, driveRepo, mockDrive, 2) // pool size 2
 
-	return worker, driveRepo, mockDrive, db
+	return worker, driveRepo, mockDrive, db, tmpDir
 }
 
 // ========== Tests for BackupWorker initialization ==========
@@ -235,21 +258,28 @@ func TestNewBackupWorker(t *testing.T) {
 // ========== Tests for job enqueueing ==========
 
 func TestBackupWorker_EnqueueBackupJob(t *testing.T) {
-	worker, _, _, db := setupTestWorker(t)
+	worker, _, _, db, uploadsDir := setupTestWorker(t)
 	if worker == nil {
 		return // Skip test
 	}
-	defer db.Close()
 	defer func() {
 		worker.Stop()
 		cleanupDriveTestData(t, db)
+		os.RemoveAll(uploadsDir)
 	}()
+	defer db.Close()
 
-	// Enqueue a job
-	postcardID := uuid.New()
+	// Set up the full data chain: user -> event -> player -> postcard
+	// Pass empty uploadsDir since this test doesn't process jobs (just enqueues)
+	user := createTestUserForWorker(t, db)
+	event := createTestEventWithDrive(t, db, user.ID)
+	player := createTestPlayer(t, db, event.ID)
+	postcard := createTestPostcard(t, db, event.ID, &player.ID, "")
+
+	// Enqueue a job for the real postcard
 	idempotencyKey := "test-key-123"
 
-	jobID, err := worker.EnqueueBackupJob(postcardID, idempotencyKey)
+	jobID, err := worker.EnqueueBackupJob(postcard.ID, idempotencyKey)
 
 	if err != nil {
 		t.Errorf("Expected no error on enqueue, got: %v", err)
@@ -259,7 +289,7 @@ func TestBackupWorker_EnqueueBackupJob(t *testing.T) {
 	}
 
 	// Verify job was created in DB
-	job, err := worker.repo.GetBackupJobByPostcardID(postcardID)
+	job, err := worker.repo.GetBackupJobByPostcardID(postcard.ID)
 	if err != nil {
 		t.Fatalf("Expected job to be created, got error: %v", err)
 	}
@@ -272,27 +302,33 @@ func TestBackupWorker_EnqueueBackupJob(t *testing.T) {
 }
 
 func TestBackupWorker_EnqueueBackupJob_Idempotent(t *testing.T) {
-	worker, _, _, db := setupTestWorker(t)
+	worker, _, _, db, uploadsDir := setupTestWorker(t)
 	if worker == nil {
 		return
 	}
-	defer db.Close()
 	defer func() {
 		worker.Stop()
 		cleanupDriveTestData(t, db)
+		os.RemoveAll(uploadsDir)
 	}()
+	defer db.Close()
 
-	postcardID := uuid.New()
+	// Set up the full data chain (pass empty uploadsDir - enqueue only)
+	user := createTestUserForWorker(t, db)
+	event := createTestEventWithDrive(t, db, user.ID)
+	player := createTestPlayer(t, db, event.ID)
+	postcard := createTestPostcard(t, db, event.ID, &player.ID, "")
+
 	idempotencyKey := "same-key"
 
 	// First enqueue
-	_, err := worker.EnqueueBackupJob(postcardID, idempotencyKey)
+	_, err := worker.EnqueueBackupJob(postcard.ID, idempotencyKey)
 	if err != nil {
 		t.Fatalf("First enqueue failed: %v", err)
 	}
 
 	// Second enqueue with same idempotency key should fail
-	_, err = worker.EnqueueBackupJob(postcardID, idempotencyKey)
+	_, err = worker.EnqueueBackupJob(postcard.ID, idempotencyKey)
 	if err == nil {
 		t.Error("Expected error for duplicate idempotency key, got nil")
 	}
@@ -301,21 +337,22 @@ func TestBackupWorker_EnqueueBackupJob_Idempotent(t *testing.T) {
 // ========== Tests for worker processing ==========
 
 func TestBackupWorker_ProcessJob_Success(t *testing.T) {
-	worker, _, mockDrive, db := setupTestWorker(t)
+	worker, _, mockDrive, db, uploadsDir := setupTestWorker(t)
 	if worker == nil {
 		return
 	}
-	defer db.Close()
 	defer func() {
 		worker.Stop()
 		cleanupDriveTestData(t, db)
+		os.RemoveAll(uploadsDir)
 	}()
+	defer db.Close()
 
-	// Set up proper test data chain
+	// Set up proper test data chain (pass uploadsDir to create media files)
 	user := createTestUserForWorker(t, db)
 	event := createTestEventWithDrive(t, db, user.ID)
 	player := createTestPlayer(t, db, event.ID)
-	postcard := createTestPostcard(t, db, event.ID, &player.ID)
+	postcard := createTestPostcard(t, db, event.ID, &player.ID, uploadsDir)
 
 	// Encrypt tokens for drive connection
 	encryptedAccess, _ := services.EncryptToken("test-access-token")
@@ -377,21 +414,22 @@ func TestBackupWorker_ProcessJob_Success(t *testing.T) {
 }
 
 func TestBackupWorker_ProcessJob_RetryOnFailure(t *testing.T) {
-	worker, _, mockDrive, db := setupTestWorker(t)
+	worker, _, mockDrive, db, uploadsDir := setupTestWorker(t)
 	if worker == nil {
 		return
 	}
-	defer db.Close()
 	defer func() {
 		worker.Stop()
 		cleanupDriveTestData(t, db)
+		os.RemoveAll(uploadsDir)
 	}()
+	defer db.Close()
 
 	// Set up proper test data chain
 	user := createTestUserForWorker(t, db)
 	event := createTestEventWithDrive(t, db, user.ID)
 	player := createTestPlayer(t, db, event.ID)
-	postcard := createTestPostcard(t, db, event.ID, &player.ID)
+	postcard := createTestPostcard(t, db, event.ID, &player.ID, uploadsDir)
 
 	encryptedAccess, _ := services.EncryptToken("test-access-token")
 	encryptedRefresh, _ := services.EncryptToken("test-refresh-token")
@@ -446,21 +484,22 @@ func TestBackupWorker_ProcessJob_RetryOnFailure(t *testing.T) {
 }
 
 func TestBackupWorker_ProcessJob_MaxRetriesExceeded(t *testing.T) {
-	worker, _, mockDrive, db := setupTestWorker(t)
+	worker, _, mockDrive, db, uploadsDir := setupTestWorker(t)
 	if worker == nil {
 		return
 	}
-	defer db.Close()
 	defer func() {
 		worker.Stop()
 		cleanupDriveTestData(t, db)
+		os.RemoveAll(uploadsDir)
 	}()
+	defer db.Close()
 
 	// Set up proper test data chain
 	user := createTestUserForWorker(t, db)
 	event := createTestEventWithDrive(t, db, user.ID)
 	player := createTestPlayer(t, db, event.ID)
-	postcard := createTestPostcard(t, db, event.ID, &player.ID)
+	postcard := createTestPostcard(t, db, event.ID, &player.ID, uploadsDir)
 
 	encryptedAccess, _ := services.EncryptToken("test-access-token")
 	encryptedRefresh, _ := services.EncryptToken("test-refresh-token")
@@ -512,21 +551,22 @@ func TestBackupWorker_ProcessJob_MaxRetriesExceeded(t *testing.T) {
 }
 
 func TestBackupWorker_ProcessJob_ExpiredTokenRefresh(t *testing.T) {
-	worker, _, mockDrive, db := setupTestWorker(t)
+	worker, _, mockDrive, db, uploadsDir := setupTestWorker(t)
 	if worker == nil {
 		return
 	}
-	defer db.Close()
 	defer func() {
 		worker.Stop()
 		cleanupDriveTestData(t, db)
+		os.RemoveAll(uploadsDir)
 	}()
+	defer db.Close()
 
 	// Set up proper test data chain
 	user := createTestUserForWorker(t, db)
 	event := createTestEventWithDrive(t, db, user.ID)
 	player := createTestPlayer(t, db, event.ID)
-	postcard := createTestPostcard(t, db, event.ID, &player.ID)
+	postcard := createTestPostcard(t, db, event.ID, &player.ID, uploadsDir)
 
 	// Create drive connection with expired token (will be refreshed)
 	encryptedAccess, _ := services.EncryptToken("old-expired-token")
@@ -585,21 +625,22 @@ func TestBackupWorker_ProcessJob_ExpiredTokenRefresh(t *testing.T) {
 }
 
 func TestBackupWorker_ProcessJob_RefreshTokenRotation(t *testing.T) {
-	worker, _, mockDrive, db := setupTestWorker(t)
+	worker, _, mockDrive, db, uploadsDir := setupTestWorker(t)
 	if worker == nil {
 		return
 	}
-	defer db.Close()
 	defer func() {
 		worker.Stop()
 		cleanupDriveTestData(t, db)
+		os.RemoveAll(uploadsDir)
 	}()
+	defer db.Close()
 
 	// Set up proper test data chain
 	user := createTestUserForWorker(t, db)
 	event := createTestEventWithDrive(t, db, user.ID)
 	player := createTestPlayer(t, db, event.ID)
-	postcard := createTestPostcard(t, db, event.ID, &player.ID)
+	postcard := createTestPostcard(t, db, event.ID, &player.ID, uploadsDir)
 
 	// Create drive connection with expired token
 	encryptedAccess, _ := services.EncryptToken("old-expired-token")

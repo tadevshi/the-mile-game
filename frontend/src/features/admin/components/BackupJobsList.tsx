@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw, CheckCircle2, XCircle, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared';
-import { api, type BackupJob } from '@/shared/lib/api';
+import { useBackupJobs } from '../hooks/useBackupJobs';
+import type { BackupJob } from '@/shared/lib/api';
 
 interface BackupJobsListProps {
   /** UUID of the event being managed */
@@ -35,44 +35,7 @@ function formatDate(dateStr: string | null): string {
  * NOTE: This component only renders when VITE_ENABLE_GOOGLE_DRIVE_BACKUP=true.
  */
 export function BackupJobsList({ eventId }: BackupJobsListProps) {
-  const [jobs, setJobs] = useState<BackupJob[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [retryingJobId, setRetryingJobId] = useState<string | null>(null);
-
-  const fetchJobs = () => {
-    setIsLoading(true);
-    setError(null);
-
-    api.getBackupJobs(eventId)
-      .then((data) => {
-        setJobs(data);
-        setIsLoading(false);
-      })
-      .catch(() => {
-        console.error('Failed to fetch backup jobs');
-        setError('No se pudieron cargar los respaldos.');
-        setIsLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchJobs();
-  }, [eventId]);
-
-  const handleRetry = async (jobId: string) => {
-    setRetryingJobId(jobId);
-    try {
-      await api.retryBackupJob(jobId);
-      // Refresh the list
-      fetchJobs();
-    } catch {
-      console.error('Failed to retry backup job');
-      setError('No se pudo reintentar el respaldo.');
-    } finally {
-      setRetryingJobId(null);
-    }
-  };
+  const { jobs, isLoading, error, retryingJobId, refreshJobs, retryJob } = useBackupJobs(eventId);
 
   if (isLoading) {
     return (
@@ -112,7 +75,7 @@ export function BackupJobsList({ eventId }: BackupJobsListProps) {
       <div className="flex items-center justify-between">
         <h4 className="font-medium text-sm text-gray-700">Historial de respaldos</h4>
         <button
-          onClick={fetchJobs}
+          onClick={() => void refreshJobs()}
           className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
         >
           <RefreshCw size={12} />
@@ -159,7 +122,7 @@ export function BackupJobsList({ eventId }: BackupJobsListProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleRetry(job.id)}
+                  onClick={() => void retryJob(job.id)}
                   isLoading={isRetrying}
                   icon={<RefreshCw size={12} />}
                 >
