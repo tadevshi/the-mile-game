@@ -19,7 +19,7 @@ func TestNewDriveService(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 
@@ -43,7 +43,7 @@ func TestDriveService_GenerateAuthURL(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 	if err := SetDriveEncryptionKey(config.EncryptionKey); err != nil {
@@ -110,7 +110,7 @@ func TestDriveService_GenerateAuthURL_CustomAuthURL(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		AuthURL:       "https://custom-auth.example.com/oauth2/auth",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
@@ -143,7 +143,7 @@ func TestDriveService_ExchangeCode_Success(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 	if err := SetDriveEncryptionKey(config.EncryptionKey); err != nil {
@@ -161,7 +161,7 @@ func TestDriveService_ExchangeCode_Success(t *testing.T) {
 		if r.FormValue("client_secret") != "test-client-secret" {
 			t.Errorf("Expected client_secret=test-client-secret, got %s", r.FormValue("client_secret"))
 		}
-		if r.FormValue("redirect_uri") != "http://localhost:8080/api/admin/drive/callback" {
+		if r.FormValue("redirect_uri") != "http://localhost:8081/api/admin/drive/callback" {
 			t.Errorf("Expected redirect_uri, got %s", r.FormValue("redirect_uri"))
 		}
 		if r.FormValue("grant_type") != "authorization_code" {
@@ -212,7 +212,7 @@ func TestDriveService_ExchangeCode_HTTPError(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 	if err := SetDriveEncryptionKey(config.EncryptionKey); err != nil {
@@ -245,7 +245,7 @@ func TestDriveService_RefreshToken_Success(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 	if err := SetDriveEncryptionKey(config.EncryptionKey); err != nil {
@@ -291,7 +291,7 @@ func TestDriveService_RefreshToken_WithTokenRotation(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 	if err := SetDriveEncryptionKey(config.EncryptionKey); err != nil {
@@ -337,7 +337,7 @@ func TestDriveService_RefreshToken_ExpiredRefreshToken(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 	if err := SetDriveEncryptionKey(config.EncryptionKey); err != nil {
@@ -369,7 +369,7 @@ func TestDriveService_UploadFile_Success(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 	if err := SetDriveEncryptionKey(config.EncryptionKey); err != nil {
@@ -422,7 +422,7 @@ func TestDriveService_UploadFile_DriveAPIError(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 	if err := SetDriveEncryptionKey(config.EncryptionKey); err != nil {
@@ -458,7 +458,7 @@ func TestDriveService_TokenEncryption(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 	if err := SetDriveEncryptionKey(config.EncryptionKey); err != nil {
@@ -562,7 +562,7 @@ func TestDriveService_IsTokenExpired(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 	if err := SetDriveEncryptionKey(config.EncryptionKey); err != nil {
@@ -595,7 +595,7 @@ func TestDriveService_RevokeToken_Success(t *testing.T) {
 		Enabled:       true,
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
-		RedirectURI:   "http://localhost:8080/api/admin/drive/callback",
+		RedirectURI:   "http://localhost:8081/api/admin/drive/callback",
 		EncryptionKey: "12345678901234567890123456789012",
 	}
 	if err := SetDriveEncryptionKey(config.EncryptionKey); err != nil {

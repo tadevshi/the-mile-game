@@ -62,7 +62,7 @@ These are **manual steps** done in the Google Cloud Console. No CLI needed.
 3. Application type: **Web application**
 4. Name: `EventHub Drive` (or any name you prefer)
 5. Authorized redirect URIs — add:
-   - **Development:** `http://localhost:8080/api/admin/drive/callback`
+   - **Development (Docker):** `http://localhost:8081/api/admin/drive/callback`
    - **Production:** `https://your-domain.com/api/admin/drive/callback`
 6. Click **Create**
 7. Copy the **Client ID** and **Client Secret** — you'll need them for the env vars
@@ -90,7 +90,7 @@ cp .env.example .env
 | `ENABLE_GOOGLE_DRIVE_BACKUP` | `false` | Master switch for the feature |
 | `GOOGLE_CLIENT_ID` | — | OAuth Client ID from GCP (格式: `xxx.apps.googleusercontent.com`) |
 | `GOOGLE_CLIENT_SECRET` | — | OAuth Client Secret from GCP |
-| `GOOGLE_REDIRECT_URI` | `http://localhost:8080/api/admin/drive/callback` | Must match GCP credential |
+| `GOOGLE_REDIRECT_URI` | `http://localhost:8081/api/admin/drive/callback` | Must match GCP credential |
 | `DRIVE_ENCRYPTION_KEY` | — | 32-byte key for AES-256-GCM token encryption |
 
 **Generate DRIVE_ENCRYPTION_KEY:**
@@ -170,7 +170,7 @@ docker-compose up --build
 ### First-Time GCP Setup (fresh credentials)
 
 1. **GCP Console → OAuth consent screen** → create External app, add test users
-2. **GCP Console → Credentials** → create Web app OAuth client ID, add redirect URI `http://localhost:8080/api/admin/drive/callback`
+2. **GCP Console → Credentials** → create Web app OAuth client ID, add redirect URI `http://localhost:8081/api/admin/drive/callback`
 3. Enable Google Drive API
 4. Fill in `.env` with the client ID/secret
 5. Generate `DRIVE_ENCRYPTION_KEY`

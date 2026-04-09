@@ -156,7 +156,7 @@ test.describe('Google Drive Backup — Admin Settings', () => {
       // 4. Check the URL in browser address bar contains the correct redirect_uri param
       //
       // Expected redirect_uri in Google auth URL:
-      //   http://localhost:8080/api/admin/drive/callback  (dev)
+      //   http://localhost:8081/api/admin/drive/callback  (dev via Docker)
       //   https://your-domain.com/api/admin/drive/callback (prod)
     });
   });

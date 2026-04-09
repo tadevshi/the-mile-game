@@ -37,7 +37,7 @@ services:
       ENABLE_GOOGLE_DRIVE_BACKUP: ${ENABLE_GOOGLE_DRIVE_BACKUP:-false}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/admin/drive/callback}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8081/api/admin/drive/callback}
       DRIVE_ENCRYPTION_KEY: ${DRIVE_ENCRYPTION_KEY:-}
     volumes:
       - uploads_data:/app/uploads
