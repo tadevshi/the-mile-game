@@ -32,9 +32,13 @@ const mockDisconnectDrive = vi.mocked(api.disconnectDrive)
 describe('DriveConnectionPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Set up location mock for redirect
-    delete window.location
-    window.location = { href: '' } as Location
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...window.location,
+        href: '',
+      },
+    })
   })
 
   // ─── Initial state: loading ──────────────────────────────────────────────────

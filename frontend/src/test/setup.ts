@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import React from 'react'
 import type { CSSProperties } from 'react'
+import { vi } from 'vitest'
 
 function MockLottiePlayer({ style }: { style?: CSSProperties }) {
   return React.createElement('div', { 'data-testid': 'lottie-player', style })
@@ -84,16 +85,12 @@ function createMockContext2D(): CanvasRenderingContext2D {
     shadowColor: 'transparent',
     shadowOffsetX: 0,
     shadowOffsetY: 0,
-    strokeStyle: '',
-    fillStyle: '',
     fontKerning: 'auto',
     fontStretch: 'normal',
     fontVariantCaps: 'normal',
     letterSpacing: '0px',
-    lineDash: () => [],
     setLineDash: () => {},
     getLineDash: () => [],
-    lineTo: () => {},
     roundRect: () => {},
     strokeRect: () => {},
     transform: () => {},
@@ -103,12 +100,15 @@ function createMockContext2D(): CanvasRenderingContext2D {
 
 // Stub canvas getContext since jsdom doesn't implement it and lottie-web depends on it
 if (typeof HTMLCanvasElement !== 'undefined') {
-  HTMLCanvasElement.prototype.getContext = function(contextType: string) {
-    if (contextType === '2d') {
-      return createMockContext2D()
-    }
-    return null
-  }
+  Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+    configurable: true,
+    value: vi.fn((contextType: string) => {
+      if (contextType === '2d') {
+        return createMockContext2D()
+      }
+      return null
+    }),
+  })
 }
 
 // Provide a working localStorage mock for jsdom environments where the
