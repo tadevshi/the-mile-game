@@ -482,9 +482,13 @@ func readMediaFile(path string) ([]byte, error) {
 	}
 
 	var fullPath string
-	if filepath.IsAbs(path) {
+	switch {
+	case strings.HasPrefix(path, "/uploads/"):
+		relativePath := strings.TrimPrefix(path, "/uploads/")
+		fullPath = filepath.Join(uploadsBase, relativePath)
+	case filepath.IsAbs(path):
 		fullPath = path
-	} else {
+	default:
 		fullPath = filepath.Join(uploadsBase, path)
 	}
 
