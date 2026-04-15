@@ -249,6 +249,9 @@ func (r *mockPostcardRepo) RevealSecretBoxByEvent(eventID uuid.UUID) ([]models.P
 func (r *mockPostcardRepo) ResetSecretBoxByEvent(eventID uuid.UUID) (int64, error) {
 	return 0, nil
 }
+func (r *mockPostcardRepo) UpdateBackupStatus(postcardID uuid.UUID, status models.BackupStatus, backupJobID *uuid.UUID) error {
+	return nil
+}
 
 type mockHub struct {
 	state *mockState

@@ -29,4 +29,11 @@ export const FEATURES = {
    * La ruta /secret-box?token=TOKEN solo funciona si este flag está activo.
    */
   SECRET_BOX: import.meta.env.VITE_ENABLE_SECRET_BOX === 'true',
+
+  /**
+   * Google Drive Backup — Permite conectar Google Drive para respaldar
+   * automáticamente las fotos/videos de la cartelera.
+   * Habilitar seteando VITE_ENABLE_GOOGLE_DRIVE_BACKUP=true y reconstruir.
+   */
+  GOOGLE_DRIVE: import.meta.env.VITE_ENABLE_GOOGLE_DRIVE_BACKUP === 'true',
 } as const;

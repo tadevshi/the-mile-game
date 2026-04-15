@@ -367,3 +367,14 @@ func (r *PostcardRepository) ResetSecretBoxByEvent(eventID uuid.UUID) (int64, er
 
 	return result.RowsAffected()
 }
+
+// UpdateBackupStatus updates the backup status and optionally the backup job ID for a postcard.
+func (r *PostcardRepository) UpdateBackupStatus(postcardID uuid.UUID, status models.BackupStatus, backupJobID *uuid.UUID) error {
+	query := `
+		UPDATE postcards
+		SET backup_status = $1, backup_job_id = $2
+		WHERE id = $3
+	`
+	_, err := r.db.Exec(query, status, backupJobID, postcardID)
+	return err
+}

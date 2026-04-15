@@ -12,9 +12,11 @@ import (
 	"github.com/the-mile-game/backend/internal/handlers"
 	"github.com/the-mile-game/backend/internal/middleware"
 	"github.com/the-mile-game/backend/internal/migrations"
+	"github.com/the-mile-game/backend/internal/models"
 	"github.com/the-mile-game/backend/internal/repository"
 	"github.com/the-mile-game/backend/internal/services"
 	"github.com/the-mile-game/backend/internal/websocket"
+	"github.com/the-mile-game/backend/internal/worker"
 )
 
 // webSocketEventValidator implementa websocket.EventValidator usando EventRepository
@@ -79,6 +81,7 @@ func main() {
 	eventRepo := repository.NewEventRepository(db)
 	quizQuestionRepo := repository.NewQuizQuestionRepository(db)
 	themeRepo := repository.NewThemeRepository(db)
+	driveRepo := repository.NewDriveRepository(db)
 
 	// JWT secret — siempre requerido
 	jwtSecret := os.Getenv("JWT_SECRET")
@@ -87,6 +90,38 @@ func main() {
 	}
 	authService := services.NewAuthService(userRepo, jwtSecret)
 	themeService := services.NewThemeService(themeRepo, eventRepo)
+
+	// Google Drive backup configuration
+	enableDriveBackup := os.Getenv("ENABLE_GOOGLE_DRIVE_BACKUP") == "true"
+	var driveService *services.DriveService
+	var backupWorker *worker.BackupWorker
+	var driveAdminHandler *handlers.DriveAdminHandler
+
+	if enableDriveBackup {
+		driveConfig := &models.DriveBackupConfig{
+			Enabled:       true,
+			ClientID:      os.Getenv("GOOGLE_CLIENT_ID"),
+			ClientSecret:  os.Getenv("GOOGLE_CLIENT_SECRET"),
+			RedirectURI:   os.Getenv("GOOGLE_REDIRECT_URI"),
+			EncryptionKey: os.Getenv("DRIVE_ENCRYPTION_KEY"),
+		}
+
+		// Set encryption key
+		if driveConfig.EncryptionKey != "" {
+			if err := services.SetDriveEncryptionKey(driveConfig.EncryptionKey); err != nil {
+				log.Printf("[WARN] Failed to set Drive encryption key: %v", err)
+			}
+		}
+
+		driveService = services.NewDriveService(driveConfig)
+
+		// Create backup worker
+		backupWorker = worker.NewBackupWorker(driveConfig, driveRepo, driveService, worker.WorkerNumWorkers)
+		backupWorker.Start()
+		log.Printf("[Drive] Backup worker started")
+
+		driveAdminHandler = handlers.NewDriveAdminHandler(driveRepo, eventRepo, driveService, backupWorker, true)
+	}
 
 	// WebSocket event validator - valida que el evento existe y está activo
 	eventValidator := &webSocketEventValidator{eventRepo: eventRepo}
@@ -98,9 +133,16 @@ func main() {
 	// Crear handlers
 	uploadsDir := os.Getenv("UPLOADS_DIR")
 	if uploadsDir == "" {
-		uploadsDir = uploadPath + "/postcards"
+		uploadsDir = uploadPath
 	}
-	handler := handlers.NewHandler(playerRepo, quizRepo, quizQuestionRepo, postcardRepo, hub, uploadsDir)
+
+	var handler *handlers.Handler
+	if enableDriveBackup && backupWorker != nil && driveRepo != nil {
+		handler = handlers.NewHandlerWithDrive(playerRepo, quizRepo, quizQuestionRepo, postcardRepo, hub, uploadsDir, driveRepo, backupWorker)
+	} else {
+		handler = handlers.NewHandler(playerRepo, quizRepo, quizQuestionRepo, postcardRepo, hub, uploadsDir)
+	}
+
 	authHandler := handlers.NewAuthHandler(authService)
 	themeHandler := handlers.NewThemeHandler(themeService)
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
@@ -183,6 +225,7 @@ func main() {
 			// Players
 			events.POST("/players", handler.CreatePlayerScoped)
 			events.GET("/players", handler.ListPlayersScoped)
+			events.GET("/players/:id", handler.GetPlayer)
 
 			// Quiz
 			quiz := events.Group("/quiz")
@@ -219,6 +262,7 @@ func main() {
 		api.GET("/players", handler.ListPlayers)
 
 		// Quiz
+		api.GET("/quiz/questions", handler.GetQuizQuestions)
 		api.POST("/quiz/submit", handler.SubmitQuiz)
 		api.GET("/quiz/answers/:playerId", handler.GetQuizAnswers)
 		api.GET("/quiz/descriptions", handler.GetDescriptions)
@@ -244,6 +288,24 @@ func main() {
 		api.GET("/admin/status", handler.GetSecretBoxStatus)
 		api.GET("/admin/secret-box", handler.ListSecretPostcards)
 		api.POST("/admin/reveal", handler.RevealSecretBox)
+
+		// Drive admin routes (user-level, not event-scoped)
+		// These routes handle Google Drive OAuth connection and backup job management
+		if driveAdminHandler != nil {
+			// Callback is PUBLIC - Google's OAuth redirect cannot include our JWT
+			// The state parameter is integrity-protected via HMAC
+			api.GET("/admin/drive/callback", driveAdminHandler.GetDriveCallback)
+
+			driveAdmin := api.Group("/admin/drive")
+			driveAdmin.Use(authMiddleware)
+			{
+				driveAdmin.GET("/auth-url", driveAdminHandler.GetDriveAuthURL)
+				driveAdmin.GET("/status", driveAdminHandler.GetDriveStatus)
+				driveAdmin.POST("/disconnect", driveAdminHandler.DisconnectDrive)
+				driveAdmin.GET("/backup-jobs", driveAdminHandler.ListBackupJobs)
+				driveAdmin.POST("/backup-jobs/:id/retry", driveAdminHandler.RetryBackupJob)
+			}
+		}
 
 		// Admin routes (event-scoped - multi-event)
 		adminEvents := api.Group("/admin/events/:slug")
