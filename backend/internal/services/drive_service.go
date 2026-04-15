@@ -55,6 +55,10 @@ type DriveFileResponse struct {
 	MimeType string `json:"mimeType,omitempty"`
 }
 
+type driveFileListResponse struct {
+	Files []DriveFileResponse `json:"files"`
+}
+
 // UploadResult represents the result of a file upload operation
 type UploadResult struct {
 	DriveFileID string
@@ -269,9 +273,97 @@ func (s *DriveService) UploadFile(ctx context.Context, accessToken string, conte
 	}, nil
 }
 
+func (s *DriveService) EnsureFolder(ctx context.Context, accessToken, folderName string, parentID *string) (string, error) {
+	folderID, err := s.FindFolder(ctx, accessToken, folderName, parentID)
+	if err != nil {
+		return "", err
+	}
+	if folderID != "" {
+		return folderID, nil
+	}
+	return s.CreateFolder(ctx, accessToken, folderName, parentID)
+}
+
+func (s *DriveService) FindFolder(ctx context.Context, accessToken, folderName string, parentID *string) (string, error) {
+	query := fmt.Sprintf("name = '%s' and mimeType = 'application/vnd.google-apps.folder' and trashed = false", escapeDriveQueryValue(folderName))
+	if parentID != nil && *parentID != "" {
+		query += fmt.Sprintf(" and '%s' in parents", escapeDriveQueryValue(*parentID))
+	}
+
+	endpoint := fmt.Sprintf("%s/drive/v3/files?q=%s&fields=files(id,name,mimeType)&pageSize=1", s.APIEndpoint, url.QueryEscape(query))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create folder lookup request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("folder lookup failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("folder lookup failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var listResp driveFileListResponse
+	if err := json.NewDecoder(resp.Body).Decode(&listResp); err != nil {
+		return "", fmt.Errorf("failed to decode folder lookup response: %w", err)
+	}
+
+	if len(listResp.Files) == 0 {
+		return "", nil
+	}
+
+	return listResp.Files[0].ID, nil
+}
+
+func (s *DriveService) CreateFolder(ctx context.Context, accessToken, folderName string, parentID *string) (string, error) {
+	metadata := map[string]any{
+		"name":     folderName,
+		"mimeType": "application/vnd.google-apps.folder",
+	}
+	if parentID != nil && *parentID != "" {
+		metadata["parents"] = []string{*parentID}
+	}
+
+	body, err := json.Marshal(metadata)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal folder metadata: %w", err)
+	}
+
+	endpoint := fmt.Sprintf("%s/drive/v3/files", s.APIEndpoint)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("failed to create folder request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("folder creation failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("folder creation failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var fileResp DriveFileResponse
+	if err := json.NewDecoder(resp.Body).Decode(&fileResp); err != nil {
+		return "", fmt.Errorf("failed to decode folder creation response: %w", err)
+	}
+
+	return fileResp.ID, nil
+}
+
 // UploadFileMultipart uploads a file using multipart form data (for metadata).
 // Uses bytes.Buffer for binary-safe multipart body construction.
-func (s *DriveService) UploadFileMultipart(ctx context.Context, accessToken string, fileContent []byte, filename, mimeType, idempotencyKey string) (*UploadResult, error) {
+func (s *DriveService) UploadFileMultipart(ctx context.Context, accessToken string, fileContent []byte, filename, mimeType, idempotencyKey string, parentID *string) (*UploadResult, error) {
 	uploadURL := fmt.Sprintf("%s/upload/drive/v3/files?uploadType=multipart", s.APIEndpoint)
 
 	// Create multipart body using bytes.Buffer for binary safety
@@ -283,10 +375,11 @@ func (s *DriveService) UploadFileMultipart(ctx context.Context, accessToken stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to create metadata part: %w", err)
 	}
-	metadata := map[string]string{
-		"name": filename,
+	metadataMap := map[string]any{"name": filename}
+	if parentID != nil && *parentID != "" {
+		metadataMap["parents"] = []string{*parentID}
 	}
-	metadataJSON, _ := json.Marshal(metadata)
+	metadataJSON, _ := json.Marshal(metadataMap)
 	if _, err := part.Write(metadataJSON); err != nil {
 		return nil, fmt.Errorf("failed to write metadata: %w", err)
 	}
@@ -334,6 +427,10 @@ func (s *DriveService) UploadFileMultipart(ctx context.Context, accessToken stri
 		Name:        fileResp.Name,
 		MimeType:    fileResp.MimeType,
 	}, nil
+}
+
+func escapeDriveQueryValue(value string) string {
+	return strings.ReplaceAll(value, "'", "\\'")
 }
 
 // IsTokenExpired checks if a token expiry time has passed

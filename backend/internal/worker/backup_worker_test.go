@@ -19,10 +19,12 @@ import (
 
 // MockDriveService is a mock implementation of DriveService for testing
 type MockDriveService struct {
-	UploadFileFunc     func(ctx context.Context, accessToken string, content []byte, mimeType, idempotencyKey string) (*services.UploadResult, error)
-	RefreshTokenFunc   func(ctx context.Context, refreshToken string) (*services.TokenResponse, error)
-	DecryptTokenFunc   func(ciphertext string) (string, error)
-	IsTokenExpiredFunc func(expiry time.Time) bool
+	UploadFileFunc          func(ctx context.Context, accessToken string, content []byte, mimeType, idempotencyKey string) (*services.UploadResult, error)
+	UploadFileMultipartFunc func(ctx context.Context, accessToken string, fileContent []byte, filename, mimeType, idempotencyKey string, parentID *string) (*services.UploadResult, error)
+	EnsureFolderFunc        func(ctx context.Context, accessToken, folderName string, parentID *string) (string, error)
+	RefreshTokenFunc        func(ctx context.Context, refreshToken string) (*services.TokenResponse, error)
+	DecryptTokenFunc        func(ciphertext string) (string, error)
+	IsTokenExpiredFunc      func(expiry time.Time) bool
 }
 
 func (m *MockDriveService) UploadFile(ctx context.Context, accessToken string, content []byte, mimeType, idempotencyKey string) (*services.UploadResult, error) {
@@ -30,6 +32,23 @@ func (m *MockDriveService) UploadFile(ctx context.Context, accessToken string, c
 		return m.UploadFileFunc(ctx, accessToken, content, mimeType, idempotencyKey)
 	}
 	return &services.UploadResult{DriveFileID: "mock-file-id", Name: "mock.jpg"}, nil
+}
+
+func (m *MockDriveService) UploadFileMultipart(ctx context.Context, accessToken string, fileContent []byte, filename, mimeType, idempotencyKey string, parentID *string) (*services.UploadResult, error) {
+	if m.UploadFileMultipartFunc != nil {
+		return m.UploadFileMultipartFunc(ctx, accessToken, fileContent, filename, mimeType, idempotencyKey, parentID)
+	}
+	return &services.UploadResult{DriveFileID: "mock-file-id", Name: filename, MimeType: mimeType}, nil
+}
+
+func (m *MockDriveService) EnsureFolder(ctx context.Context, accessToken, folderName string, parentID *string) (string, error) {
+	if m.EnsureFolderFunc != nil {
+		return m.EnsureFolderFunc(ctx, accessToken, folderName, parentID)
+	}
+	if folderName == "EventHub Backups" {
+		return "base-folder-id", nil
+	}
+	return "event-folder-id", nil
 }
 
 func (m *MockDriveService) RefreshToken(ctx context.Context, refreshToken string) (*services.TokenResponse, error) {

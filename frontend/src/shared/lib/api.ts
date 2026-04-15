@@ -726,8 +726,9 @@ class ApiClient {
    * Get the Google OAuth authorization URL for connecting Drive.
    * The organizer is redirected to this URL to authorize EventHub.
    */
-  async getDriveAuthUrl(): Promise<string> {
-    const response = await this.client.get<{ auth_url: string }>('/admin/drive/auth-url');
+  async getDriveAuthUrl(returnTo?: string): Promise<string> {
+    const params = returnTo ? { return_to: returnTo } : undefined;
+    const response = await this.client.get<{ auth_url: string }>('/admin/drive/auth-url', { params });
     return response.data.auth_url;
   }
 

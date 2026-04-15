@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -269,12 +268,8 @@ func TestGetDriveCallback_OAuthError(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	var response map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &response)
-	require.NoError(t, err)
-	assert.Equal(t, "oauth_error", response["error"])
+	assert.Equal(t, http.StatusFound, w.Code)
+	assert.Equal(t, "/dashboard?drive=error", w.Header().Get("Location"))
 }
 
 func TestGetDriveCallback_MissingState(t *testing.T) {
@@ -327,23 +322,25 @@ func TestSignState_UniquePerPayload(t *testing.T) {
 	userID1 := uuid.New()
 	userID2 := uuid.New()
 
-	token1, err := signState(userID1)
+	token1, err := signState(userID1, "/admin/event-a?tab=config")
 	require.NoError(t, err)
 
-	token2, err := signState(userID2)
+	token2, err := signState(userID2, "/admin/event-b?tab=config")
 	require.NoError(t, err)
 
 	assert.NotEmpty(t, token1)
 	assert.NotEmpty(t, token2)
 	assert.NotEqual(t, token1, token2)
 
-	verifiedUser1, err := verifyState(token1)
+	verifiedUser1, returnTo1, err := verifyState(token1)
 	require.NoError(t, err)
 	assert.Equal(t, userID1, verifiedUser1)
+	assert.Equal(t, "/admin/event-a?tab=config", returnTo1)
 
-	verifiedUser2, err := verifyState(token2)
+	verifiedUser2, returnTo2, err := verifyState(token2)
 	require.NoError(t, err)
 	assert.Equal(t, userID2, verifiedUser2)
+	assert.Equal(t, "/admin/event-b?tab=config", returnTo2)
 }
 
 // ============== TESTS for interface compliance ==============
@@ -370,7 +367,7 @@ func TestSignState_ProducesValidSignedState(t *testing.T) {
 	defer os.Unsetenv("DRIVE_STATE_SECRET")
 
 	userID := uuid.New()
-	signedState, err := signState(userID)
+	signedState, err := signState(userID, "/admin/test-event?tab=config")
 	require.NoError(t, err)
 	assert.NotEmpty(t, signedState)
 
@@ -379,9 +376,10 @@ func TestSignState_ProducesValidSignedState(t *testing.T) {
 	require.Len(t, parts, 2, "Signed state should have payload.signature format")
 
 	// Verify the state can be decoded
-	verifiedUserID, err := verifyState(signedState)
+	verifiedUserID, returnTo, err := verifyState(signedState)
 	require.NoError(t, err)
 	assert.Equal(t, userID, verifiedUserID)
+	assert.Equal(t, "/admin/test-event?tab=config", returnTo)
 }
 
 func TestVerifyState_RejectsInvalidSignature(t *testing.T) {
@@ -389,7 +387,7 @@ func TestVerifyState_RejectsInvalidSignature(t *testing.T) {
 	defer os.Unsetenv("DRIVE_STATE_SECRET")
 
 	userID := uuid.New()
-	signedState, err := signState(userID)
+	signedState, err := signState(userID, "/admin/test-event?tab=config")
 	require.NoError(t, err)
 
 	// Tamper with the signature
@@ -397,7 +395,7 @@ func TestVerifyState_RejectsInvalidSignature(t *testing.T) {
 	parts[1] = "invalid-signature"
 	tamperedState := parts[0] + "." + parts[1]
 
-	_, err = verifyState(tamperedState)
+	_, _, err = verifyState(tamperedState)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid state signature")
 }
@@ -416,16 +414,17 @@ func TestVerifyState_RejectsExpiredState(t *testing.T) {
 	hexNonce := hex.EncodeToString(nonce) // 32 hex characters
 
 	oldTs := time.Now().Add(-15 * time.Minute).Unix() // 15 minutes ago (expired)
-	payload := fmt.Sprintf("%s:%d:%s", userID.String(), oldTs, hexNonce)
+	payloadJSON, err := json.Marshal(driveOAuthState{UserID: userID.String(), TS: oldTs, Nonce: hexNonce, ReturnTo: "/admin/test?tab=config"})
+	require.NoError(t, err)
 
 	key := "test-secret-key-for-unit-tests"
 	h := hmac.New(sha256.New, []byte(key))
-	h.Write([]byte(payload))
+	h.Write(payloadJSON)
 	signature := hex.EncodeToString(h.Sum(nil))
 
-	expiredState := base64.URLEncoding.EncodeToString([]byte(payload)) + "." + signature
+	expiredState := base64.URLEncoding.EncodeToString(payloadJSON) + "." + signature
 
-	_, err := verifyState(expiredState)
+	_, _, err = verifyState(expiredState)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "state expired")
 }
@@ -435,12 +434,12 @@ func TestVerifyState_RejectsInvalidFormat(t *testing.T) {
 	defer os.Unsetenv("DRIVE_STATE_SECRET")
 
 	// No dots - invalid format
-	_, err := verifyState("no-dots-here")
+	_, _, err := verifyState("no-dots-here")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid state format")
 
 	// Empty parts
-	_, err = verifyState(".")
+	_, _, err = verifyState(".")
 	require.Error(t, err)
 }
 
@@ -448,7 +447,7 @@ func TestVerifyState_RejectsInvalidPayload(t *testing.T) {
 	os.Setenv("DRIVE_STATE_SECRET", "test-secret-key-for-unit-tests")
 	defer os.Unsetenv("DRIVE_STATE_SECRET")
 
-	// Create an invalid payload that doesn't match user_id:ts:nonce format
+	// Create an invalid payload that doesn't match the JSON state structure
 	invalidPayloadBytes := []byte("not-valid-format")
 	invalidPayloadB64 := base64.URLEncoding.EncodeToString(invalidPayloadBytes)
 
@@ -460,9 +459,9 @@ func TestVerifyState_RejectsInvalidPayload(t *testing.T) {
 
 	invalidState := invalidPayloadB64 + "." + signature
 
-	_, err := verifyState(invalidState)
+	_, _, err := verifyState(invalidState)
 	require.Error(t, err)
-	// HMAC passes but payload parsing fails because "not-valid-format" is not user_id:ts:nonce
+	// HMAC passes but JSON payload parsing fails
 	assert.Contains(t, err.Error(), "invalid state payload")
 }
 
@@ -473,7 +472,7 @@ func TestGetDriveCallback_VerifiesSignedState(t *testing.T) {
 	defer os.Unsetenv("DRIVE_STATE_SECRET")
 
 	userID := uuid.New()
-	signedState, err := signState(userID)
+	signedState, err := signState(userID, "/admin/test-event?tab=config")
 	require.NoError(t, err)
 
 	gin.SetMode(gin.TestMode)
@@ -512,14 +511,15 @@ func TestGetDriveCallback_RejectsExpiredState(t *testing.T) {
 	hexNonce := hex.EncodeToString(nonce)
 
 	oldTs := time.Now().Add(-15 * time.Minute).Unix()
-	payload := fmt.Sprintf("%s:%d:%s", userID.String(), oldTs, hexNonce)
+	payloadJSON, err := json.Marshal(driveOAuthState{UserID: userID.String(), TS: oldTs, Nonce: hexNonce, ReturnTo: "/admin/test-event?tab=config"})
+	require.NoError(t, err)
 
 	key := "test-secret-key-for-unit-tests"
 	h := hmac.New(sha256.New, []byte(key))
-	h.Write([]byte(payload))
+	h.Write(payloadJSON)
 	signature := hex.EncodeToString(h.Sum(nil))
 
-	expiredState := base64.URLEncoding.EncodeToString([]byte(payload)) + "." + signature
+	expiredState := base64.URLEncoding.EncodeToString(payloadJSON) + "." + signature
 
 	handler := &DriveAdminHandler{
 		driveService:   &mockDriveService{},

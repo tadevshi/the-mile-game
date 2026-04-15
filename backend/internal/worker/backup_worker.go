@@ -34,6 +34,8 @@ const (
 // DriveServiceInterface defines the interface for Drive service operations needed by the worker
 type DriveServiceInterface interface {
 	UploadFile(ctx context.Context, accessToken string, content []byte, mimeType, idempotencyKey string) (*services.UploadResult, error)
+	UploadFileMultipart(ctx context.Context, accessToken string, fileContent []byte, filename, mimeType, idempotencyKey string, parentID *string) (*services.UploadResult, error)
+	EnsureFolder(ctx context.Context, accessToken, folderName string, parentID *string) (string, error)
 	RefreshToken(ctx context.Context, refreshToken string) (*services.TokenResponse, error)
 	DecryptToken(ciphertext string) (string, error)
 	IsTokenExpired(expiry time.Time) bool
@@ -338,8 +340,21 @@ func (w *BackupWorker) processJob(job *models.BackupJob) error {
 	// The postcard.MediaType stores "image" or "video", not MIME types like "image/jpeg"
 	mimeType := mediaTypeToMimeType(postcard.MediaType)
 
-	// Upload to Drive (content is []byte, binary-safe)
-	result, err := w.drive.UploadFile(context.Background(), accessToken, content, mimeType, job.IdempotencyKey)
+	baseFolderID, err := w.drive.EnsureFolder(context.Background(), accessToken, "EventHub Backups", nil)
+	if err != nil {
+		w.markJobFailed(job, fmt.Errorf("failed to ensure base Drive folder: %w", err))
+		return err
+	}
+
+	eventFolderID, err := w.drive.EnsureFolder(context.Background(), accessToken, event.Slug, &baseFolderID)
+	if err != nil {
+		w.markJobFailed(job, fmt.Errorf("failed to ensure event Drive folder: %w", err))
+		return err
+	}
+
+	fileName := filepath.Base(postcard.ImagePath)
+	// Upload to Drive into the event folder
+	result, err := w.drive.UploadFileMultipart(context.Background(), accessToken, content, fileName, mimeType, job.IdempotencyKey, &eventFolderID)
 	if err != nil {
 		// Retry logic
 		if job.RetryCount < MaxRetries {
@@ -378,12 +393,15 @@ func (w *BackupWorker) processJob(job *models.BackupJob) error {
 		}
 
 		thumbnailMime := mimeTypeFromPath(*postcard.ThumbnailPath)
-		if _, thumbErr := w.drive.UploadFile(
+		thumbnailName := filepath.Base(*postcard.ThumbnailPath)
+		if _, thumbErr := w.drive.UploadFileMultipart(
 			context.Background(),
 			accessToken,
 			thumbnailContent,
+			thumbnailName,
 			thumbnailMime,
 			job.IdempotencyKey+":thumbnail",
+			&eventFolderID,
 		); thumbErr != nil {
 			w.markJobFailed(job, fmt.Errorf("failed to upload thumbnail: %w", thumbErr))
 			return thumbErr

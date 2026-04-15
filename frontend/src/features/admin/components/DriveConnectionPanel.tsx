@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link2, Unlink, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/shared';
 import { api, type DriveStatus } from '@/shared/lib/api';
 
@@ -37,6 +38,7 @@ function formatDate(dateStr: string | null): string {
  * The parent should guard with FEATURES.GOOGLE_DRIVE.
  */
 export function DriveConnectionPanel({ onDisconnect }: DriveConnectionPanelProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [state, setState] = useState<ConnectionState>('idle');
   const [status, setStatus] = useState<DriveStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,12 +62,34 @@ export function DriveConnectionPanel({ onDisconnect }: DriveConnectionPanelProps
       });
   }, []);
 
+  useEffect(() => {
+    const driveParam = searchParams.get('drive');
+    if (!driveParam) return;
+
+    if (driveParam === 'connected') {
+      void api.getDriveStatus().then((data) => {
+        setStatus(data);
+        setState(data.connected ? 'connected' : 'disconnected');
+      });
+    }
+
+    if (driveParam === 'error') {
+      setError('No se pudo completar la conexión con Google Drive. Intenta de nuevo.');
+      setState('error');
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('drive');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   const handleConnect = async () => {
     setState('loading');
     setError(null);
 
     try {
-      const url = await api.getDriveAuthUrl();
+      const returnTo = `${window.location.pathname}${window.location.search}`;
+      const url = await api.getDriveAuthUrl(returnTo);
       // Redirect to Google OAuth consent screen
       window.location.href = url;
     } catch {

@@ -6,8 +6,11 @@ import { Switch } from '@/shared/components/Switch';
 import { useEventAdmin, type AdminTab } from '../hooks/useEventAdmin';
 import type { EventFeatures } from '@/shared/lib/api';
 import { api } from '@/shared/lib/api';
+import { FEATURES } from '@/shared/lib/featureFlags';
 import type { PreviewTheme } from '@/themes';
 import { useTheme } from '@/shared/theme/useTheme';
+import { DriveConnectionPanel } from '@/features/admin/components/DriveConnectionPanel';
+import { BackupJobsList } from '@/features/admin/components/BackupJobsList';
 
 interface ConfigTabProps {
   slug: string;
@@ -334,6 +337,34 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
           </div>
         </div>
       </div>
+
+      {FEATURES.GOOGLE_DRIVE && event?.id && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: `${theme.textColor}80` }}>
+            Respaldo en Google Drive
+          </h3>
+
+          <div
+            className="rounded-xl p-4 border space-y-4"
+            style={{
+              backgroundColor: `${theme.secondaryColor}20`,
+              borderColor: `${theme.secondaryColor}50`,
+            }}
+          >
+            <DriveConnectionPanel />
+          </div>
+
+          <div
+            className="rounded-xl p-4 border"
+            style={{
+              backgroundColor: `${theme.secondaryColor}20`,
+              borderColor: `${theme.secondaryColor}50`,
+            }}
+          >
+            <BackupJobsList eventId={event.id} />
+          </div>
+        </div>
+      )}
 
       {error && (
         <motion.div

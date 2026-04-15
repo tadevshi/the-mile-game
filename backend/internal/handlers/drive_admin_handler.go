@@ -7,10 +7,10 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -54,31 +54,46 @@ func getStateSigningKey() string {
 	return "development-only-secret-change-in-production"
 }
 
+type driveOAuthState struct {
+	UserID   string `json:"user_id"`
+	TS       int64  `json:"ts"`
+	Nonce    string `json:"nonce"`
+	ReturnTo string `json:"return_to,omitempty"`
+}
+
 // signState creates an integrity-protected state token.
-// Format: base64(user_id:ts:nonce) + "." + hex(HMAC-SHA256(payload))
-func signState(userID uuid.UUID) (string, error) {
+func signState(userID uuid.UUID, returnTo string) (string, error) {
 	nonce := make([]byte, 16)
 	if _, err := rand.Read(nonce); err != nil {
 		return "", fmt.Errorf("failed to generate nonce: %w", err)
 	}
 
-	payload := fmt.Sprintf("%s:%d:%s", userID.String(), time.Now().Unix(), hex.EncodeToString(nonce))
+	state := driveOAuthState{
+		UserID:   userID.String(),
+		TS:       time.Now().Unix(),
+		Nonce:    hex.EncodeToString(nonce),
+		ReturnTo: sanitizeReturnTo(returnTo),
+	}
+
+	payloadBytes, err := json.Marshal(state)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal state payload: %w", err)
+	}
 
 	key := getStateSigningKey()
 	h := hmac.New(sha256.New, []byte(key))
-	h.Write([]byte(payload))
+	h.Write(payloadBytes)
 	signature := hex.EncodeToString(h.Sum(nil))
 
 	// Format: payload.signature
-	return base64.URLEncoding.EncodeToString([]byte(payload)) + "." + signature, nil
+	return base64.URLEncoding.EncodeToString(payloadBytes) + "." + signature, nil
 }
 
-// verifyState verifies and extracts user_id from a signed state token.
-// Returns user_id if valid, error if invalid or expired (>10 min old).
-func verifyState(signedState string) (uuid.UUID, error) {
+// verifyState verifies and extracts user_id + return_to from a signed state token.
+func verifyState(signedState string) (uuid.UUID, string, error) {
 	parts := strings.Split(signedState, ".")
 	if len(parts) != 2 {
-		return uuid.Nil, fmt.Errorf("invalid state format")
+		return uuid.Nil, "", fmt.Errorf("invalid state format")
 	}
 
 	payloadB64, signature := parts[0], parts[1]
@@ -86,7 +101,7 @@ func verifyState(signedState string) (uuid.UUID, error) {
 	// Decode payload
 	payload, err := base64.URLEncoding.DecodeString(payloadB64)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("invalid state encoding")
+		return uuid.Nil, "", fmt.Errorf("invalid state encoding")
 	}
 
 	// Verify HMAC
@@ -96,32 +111,39 @@ func verifyState(signedState string) (uuid.UUID, error) {
 	expectedSig := hex.EncodeToString(h.Sum(nil))
 
 	if !hmac.Equal([]byte(signature), []byte(expectedSig)) {
-		return uuid.Nil, fmt.Errorf("invalid state signature")
+		return uuid.Nil, "", fmt.Errorf("invalid state signature")
 	}
 
-	// Parse payload: user_id:ts:nonce
-	parts = strings.Split(string(payload), ":")
-	if len(parts) != 3 {
-		return uuid.Nil, fmt.Errorf("invalid state payload")
+	var state driveOAuthState
+	if err := json.Unmarshal(payload, &state); err != nil {
+		return uuid.Nil, "", fmt.Errorf("invalid state payload")
 	}
 
-	userID, err := uuid.Parse(parts[0])
+	userID, err := uuid.Parse(state.UserID)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("invalid user_id in state")
+		return uuid.Nil, "", fmt.Errorf("invalid user_id in state")
 	}
 
 	// Verify timestamp is within acceptable window (10 minutes)
-	ts, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("invalid timestamp in state")
-	}
-
 	now := time.Now().Unix()
-	if now-ts > 10*60 || ts > now {
-		return uuid.Nil, fmt.Errorf("state expired or invalid timestamp")
+	if now-state.TS > 10*60 || state.TS > now {
+		return uuid.Nil, "", fmt.Errorf("state expired or invalid timestamp")
 	}
 
-	return userID, nil
+	return userID, sanitizeReturnTo(state.ReturnTo), nil
+}
+
+func sanitizeReturnTo(returnTo string) string {
+	if returnTo == "" {
+		return "/dashboard"
+	}
+	if !strings.HasPrefix(returnTo, "/admin/") && !strings.HasPrefix(returnTo, "/dashboard") {
+		return "/dashboard"
+	}
+	if strings.HasPrefix(returnTo, "//") || strings.Contains(returnTo, "://") {
+		return "/dashboard"
+	}
+	return returnTo
 }
 
 // NewDriveAdminHandler creates a new Drive admin handler
@@ -156,8 +178,10 @@ func (h *DriveAdminHandler) GetDriveAuthURL(c *gin.Context) {
 		return
 	}
 
+	returnTo := c.Query("return_to")
+
 	// Create integrity-protected signed state for OAuth CSRF protection
-	signedState, err := signState(userID.(uuid.UUID))
+	signedState, err := signState(userID.(uuid.UUID), returnTo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create state: " + err.Error()})
 		return
@@ -187,12 +211,19 @@ func (h *DriveAdminHandler) GetDriveCallback(c *gin.Context) {
 	code := c.Query("code")
 	stateParam := c.Query("state")
 	errorParam := c.Query("error")
+	returnTo := "/dashboard"
+	if stateParam != "" {
+		if _, parsedReturnTo, err := verifyState(stateParam); err == nil {
+			returnTo = parsedReturnTo
+		}
+	}
+	separator := "?"
+	if strings.Contains(returnTo, "?") {
+		separator = "&"
+	}
 
 	if errorParam != "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "oauth_error",
-			"message": "Google OAuth error: " + errorParam,
-		})
+		c.Redirect(http.StatusFound, returnTo+separator+"drive=error")
 		return
 	}
 
@@ -202,7 +233,7 @@ func (h *DriveAdminHandler) GetDriveCallback(c *gin.Context) {
 	}
 
 	// Verify signed state and extract user_id (validates HMAC + timestamp)
-	userID, err := verifyState(stateParam)
+	userID, returnTo, err := verifyState(stateParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid state: " + err.Error()})
 		return
@@ -243,11 +274,7 @@ func (h *DriveAdminHandler) GetDriveCallback(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message":      "Google Drive connected successfully",
-		"connected_at": conn.ConnectedAt,
-		"token_expiry": conn.TokenExpiry,
-	})
+	c.Redirect(http.StatusFound, returnTo+separator+"drive=connected")
 }
 
 // GetDriveStatus GET /api/admin/drive/status
