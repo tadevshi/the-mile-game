@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"strings"
 	"time"
@@ -361,40 +361,56 @@ func (s *DriveService) CreateFolder(ctx context.Context, accessToken, folderName
 	return fileResp.ID, nil
 }
 
-// UploadFileMultipart uploads a file using multipart form data (for metadata).
-// Uses bytes.Buffer for binary-safe multipart body construction.
+// UploadFileMultipart uploads a file using Google Drive multipart/related upload.
 func (s *DriveService) UploadFileMultipart(ctx context.Context, accessToken string, fileContent []byte, filename, mimeType, idempotencyKey string, parentID *string) (*UploadResult, error) {
 	uploadURL := fmt.Sprintf("%s/upload/drive/v3/files?uploadType=multipart", s.APIEndpoint)
 
-	// Create multipart body using bytes.Buffer for binary safety
+	boundary := fmt.Sprintf("drive-boundary-%d", time.Now().UnixNano())
 	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-
-	// Write metadata part
-	part, err := writer.CreateFormField("metadata")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create metadata part: %w", err)
-	}
 	metadataMap := map[string]any{"name": filename}
 	if parentID != nil && *parentID != "" {
 		metadataMap["parents"] = []string{*parentID}
 	}
-	metadataJSON, _ := json.Marshal(metadataMap)
-	if _, err := part.Write(metadataJSON); err != nil {
-		return nil, fmt.Errorf("failed to write metadata: %w", err)
-	}
-
-	// Write media part
-	mediaPart, err := writer.CreateFormFile("media", filename)
+	metadataJSON, err := json.Marshal(metadataMap)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create media part: %w", err)
-	}
-	if _, err := mediaPart.Write(fileContent); err != nil {
-		return nil, fmt.Errorf("failed to write file content: %w", err)
+		return nil, fmt.Errorf("failed to marshal metadata: %w", err)
 	}
 
-	if err := writer.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	writePart := func(headers textproto.MIMEHeader, content []byte) error {
+		if _, err := fmt.Fprintf(body, "--%s\r\n", boundary); err != nil {
+			return err
+		}
+		for key, values := range headers {
+			for _, value := range values {
+				if _, err := fmt.Fprintf(body, "%s: %s\r\n", key, value); err != nil {
+					return err
+				}
+			}
+		}
+		if _, err := fmt.Fprintf(body, "\r\n"); err != nil {
+			return err
+		}
+		if _, err := body.Write(content); err != nil {
+			return err
+		}
+		_, err := fmt.Fprintf(body, "\r\n")
+		return err
+	}
+
+	metadataHeaders := textproto.MIMEHeader{}
+	metadataHeaders.Set("Content-Type", "application/json; charset=UTF-8")
+	if err := writePart(metadataHeaders, metadataJSON); err != nil {
+		return nil, fmt.Errorf("failed to write metadata part: %w", err)
+	}
+
+	mediaHeaders := textproto.MIMEHeader{}
+	mediaHeaders.Set("Content-Type", mimeType)
+	if err := writePart(mediaHeaders, fileContent); err != nil {
+		return nil, fmt.Errorf("failed to write media part: %w", err)
+	}
+
+	if _, err := fmt.Fprintf(body, "--%s--\r\n", boundary); err != nil {
+		return nil, fmt.Errorf("failed to finalize multipart body: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, bytes.NewReader(body.Bytes()))
@@ -403,7 +419,7 @@ func (s *DriveService) UploadFileMultipart(ctx context.Context, accessToken stri
 	}
 
 	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Content-Type", fmt.Sprintf("multipart/related; boundary=%s", boundary))
 	req.Header.Set("X-Upload-Id", idempotencyKey)
 
 	resp, err := s.httpClient.Do(req)
