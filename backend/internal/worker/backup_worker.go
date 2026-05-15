@@ -336,9 +336,9 @@ func (w *BackupWorker) processJob(job *models.BackupJob) error {
 		return err
 	}
 
-	// Map semantic media_type ("image"/"video") to actual MIME type
-	// The postcard.MediaType stores "image" or "video", not MIME types like "image/jpeg"
-	mimeType := mediaTypeToMimeType(postcard.MediaType)
+	// Resolve MIME type from the stored media path/extension.
+	// postcard.MediaType is semantic ("image"/"video"), not a real MIME type.
+	mimeType := mimeTypeFromPath(postcard.ImagePath)
 
 	baseFolderID, err := w.drive.EnsureFolder(context.Background(), accessToken, "EventHub Backups", nil)
 	if err != nil {
