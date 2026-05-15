@@ -2,8 +2,8 @@
 export interface LandingFeature {
   id: string;
   icon: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
 }
 
 export interface CTAEvent {

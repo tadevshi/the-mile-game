@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 /**
  * LandingFooter - About, Contact, Privacy, Terms, social links.
  */
 export function LandingFooter() {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -28,8 +30,7 @@ export function LandingFooter() {
               </span>
             </div>
             <p className="text-sm mb-4" style={{ color: 'var(--on-surface-variant)' }}>
-              Creá experiencias memorables para tus celebraciones.
-              Eventos interactivos con quizzes, carteleras de fotos y cajas secretas.
+              {t('landing.footer.description')}
             </p>
             {/* Social links */}
             <div className="flex gap-3">
@@ -63,14 +64,14 @@ export function LandingFooter() {
               className="font-semibold mb-3 text-sm"
               style={{ color: 'var(--on-surface)' }}
             >
-              Producto
+              {t('landing.footer.product')}
             </h4>
             <ul className="space-y-2">
               {[
-                { label: 'Funciones', href: '#features' },
-                { label: 'Precios', href: '#pricing' },
-                { label: 'Demo', href: '#demo' },
-                { label: 'FAQ', href: '#faq' },
+                { label: t('landing.footer.functions'), href: '#features' },
+                { label: t('landing.pricing.prices'), href: '#pricing' },
+                { label: t('landing.footer.demo'), href: '#demo' },
+                { label: t('landing.footer.faq'), href: '#faq' },
               ].map((link) => (
                 <li key={link.label}>
                   <a
@@ -91,14 +92,14 @@ export function LandingFooter() {
               className="font-semibold mb-3 text-sm"
               style={{ color: 'var(--on-surface)' }}
             >
-              Legal
+              {t('landing.footer.legal')}
             </h4>
             <ul className="space-y-2">
               {[
-                { label: 'Política de Privacidad', href: '/privacy' },
-                { label: 'Términos de Servicio', href: '/terms' },
-                { label: 'Contacto', href: '/contact' },
-                { label: 'Sobre nosotros', href: '/about' },
+                { label: t('landing.footer.privacy'), href: '/privacy' },
+                { label: t('landing.footer.terms'), href: '/terms' },
+                { label: t('landing.footer.contact'), href: '/contact' },
+                { label: t('landing.footer.about'), href: '/about' },
               ].map((link) => (
                 <li key={link.label}>
                   <a
@@ -120,10 +121,10 @@ export function LandingFooter() {
           style={{ borderColor: 'var(--surface-container)' }}
         >
           <p className="text-xs" style={{ color: 'var(--on-surface-variant)' }}>
-            © {currentYear} EventHub. Todos los derechos reservados.
+            © {currentYear} EventHub. {t('landing.footer.rights')}
           </p>
           <p className="text-xs" style={{ color: 'var(--on-surface-variant)' }}>
-            Hecho con ❤️ para celebraciones memorables
+            {t('landing.footer.madeWith')}
           </p>
         </div>
       </div>

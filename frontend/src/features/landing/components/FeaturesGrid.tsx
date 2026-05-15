@@ -1,24 +1,25 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import type { LandingFeature } from '../types/landing.types';
 
 const features: LandingFeature[] = [
   {
     id: 'quiz',
     icon: '🧠',
-    title: 'Quiz Interactivo',
-    description: 'Preguntas personalizadas para conocer a tu cumpleañero/a. Ranking en tiempo real.',
+    titleKey: 'landing.features.quiz.title',
+    descriptionKey: 'landing.features.quiz.description',
   },
   {
     id: 'corkboard',
     icon: '📌',
-    title: 'Cartelera de Fotos',
-    description: 'Invitados comparten fotos y mensajes en un corcho digital colaborativo.',
+    titleKey: 'landing.features.corkboard.title',
+    descriptionKey: 'landing.features.corkboard.description',
   },
   {
     id: 'secret',
     icon: '🎁',
-    title: 'Caja Secreta',
-    description: 'Sorpresas de invitados remotos que se revelan en el momento perfecto.',
+    titleKey: 'landing.features.secret.title',
+    descriptionKey: 'landing.features.secret.description',
   },
 ];
 
@@ -53,6 +54,8 @@ const iconVariants = {
 };
 
 export function FeaturesGrid() {
+  const { t } = useTranslation();
+
   return (
     <section className="py-20 px-4 bg-white dark:bg-slate-900">
       <div className="max-w-5xl mx-auto">
@@ -72,13 +75,13 @@ export function FeaturesGrid() {
             className="inline-block px-4 py-1 text-sm font-medium rounded-full mb-4"
             style={{ background: 'color-mix(in srgb, var(--color-primary) 15%, transparent)', color: 'var(--color-primary)' }}
           >
-            Características
+            {t('landing.features.characteristics')}
           </motion.span>
           <h2 className="text-3xl md:text-4xl font-display text-gray-800 dark:text-white mb-4">
-            Todo lo que necesitás para tu evento
+            {t('landing.features.title')}
           </h2>
           <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
-            Herramientas interactivas diseñadas para hacer tu celebración única y memorable.
+            {t('landing.features.subtitle')}
           </p>
         </motion.div>
 
@@ -117,12 +120,12 @@ export function FeaturesGrid() {
               
               {/* Title */}
               <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
-                {feature.title}
+                {t(feature.titleKey)}
               </h3>
               
               {/* Description */}
               <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                {feature.description}
+                {t(feature.descriptionKey)}
               </p>
 
               {/* Feature indicator */}
@@ -135,7 +138,7 @@ export function FeaturesGrid() {
                 transition={{ delay: 0.3 + index * 0.1 }}
               >
                 <span className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>
-                  ✓ Incluido en todos los planes
+                  {t('landing.features.includedAllPlans')}
                 </span>
               </motion.div>
             </motion.div>

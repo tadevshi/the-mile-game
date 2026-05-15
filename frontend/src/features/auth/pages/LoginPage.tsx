@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '@/shared/components/Button';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const { login, isLoading, error, clearError, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
@@ -35,14 +37,14 @@ export function LoginPage() {
 
     // Email validation
     if (!formData.email.trim()) {
-      errors.email = 'El email es requerido';
+      errors.email = t('auth.email') + ' ' + t('common.required').toLowerCase();
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Ingresa un email válido';
+      errors.email = t('auth.email') + ' ' + t('errors.notFound').toLowerCase();
     }
 
     // Password validation
     if (!formData.password) {
-      errors.password = 'La contraseña es requerida';
+      errors.password = t('auth.password') + ' ' + t('common.required').toLowerCase();
     }
 
     setValidationErrors(errors);
@@ -87,8 +89,8 @@ export function LoginPage() {
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-display text-[var(--color-accent)] mb-2">EventHub</h1>
-            <p className="text-gray-500 dark:text-gray-400">Iniciar Sesión</p>
+            <h1 className="text-3xl font-display text-[var(--color-accent)] mb-2">{t('common.appName')}</h1>
+            <p className="text-gray-500 dark:text-gray-400">{t('auth.login')}</p>
           </div>
 
           {/* Error Alert */}
@@ -108,7 +110,7 @@ export function LoginPage() {
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                {t('auth.email')}
               </label>
               <input
                 id="email"
@@ -132,7 +134,7 @@ export function LoginPage() {
             {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Contraseña
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <input
@@ -173,7 +175,7 @@ export function LoginPage() {
                 className="w-4 h-4 text-[var(--color-primary)] border-[var(--color-secondary)] rounded focus:ring-[var(--color-accent)]"
               />
               <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-600">
-                Recordarme
+                {t('common.rememberMe') || 'Recordarme'}
               </label>
             </div>
 
@@ -188,7 +190,7 @@ export function LoginPage() {
               ) : (
                 <span className="flex items-center justify-center gap-2">
                   <LogIn className="w-5 h-5" />
-                  Ingresar
+                  {t('auth.login')}
                 </span>
               )}
             </Button>
@@ -197,14 +199,14 @@ export function LoginPage() {
           {/* Links */}
           <div className="mt-6 text-center space-y-2">
             <p className="text-sm text-gray-600">
-              ¿No tienes cuenta?{' '}
+              {t('auth.noAccount')}{' '}
               <Link to="/register" className="text-[var(--color-primary)] hover:text-[var(--color-accent)] font-medium">
-                Regístrate
+                {t('auth.register')}
               </Link>
             </p>
             <p className="text-sm text-gray-500">
               <a href="#" className="hover:text-[var(--color-primary)] transition-colors">
-                ¿Olvidaste tu contraseña?
+                {t('auth.forgotPassword')}
               </a>
             </p>
           </div>

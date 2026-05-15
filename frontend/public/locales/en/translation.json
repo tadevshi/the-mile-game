@@ -15,65 +15,160 @@
     "search": "Search",
     "noResults": "No results",
     "required": "Required",
-    "optional": "Optional"
+    "optional": "Optional",
+    "rememberMe": "Remember me"
   },
   "auth": {
     "login": "Log in",
     "register": "Create account",
     "logout": "Log out",
     "email": "Email",
+    "name": "Full name",
     "password": "Password",
     "confirmPassword": "Confirm password",
     "forgotPassword": "Forgot password?",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
     "loginError": "Login failed",
-    "registerSuccess": "Account created successfully"
+    "registerSuccess": "Account created successfully",
+    "nameRequired": "Name is required",
+    "minLength": "must be at least 6 characters",
+    "passwordsMismatch": "Passwords don't match",
+    "weak": "Weak",
+    "medium": "Medium",
+    "strong": "Strong"
+  },
+  "dashboard": {
+    "title": "My Events",
+    "eventsCount": "{{count}} event created",
+    "eventsCount_plural": "{{count}} events created",
+    "refresh": "Refresh",
+    "logout": "Log out",
+    "createEvent": "Create new event",
+    "empty": {
+      "title": "You don't have events yet",
+      "subtitle": "Create your first event and start organizing unique experiences for your guests.",
+      "cta": "Create your first event",
+      "tipsTitle": "What can you create?",
+      "tip1": "Birthday with interactive quiz",
+      "tip2": "Corporate events with boards",
+      "tip3": "Weddings with surprise box",
+      "tip4": "Any special celebration"
+    },
+    "error": {
+      "retry": "Retry"
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "create": "Create",
+    "explore": "Explore",
+    "profile": "Profile",
+    "dashboard": "Dashboard"
   },
   "landing": {
     "hero": {
+      "tagline": "Interactive events platform",
       "title": "Create memorable experiences",
-      "subtitle": "The best platform for interactive events with quizzes, rankings and photo boards",
-      "cta": "Create my event",
-      "enterCode": "Enter event code"
+      "subtitle": "Organize unique events with interactive quizzes, photo boards and secret boxes. Everything in one place, easy to share.",
+      "createEvent": "Create Event",
+      "joinEvent": "Join Event",
+      "stats": {
+        "eventsCreated": "Events created",
+        "guestsPerEvent": "Guests per event",
+        "satisfaction": "Satisfaction"
+      }
     },
     "features": {
-      "title": "Everything you need",
+      "title": "Everything you need for your event",
+      "subtitle": "Interactive tools designed to make your celebration unique and memorable.",
+      "characteristics": "Features",
+      "includedAllPlans": "✓ Included in all plans",
       "quiz": {
-        "title": "Custom Quiz",
-        "description": "Create questions about the birthday person and discover who knows them best"
+        "title": "Interactive Quiz",
+        "description": "Custom questions to get to know the birthday person. Real-time ranking."
       },
       "corkboard": {
         "title": "Photo Board",
-        "description": "Your guests upload photos and messages in real-time"
+        "description": "Guests share photos and messages on a collaborative digital board."
       },
-      "secretBox": {
+      "secret": {
         "title": "Secret Box",
-        "description": "Receive surprises from those who can't be there"
-      },
-      "ranking": {
-        "title": "Live Ranking",
-        "description": "Friendly competition with 3D podium"
+        "description": "Surprises from remote guests that are revealed at the perfect moment."
       }
     },
     "pricing": {
-      "title": "Plans and pricing",
+      "title": "Simple and transparent",
+      "subtitle": "Start free, upgrade when you want",
+      "prices": "Pricing",
+      "mostPopular": "⭐ Most popular",
       "free": {
         "name": "Free",
-        "description": "Perfect for trying EventHub"
+        "description": "Perfect for trying EventHub with small events",
+        "price": "$0",
+        "priceSuffix": "free forever",
+        "cta": "Start free",
+        "features": {
+          "upTo20Guests": "Up to 20 guests per event",
+          "1ActiveEvent": "1 active event",
+          "basicQuiz": "Basic quiz (10 questions)",
+          "photoBoard": "Photo board",
+          "liveRanking": "Real-time ranking",
+          "basicAnalytics": "Basic analytics",
+          "secretBox": "Secret Box",
+          "videoPostcards": "Video postcards",
+          "prioritySupport": "Priority support",
+          "unlimitedEvents": "Unlimited events"
+        }
       },
       "premium": {
         "name": "Premium",
-        "price": "$4.99 USD",
-        "description": "For memorable events"
-      }
+        "description": "For memorable celebrations without limits",
+        "price": "$4.99",
+        "cta": "Unlock Premium",
+        "features": {
+          "unlimitedGuests": "Unlimited guests",
+          "unlimitedEvents": "Unlimited events",
+          "fullQuiz": "Full quiz (unlimited questions)",
+          "photoBoardVideos": "Photo board + videos",
+          "liveRanking": "Real-time ranking",
+          "advancedAnalytics": "Advanced analytics",
+          "secretBox": "Secret Box",
+          "videoPostcards": "Video postcards",
+          "prioritySupport": "Priority support",
+          "customThemes": "Custom themes"
+        }
+      },
+      "trustSignals": "No credit card required · Cancel whenever you want"
+    },
+    "joinSection": {
+      "title": "Join the celebration",
+      "subtitle": "Do you have an event code?",
+      "description": "Enter the code you received to join the celebration",
+      "placeholder": "Ex: birthday-ana-2026",
+      "search": "Search",
+      "searching": "Searching...",
+      "found": "Found!",
+      "noCode": "Don't have a code?",
+      "createOwnEvent": "Create your own event",
+      "helpText": "The code is the last part of the event URL",
+      "errorNoCode": "Enter an event code",
+      "errorNotFound": "Event not found. Check the code and try again.",
+      "errorConnection": "Connection error. Try again."
     },
     "footer": {
-      "about": "About",
+      "product": "Product",
+      "legal": "Legal",
+      "functions": "Features",
+      "demo": "Demo",
+      "faq": "FAQ",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
       "contact": "Contact",
-      "privacy": "Privacy",
-      "terms": "Terms",
-      "madeWith": "Made with ❤️ for celebrations"
+      "about": "About us",
+      "rights": "All rights reserved.",
+      "madeWith": "Made with ❤️ for memorable celebrations",
+      "description": "Create memorable experiences for your celebrations. Interactive events with quizzes, photo boards, and secret boxes."
     }
   },
   "quiz": {

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { PartyPopper } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/Button';
@@ -10,6 +11,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ onCreateEvent }: EmptyStateProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleCreate = () => {
@@ -63,19 +65,19 @@ export function EmptyState({ onCreateEvent }: EmptyStateProps) {
         className="text-2xl font-display mb-3"
         style={{ color: 'var(--color-on-background)' }}
       >
-        No tenés eventos aún
+        {t('dashboard.empty.title')}
       </h2>
       <p 
         className="mb-8 max-w-sm mx-auto leading-relaxed"
         style={{ color: 'var(--color-on-surface-muted)' }}
       >
-        Crea tu primer evento y comienza a organizar experiencias únicas para tus invitados.
+        {t('dashboard.empty.subtitle')}
       </p>
 
       {/* CTA */}
       <Button onClick={handleCreate}>
         <PartyPopper className="w-5 h-5" />
-        Creá tu primer evento
+        {t('dashboard.empty.cta')}
       </Button>
 
       {/* Tips */}
@@ -84,7 +86,7 @@ export function EmptyState({ onCreateEvent }: EmptyStateProps) {
           className="text-sm font-medium mb-3"
           style={{ color: 'var(--color-on-surface)' }}
         >
-          ¿Qué podés crear?
+          {t('dashboard.empty.tipsTitle')}
         </h3>
         <ul 
           className="space-y-2 text-sm"
@@ -92,19 +94,19 @@ export function EmptyState({ onCreateEvent }: EmptyStateProps) {
         >
           <li className="flex items-center gap-2">
             <span style={{ color: 'var(--color-primary)' }}>✓</span>
-            Cumpleaños con quiz interactivo
+            {t('dashboard.empty.tip1')}
           </li>
           <li className="flex items-center gap-2">
             <span style={{ color: 'var(--color-primary)' }}>✓</span>
-            Eventos corporativos con carteleras
+            {t('dashboard.empty.tip2')}
           </li>
           <li className="flex items-center gap-2">
             <span style={{ color: 'var(--color-primary)' }}>✓</span>
-            Bodas con caja de sorpresas
+            {t('dashboard.empty.tip3')}
           </li>
           <li className="flex items-center gap-2">
             <span style={{ color: 'var(--color-primary)' }}>✓</span>
-            Cualquier celebración especial
+            {t('dashboard.empty.tip4')}
           </li>
         </ul>
       </div>

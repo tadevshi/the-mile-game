@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Plus, LogOut, RefreshCw, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useDashboardStore } from '../store/dashboardStore';
 import { EventCard, EmptyState, DashboardSkeleton } from '../components';
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { events, isLoading, error, fetchEvents, deleteEvent, clearError } = useDashboardStore();
@@ -70,10 +72,10 @@ export function DashboardPage() {
         {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-3xl font-display text-gray-800 dark:text-white mb-2">
-            Mis Eventos
+            {t('dashboard.title')}
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
-            {events.length} {events.length === 1 ? 'evento' : 'eventos'} creados
+            {events.length} {events.length === 1 ? t('dashboard.eventsCount', { count: 1 }) : t('dashboard.eventsCount_plural', { count: events.length })}
           </p>
         </div>
 
@@ -92,7 +94,7 @@ export function DashboardPage() {
                 onClick={handleRefresh}
                 className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 underline"
               >
-                Reintentar
+                {t('dashboard.error.retry')}
               </button>
             </motion.div>
           )}
