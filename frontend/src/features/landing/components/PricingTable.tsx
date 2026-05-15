@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface PricingFeature {
   text: string;
@@ -61,6 +62,7 @@ const tiers: PricingTier[] = [
  * Price point: $4.99 USD (user-specified).
  */
 export function PricingTable() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleCTA = (tier: PricingTier) => {
@@ -90,169 +92,191 @@ export function PricingTable() {
             className="inline-block px-4 py-1 text-sm font-medium rounded-full mb-4"
             style={{ background: 'color-mix(in srgb, var(--color-primary) 15%, transparent)', color: 'var(--color-primary)' }}
           >
-            Precios
+            {t('landing.pricing.prices')}
           </span>
           <h2 className="text-2xl md:text-3xl mb-3" style={{ fontFamily: 'var(--font-serif)' }}>
-            Simple y transparente
+            {t('landing.pricing.title')}
           </h2>
           <p style={{ color: 'var(--on-surface-variant)' }}>
-            Empezá gratis, actualizá cuando quieras
+            {t('landing.pricing.subtitle')}
           </p>
         </motion.div>
 
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {tiers.map((tier, index) => (
-            <motion.div
-              key={tier.name}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={`relative rounded-2xl p-6 ${tier.popular ? '' : 'shadow-md'}`}
-              style={
-                tier.popular
-                  ? {
-                      background: 'linear-gradient(135deg, var(--primary) 0%, #BE185D 100%)',
-                      color: 'white',
-                      boxShadow: '0 20px 25px -5px color-mix(in srgb, var(--color-primary) 30%, transparent), 0 8px 10px -6px color-mix(in srgb, var(--color-primary) 30%, transparent)',
-                    }
-                  : {
-                      background: 'var(--surface-container)',
-                      border: '1px solid var(--surface-container-high)',
-                    }
-              }
-            >
-              {/* Popular badge */}
-              {tier.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span
-                    className="text-xs font-bold px-3 py-1 rounded-full shadow"
-                    style={{ background: 'white', color: 'var(--color-primary)' }}
-                  >
-                    ⭐ Más popular
-                  </span>
-                </div>
-              )}
+          {['free', 'premium'].map((tierKey, index) => {
+            const tier = {
+              name: t(`landing.pricing.${tierKey}.name`),
+              description: t(`landing.pricing.${tierKey}.description`),
+              price: tierKey === 'premium' ? t(`landing.pricing.${tierKey}.price`) : undefined,
+              popular: tierKey === 'premium',
+              cta: t(`landing.pricing.${tierKey}.cta`),
+            };
+            const tierFeatures = [
+              { key: tierKey === 'free' ? 'upTo20Guests' : 'unlimitedGuests', included: true },
+              { key: tierKey === 'free' ? '1ActiveEvent' : 'unlimitedEvents', included: true },
+              { key: tierKey === 'free' ? 'basicQuiz' : 'fullQuiz', included: true },
+              { key: tierKey === 'free' ? 'photoBoard' : 'photoBoardVideos', included: true },
+              { key: 'liveRanking', included: true },
+              { key: tierKey === 'free' ? 'basicAnalytics' : 'advancedAnalytics', included: true },
+              { key: 'secretBox', included: tierKey === 'premium' },
+              { key: 'videoPostcards', included: tierKey === 'premium' },
+              { key: 'prioritySupport', included: tierKey === 'premium' },
+              { key: 'unlimitedEvents', included: tierKey === 'premium' ? undefined : false },
+            ].filter(f => f.included !== undefined) as { key: string; included: boolean }[];
 
-              {/* Tier name */}
-              <h3
-                className="text-xl font-semibold mb-1"
-                style={{
-                  fontFamily: 'var(--font-serif)',
-                  ...(tier.popular ? { color: 'white' } : {}),
-                }}
+            return (
+              <motion.div
+                key={tierKey}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className={`relative rounded-2xl p-6 ${tier.popular ? '' : 'shadow-md'}`}
+                style={
+                  tier.popular
+                    ? {
+                        background: 'linear-gradient(135deg, var(--primary) 0%, #BE185D 100%)',
+                        color: 'white',
+                        boxShadow: '0 20px 25px -5px color-mix(in srgb, var(--color-primary) 30%, transparent), 0 8px 10px -6px color-mix(in srgb, var(--color-primary) 30%, transparent)',
+                      }
+                    : {
+                        background: 'var(--surface-container)',
+                        border: '1px solid var(--surface-container-high)',
+                      }
+                }
               >
-                {tier.name}
-              </h3>
-
-              {/* Price */}
-              <div className="mb-4">
-                {tier.price ? (
-                  <div className="flex items-baseline gap-1">
+                {/* Popular badge */}
+                {tier.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span
-                      className="text-4xl font-bold"
-                      style={tier.popular ? { color: 'white' } : { color: 'var(--primary)' }}
+                      className="text-xs font-bold px-3 py-1 rounded-full shadow"
+                      style={{ background: 'white', color: 'var(--color-primary)' }}
                     >
-                      {tier.price}
-                    </span>
-                    <span
-                      className="text-sm"
-                      style={
-                        tier.popular
-                          ? { color: 'rgba(255,255,255,0.7)' }
-                          : { color: 'var(--on-surface-variant)' }
-                      }
-                    >
-                      USD
-                    </span>
-                  </div>
-                ) : (
-                  <div
-                    className="text-3xl font-bold"
-                    style={tier.popular ? { color: 'white' } : { color: 'var(--primary)' }}
-                  >
-                    $0
-                    <span
-                      className="text-sm font-normal ml-1"
-                      style={
-                        tier.popular
-                          ? { color: 'rgba(255,255,255,0.7)' }
-                          : { color: 'var(--on-surface-variant)' }
-                      }
-                    >
-                      gratis para siempre
+                      {t('landing.pricing.mostPopular')}
                     </span>
                   </div>
                 )}
-              </div>
 
-              {/* Description */}
-              <p
-                className="text-sm mb-6"
-                style={
-                  tier.popular
-                    ? { color: 'rgba(255,255,255,0.8)' }
-                    : { color: 'var(--on-surface-variant)' }
-                }
-              >
-                {tier.description}
-              </p>
+                {/* Tier name */}
+                <h3
+                  className="text-xl font-semibold mb-1"
+                  style={{
+                    fontFamily: 'var(--font-serif)',
+                    ...(tier.popular ? { color: 'white' } : {}),
+                  }}
+                >
+                  {tier.name}
+                </h3>
 
-              {/* Features */}
-              <ul className="space-y-2 mb-6">
-                {tier.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <span className="flex-shrink-0 mt-0.5">
-                      {feature.included ? (
-                        <span
-                          className="text-lg"
-                          style={tier.popular ? { color: 'white' } : { color: 'var(--primary)' }}
-                        >
-                          ✓
-                        </span>
-                      ) : (
-                        <span
-                          className="text-lg"
-                          style={{ color: 'var(--on-surface-variant)', opacity: 0.4 }}
-                        >
-                          ✕
-                        </span>
-                      )}
-                    </span>
-                    <span
-                      style={
-                        feature.included
-                          ? tier.popular
-                            ? { color: 'white' }
-                            : { color: 'var(--on-surface)' }
-                          : { color: 'var(--on-surface-variant)', opacity: 0.5 }
-                      }
+                {/* Price */}
+                <div className="mb-4">
+                  {tier.price ? (
+                    <div className="flex items-baseline gap-1">
+                      <span
+                        className="text-4xl font-bold"
+                        style={tier.popular ? { color: 'white' } : { color: 'var(--primary)' }}
+                      >
+                        {tier.price}
+                      </span>
+                      <span
+                        className="text-sm"
+                        style={
+                          tier.popular
+                            ? { color: 'rgba(255,255,255,0.7)' }
+                            : { color: 'var(--on-surface-variant)' }
+                        }
+                      >
+                        USD
+                      </span>
+                    </div>
+                  ) : (
+                    <div
+                      className="text-3xl font-bold"
+                      style={tier.popular ? { color: 'white' } : { color: 'var(--primary)' }}
                     >
-                      {feature.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                      {t('landing.pricing.free.price')}
+                      <span
+                        className="text-sm font-normal ml-1"
+                        style={
+                          tier.popular
+                            ? { color: 'rgba(255,255,255,0.7)' }
+                            : { color: 'var(--on-surface-variant)' }
+                        }
+                      >
+                        {t('landing.pricing.free.priceSuffix')}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
-              {/* CTA Button */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleCTA(tier)}
-                className={`w-full py-3 rounded-full font-semibold transition-colors ${
-                  tier.popular ? '' : 'border-2 hover:opacity-80'
-                }`}
-                style={
-                  tier.popular
-                    ? { background: 'white', color: 'var(--color-primary)' }
-                    : { borderColor: 'var(--primary)', color: 'var(--primary)' }
-                }
-              >
-                {tier.cta}
-              </motion.button>
-            </motion.div>
-          ))}
+                {/* Description */}
+                <p
+                  className="text-sm mb-6"
+                  style={
+                    tier.popular
+                      ? { color: 'rgba(255,255,255,0.8)' }
+                      : { color: 'var(--on-surface-variant)' }
+                  }
+                >
+                  {tier.description}
+                </p>
+
+                {/* Features */}
+                <ul className="space-y-2 mb-6">
+                  {tierFeatures.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <span className="flex-shrink-0 mt-0.5">
+                        {feature.included ? (
+                          <span
+                            className="text-lg"
+                            style={tier.popular ? { color: 'white' } : { color: 'var(--primary)' }}
+                          >
+                            ✓
+                          </span>
+                        ) : (
+                          <span
+                            className="text-lg"
+                            style={{ color: 'var(--on-surface-variant)', opacity: 0.4 }}
+                          >
+                            ✕
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        style={
+                          feature.included
+                            ? tier.popular
+                              ? { color: 'white' }
+                              : { color: 'var(--on-surface)' }
+                            : { color: 'var(--on-surface-variant)', opacity: 0.5 }
+                        }
+                      >
+                        {t(`landing.pricing.${tierKey}.features.${feature.key}`)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA Button */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleCTA({ name: tier.name } as any)}
+                  className={`w-full py-3 rounded-full font-semibold transition-colors ${
+                    tier.popular ? '' : 'border-2 hover:opacity-80'
+                  }`}
+                  style={
+                    tier.popular
+                      ? { background: 'white', color: 'var(--color-primary)' }
+                      : { borderColor: 'var(--primary)', color: 'var(--primary)' }
+                  }
+                >
+                  {tier.cta}
+                </motion.button>
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* Trust signals */}
@@ -264,7 +288,7 @@ export function PricingTable() {
           className="text-center text-xs mt-6"
           style={{ color: 'var(--on-surface-variant)' }}
         >
-          Sin tarjeta de crédito requerida · Cancela cuando quieras
+          {t('landing.pricing.trustSignals')}
         </motion.p>
       </div>
     </section>

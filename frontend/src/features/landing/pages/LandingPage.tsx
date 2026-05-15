@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useLandingStore } from '../store/landingStore';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { EventCodeForm } from '../components/EventCodeForm';
 import { DemoVideoSection } from '../components/DemoVideoSection';
 import { PricingTable } from '../components/PricingTable';
@@ -9,6 +11,7 @@ import { TestimonialsCarousel } from '../components/TestimonialsCarousel';
 import { LandingFooter } from '../components/LandingFooter';
 
 export function LandingPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const { trackCTA } = useLandingStore();
@@ -38,29 +41,30 @@ export function LandingPage() {
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xl font-bold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--primary)' }}>
-              EventHub
+              {t('common.appName')}
             </span>
           </div>
           <nav className="flex items-center gap-3 flex-nowrap">
+            <LanguageSwitcher />
             {isAuthenticated ? (
               <button
                 onClick={() => navigate('/dashboard')}
                 className="text-sm font-medium transition-colors whitespace-nowrap"
                 style={{ color: 'var(--on-surface-variant)' }}
               >
-                Dashboard
+                {t('nav.dashboard')}
               </button>
             ) : (
               <>
                 <Link to="/login" className="text-sm font-medium transition-colors whitespace-nowrap" style={{ color: 'var(--on-surface-variant)' }}>
-                  Ingresar
+                  {t('auth.login')}
                 </Link>
                 <Link
                   to="/register"
                   className="text-sm font-semibold px-3 py-1.5 rounded-full transition-colors whitespace-nowrap"
                   style={{ background: 'var(--primary)', color: 'white' }}
                 >
-                  Registrarse
+                  {t('auth.register')}
                 </Link>
               </>
             )}
@@ -81,7 +85,7 @@ export function LandingPage() {
             className="inline-block text-xs font-semibold tracking-widest uppercase"
             style={{ color: 'var(--primary)' }}
           >
-            The Digital Gala Experience
+            {t('landing.hero.tagline')}
           </span>
         </motion.div>
 
@@ -93,10 +97,7 @@ export function LandingPage() {
           className="text-4xl md:text-5xl lg:text-6xl text-center leading-tight mb-6"
           style={{ fontFamily: 'var(--font-serif)' }}
         >
-          Creá experiencias{' '}
-          <span className="italic" style={{ color: 'var(--primary)' }}>
-            memorables
-          </span>
+          {t('landing.hero.title')}
         </motion.h1>
 
         {/* Subtitle */}
@@ -107,8 +108,7 @@ export function LandingPage() {
           className="text-center text-base md:text-lg max-w-lg mx-auto mb-10"
           style={{ color: 'var(--on-surface-variant)' }}
         >
-          Eventos interactivos con quizzes personalizados, carteleras de fotos y cajas secretas. 
-          Todo lo que necesitás para celebrar.
+          {t('landing.hero.subtitle')}
         </motion.p>
 
         {/* CTA Buttons - Stacked */}
@@ -119,10 +119,10 @@ export function LandingPage() {
           className="flex flex-col items-center gap-3 max-w-sm mx-auto"
         >
           <button onClick={handleCreateEvent} className="stitch-btn-primary w-full">
-            Crear mi Evento
+            {t('landing.hero.createEvent')}
           </button>
           <button onClick={handleJoinEvent} className="stitch-btn-outline w-full">
-            Ingresar a Evento
+            {t('landing.hero.joinEvent')}
           </button>
         </motion.div>
 
@@ -187,10 +187,10 @@ export function LandingPage() {
             className="text-center mb-10"
           >
             <h2 className="text-2xl md:text-3xl mb-3" style={{ fontFamily: 'var(--font-serif)' }}>
-              Todo lo que necesitás
+              {t('landing.features.title')}
             </h2>
             <p style={{ color: 'var(--on-surface-variant)' }}>
-              Herramientas interactivas para hacer tu celebración única
+              {t('landing.features.subtitle')}
             </p>
           </motion.div>
 
@@ -206,30 +206,29 @@ export function LandingPage() {
             >
               <div className="text-4xl mb-4">🧠</div>
               <h3 className="text-xl font-semibold mb-2" style={{ fontFamily: 'var(--font-serif)' }}>
-                Quiz Interactivo
+                {t('landing.features.quiz.title')}
               </h3>
               <p style={{ color: 'var(--on-surface-variant)' }}>
-                Preguntas personalizadas para conocer al festejado. Ranking en tiempo real 
-                con medals 3D y animaciones.
+                {t('landing.features.quiz.description')}
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 <span 
                   className="text-xs px-2 py-1 rounded-full"
                   style={{ background: 'var(--surface-container-high)' }}
                 >
-                  Multiple choice
+                  {t('quiz.questions.multipleChoice')}
                 </span>
                 <span 
                   className="text-xs px-2 py-1 rounded-full"
                   style={{ background: 'var(--surface-container-high)' }}
                 >
-                  This or That
+                  {t('quiz.questions.thisOrThat')}
                 </span>
                 <span 
                   className="text-xs px-2 py-1 rounded-full"
                   style={{ background: 'var(--surface-container-high)' }}
                 >
-                  Texto libre
+                  {t('quiz.questions.text')}
                 </span>
               </div>
             </motion.div>
@@ -245,10 +244,10 @@ export function LandingPage() {
             >
               <div className="text-4xl mb-4">📌</div>
               <h3 className="text-lg font-semibold mb-2" style={{ fontFamily: 'var(--font-serif)' }}>
-                Cartelera de Fotos
+                {t('landing.features.corkboard.title')}
               </h3>
               <p style={{ color: 'var(--on-surface-variant)' }}>
-                Invitados comparten fotos y mensajes en un corcho digital colaborativo.
+                {t('landing.features.corkboard.description')}
               </p>
             </motion.div>
 
@@ -263,10 +262,10 @@ export function LandingPage() {
             >
               <div className="text-4xl mb-4">🎁</div>
               <h3 className="text-lg font-semibold mb-2" style={{ fontFamily: 'var(--font-serif)' }}>
-                Caja Secreta
+                {t('landing.features.secret.title')}
               </h3>
               <p style={{ color: 'var(--on-surface-variant)' }}>
-                Sorpresas de invitados remotos que se revelan en el momento perfecto.
+                {t('landing.features.secret.description')}
               </p>
             </motion.div>
 
@@ -282,20 +281,20 @@ export function LandingPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-semibold mb-2" style={{ fontFamily: 'var(--font-serif)', color: 'white' }}>
-                    +500 eventos creados
+                    +500 {t('landing.hero.stats.eventsCreated')}
                   </h3>
                   <p className="text-sm opacity-90">
-                    Únete a cientos de celebraciones memorables
+                    {t('landing.features.subtitle')}
                   </p>
                 </div>
                 <div className="flex gap-4">
                   <div className="text-center">
                     <div className="text-3xl font-bold">4.9</div>
-                    <div className="text-xs opacity-80">★ Rating</div>
+                    <div className="text-xs opacity-80">★ {t('landing.hero.stats.satisfaction')}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-3xl font-bold">50+</div>
-                    <div className="text-xs opacity-80">Invitados</div>
+                    <div className="text-xs opacity-80">{t('landing.hero.stats.guestsPerEvent')}</div>
                   </div>
                 </div>
               </div>
@@ -336,7 +335,7 @@ export function LandingPage() {
               home
             </span>
             <span className="text-xs font-medium" style={{ color: 'var(--primary)' }}>
-              Inicio
+              {t('nav.home')}
             </span>
           </button>
           
@@ -348,7 +347,7 @@ export function LandingPage() {
               add_circle
             </span>
             <span className="text-xs font-medium" style={{ color: 'var(--on-surface-variant)' }}>
-              Crear
+              {t('nav.create')}
             </span>
           </button>
           
@@ -357,7 +356,7 @@ export function LandingPage() {
               explore
             </span>
             <span className="text-xs font-medium" style={{ color: 'var(--on-surface-variant)' }}>
-              Explorar
+              {t('nav.explore')}
             </span>
           </button>
           
@@ -370,7 +369,7 @@ export function LandingPage() {
                 person
               </span>
               <span className="text-xs font-medium" style={{ color: 'var(--on-surface-variant)' }}>
-                Perfil
+                {t('nav.profile')}
               </span>
             </button>
           ) : (
@@ -382,7 +381,7 @@ export function LandingPage() {
                 person
               </span>
               <span className="text-xs font-medium" style={{ color: 'var(--on-surface-variant)' }}>
-                Perfil
+                {t('nav.profile')}
               </span>
             </button>
           )}

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Sparkles, PartyPopper, ArrowRight } from 'lucide-react';
 import { Button } from '@/shared/components/Button';
 import { useLandingStore } from '../store/landingStore';
@@ -26,6 +27,7 @@ const itemVariants = {
 };
 
 export function HeroSection() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { trackCTA } = useLandingStore();
   const { isAuthenticated } = useAuthStore();
@@ -92,7 +94,7 @@ export function HeroSection() {
               className="text-xs md:text-sm font-medium"
               style={{ color: 'var(--color-on-surface)' }}
             >
-              Plataforma de eventos interactivos
+              {t('landing.hero.tagline')}
             </span>
           </div>
         </motion.div>
@@ -119,7 +121,7 @@ export function HeroSection() {
           className="text-lg md:text-2xl mb-2 md:mb-4 font-serif"
           style={{ color: 'var(--color-on-background)' }}
         >
-          Creá experiencias memorables
+          {t('landing.hero.title')}
         </motion.p>
 
         {/* Subtitle */}
@@ -128,8 +130,7 @@ export function HeroSection() {
           className="text-sm md:text-base mb-8 md:mb-10 max-w-2xl mx-auto px-4"
           style={{ color: 'var(--color-on-surface-muted)' }}
         >
-          Organizá eventos únicos con quizzes interactivos, carteleras de fotos y 
-          cajas secretas. Todo en un solo lugar, fácil de compartir.
+          {t('landing.hero.subtitle')}
         </motion.p>
 
         {/* CTA Buttons */}
@@ -139,12 +140,12 @@ export function HeroSection() {
         >
           <Button onClick={handleCreateEvent}>
             <PartyPopper className="w-4 h-4 md:w-5 md:h-5" />
-            Crear Evento
+            {t('landing.hero.createEvent')}
           </Button>
 
           <Button onClick={handleJoinEvent} variant="outline">
             <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
-            Ingresar a Evento
+            {t('landing.hero.joinEvent')}
           </Button>
         </motion.div>
 
@@ -164,7 +165,7 @@ export function HeroSection() {
               className="text-xs md:text-sm"
               style={{ color: 'var(--color-on-surface-muted)' }}
             >
-              Eventos creados
+              {t('landing.hero.stats.eventsCreated')}
             </p>
           </div>
           <div 
@@ -182,7 +183,7 @@ export function HeroSection() {
               className="text-xs md:text-sm"
               style={{ color: 'var(--color-on-surface-muted)' }}
             >
-              Invitados por evento
+              {t('landing.hero.stats.guestsPerEvent')}
             </p>
           </div>
           <div 
@@ -200,7 +201,7 @@ export function HeroSection() {
               className="text-xs md:text-sm"
               style={{ color: 'var(--color-on-surface-muted)' }}
             >
-              Satisfacción
+              {t('landing.hero.stats.satisfaction')}
             </p>
           </div>
         </motion.div>

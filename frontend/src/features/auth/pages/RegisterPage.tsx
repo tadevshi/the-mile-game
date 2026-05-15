@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '@/shared/components/Button';
@@ -9,6 +10,7 @@ import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 type PasswordStrength = 'weak' | 'medium' | 'strong';
 
 export function RegisterPage() {
+  const { t } = useTranslation();
   const { register, isLoading, error, clearError, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
@@ -65,26 +67,26 @@ export function RegisterPage() {
 
     // Name validation
     if (!formData.name.trim()) {
-      errors.name = 'El nombre es requerido';
+      errors.name = t('auth.name') + ' ' + t('common.required').toLowerCase();
     }
 
     // Email validation
     if (!formData.email.trim()) {
-      errors.email = 'El email es requerido';
+      errors.email = t('auth.email') + ' ' + t('common.required').toLowerCase();
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Ingresa un email válido';
+      errors.email = t('auth.email') + ' ' + t('errors.notFound').toLowerCase();
     }
 
     // Password validation
     if (!formData.password) {
-      errors.password = 'La contraseña es requerida';
+      errors.password = t('auth.password') + ' ' + t('common.required').toLowerCase();
     } else if (formData.password.length < 6) {
-      errors.password = 'La contraseña debe tener al menos 6 caracteres';
+      errors.password = t('auth.password') + ' ' + t('auth.minLength').toLowerCase();
     }
 
     // Confirm password validation
     if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = 'Las contraseñas no coinciden';
+      errors.confirmPassword = t('auth.passwordsMismatch');
     }
 
     setValidationErrors(errors);
@@ -123,11 +125,11 @@ export function RegisterPage() {
   const getStrengthLabel = (strength: PasswordStrength): string => {
     switch (strength) {
       case 'weak':
-        return 'Débil';
+        return t('auth.weak');
       case 'medium':
-        return 'Media';
+        return t('auth.medium');
       case 'strong':
-        return 'Fuerte';
+        return t('auth.strong');
     }
   };
 
@@ -141,8 +143,8 @@ export function RegisterPage() {
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-display text-[var(--color-accent)] mb-2">EventHub</h1>
-            <p className="text-gray-500 dark:text-gray-400">Crear Cuenta</p>
+            <h1 className="text-3xl font-display text-[var(--color-accent)] mb-2">{t('common.appName')}</h1>
+            <p className="text-gray-500 dark:text-gray-400">{t('auth.register')}</p>
           </div>
 
           {/* Error Alert */}
@@ -162,7 +164,7 @@ export function RegisterPage() {
             {/* Name Field */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Nombre Completo
+                {t('auth.name')}
               </label>
               <input
                 id="name"
@@ -186,7 +188,7 @@ export function RegisterPage() {
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                {t('auth.email')}
               </label>
               <input
                 id="email"
@@ -210,7 +212,7 @@ export function RegisterPage() {
             {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Contraseña
+                {t('auth.password')}
               </label>
               <input
                 id="password"
@@ -275,7 +277,7 @@ export function RegisterPage() {
             {/* Confirm Password Field */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirmar Contraseña
+                {t('auth.confirmPassword')}
               </label>
               <input
                 id="confirmPassword"
@@ -307,7 +309,7 @@ export function RegisterPage() {
               ) : (
                 <span className="flex items-center justify-center gap-2">
                   <UserPlus className="w-5 h-5" />
-                  Crear Cuenta
+                  {t('auth.register')}
                 </span>
               )}
             </Button>
@@ -316,9 +318,9 @@ export function RegisterPage() {
           {/* Link to Login */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              ¿Ya tienes cuenta?{' '}
+              {t('auth.hasAccount')}{' '}
               <Link to="/login" className="text-[var(--color-primary)] hover:text-[var(--color-accent)] font-medium">
-                Inicia sesión
+                {t('auth.login')}
               </Link>
             </p>
           </div>

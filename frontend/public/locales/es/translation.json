@@ -15,65 +15,160 @@
     "search": "Buscar",
     "noResults": "No hay resultados",
     "required": "Requerido",
-    "optional": "Opcional"
+    "optional": "Opcional",
+    "rememberMe": "Recordarme"
   },
   "auth": {
     "login": "Iniciar sesión",
     "register": "Crear cuenta",
     "logout": "Cerrar sesión",
     "email": "Email",
+    "name": "Nombre completo",
     "password": "Contraseña",
     "confirmPassword": "Confirmar contraseña",
     "forgotPassword": "¿Olvidaste tu contraseña?",
     "noAccount": "¿No tenés cuenta?",
     "hasAccount": "¿Ya tenés cuenta?",
     "loginError": "Error al iniciar sesión",
-    "registerSuccess": "Cuenta creada exitosamente"
+    "registerSuccess": "Cuenta creada exitosamente",
+    "nameRequired": "El nombre es requerido",
+    "minLength": "debe tener al menos 6 caracteres",
+    "passwordsMismatch": "Las contraseñas no coinciden",
+    "weak": "Débil",
+    "medium": "Media",
+    "strong": "Fuerte"
+  },
+  "dashboard": {
+    "title": "Mis Eventos",
+    "eventsCount": "{{count}} evento creado",
+    "eventsCount_plural": "{{count}} eventos creados",
+    "refresh": "Actualizar",
+    "logout": "Cerrar sesión",
+    "createEvent": "Crear nuevo evento",
+    "empty": {
+      "title": "No tenés eventos aún",
+      "subtitle": "Crea tu primer evento y comienza a organizar experiencias únicas para tus invitados.",
+      "cta": "Creá tu primer evento",
+      "tipsTitle": "¿Qué podés crear?",
+      "tip1": "Cumpleaños con quiz interactivo",
+      "tip2": "Eventos corporativos con carteleras",
+      "tip3": "Bodas con caja de sorpresas",
+      "tip4": "Cualquier celebración especial"
+    },
+    "error": {
+      "retry": "Reintentar"
+    }
+  },
+  "nav": {
+    "home": "Inicio",
+    "create": "Crear",
+    "explore": "Explorar",
+    "profile": "Perfil",
+    "dashboard": "Dashboard"
   },
   "landing": {
     "hero": {
+      "tagline": "Plataforma de eventos interactivos",
       "title": "Creá experiencias memorables",
-      "subtitle": "La mejor plataforma para crear eventos interactivos con quiz, ranking y carteleras de fotos",
-      "cta": "Crear mi evento",
-      "enterCode": "Ingresar código de evento"
+      "subtitle": "Organizá eventos únicos con quizzes interactivos, carteleras de fotos y cajas secretas. Todo en un solo lugar, fácil de compartir.",
+      "createEvent": "Crear Evento",
+      "joinEvent": "Ingresar a Evento",
+      "stats": {
+        "eventsCreated": "Eventos creados",
+        "guestsPerEvent": "Invitados por evento",
+        "satisfaction": "Satisfacción"
+      }
     },
     "features": {
-      "title": "Todo lo que necesitás",
+      "title": "Todo lo que necesitás para tu evento",
+      "subtitle": "Herramientas interactivas diseñadas para hacer tu celebración única y memorable.",
+      "characteristics": "Características",
+      "includedAllPlans": "✓ Incluido en todos los planes",
       "quiz": {
-        "title": "Quiz personalizado",
-        "description": "Creá preguntas sobre el festejado y descubrí quién lo conoce mejor"
+        "title": "Quiz Interactivo",
+        "description": "Preguntas personalizadas para conocer a tu cumpleañero/a. Ranking en tiempo real."
       },
       "corkboard": {
-        "title": "Cartelera de fotos",
-        "description": "Tus invitados suben fotos y mensajes en tiempo real"
+        "title": "Cartelera de Fotos",
+        "description": "Invitados comparten fotos y mensajes en un corcho digital colaborativo."
       },
-      "secretBox": {
-        "title": "Caja secreta",
-        "description": "Recibí sorpresas de quienes no pueden estar"
-      },
-      "ranking": {
-        "title": "Ranking en vivo",
-        "description": "Competencia amistosa con podium 3D"
+      "secret": {
+        "title": "Caja Secreta",
+        "description": "Sorpresas de invitados remotos que se revelan en el momento perfecto."
       }
     },
     "pricing": {
-      "title": "Planes y precios",
+      "title": "Simple y transparente",
+      "subtitle": "Empezá gratis, actualizá cuando quieras",
+      "prices": "Precios",
+      "mostPopular": "⭐ Más popular",
       "free": {
         "name": "Free",
-        "description": "Ideal para probar EventHub"
+        "description": "Ideal para probar EventHub con eventos pequeños",
+        "price": "$0",
+        "priceSuffix": "gratis para siempre",
+        "cta": "Empezar gratis",
+        "features": {
+          "upTo20Guests": "Hasta 20 invitados por evento",
+          "1ActiveEvent": "1 evento activo",
+          "basicQuiz": "Quiz básico (10 preguntas)",
+          "photoBoard": "Cartelera de fotos",
+          "liveRanking": "Ranking en tiempo real",
+          "basicAnalytics": "Analytics básicos",
+          "secretBox": "Caja Secreta",
+          "videoPostcards": "Videos en postal",
+          "prioritySupport": "Soporte prioritario",
+          "unlimitedEvents": "Eventos ilimitados"
+        }
       },
       "premium": {
         "name": "Premium",
-        "price": "$4.99 USD",
-        "description": "Para eventos memorables"
-      }
+        "description": "Para celebraciones memorables sin límites",
+        "price": "$4.99",
+        "cta": "Desbloquear Premium",
+        "features": {
+          "unlimitedGuests": "Invitados ilimitados",
+          "unlimitedEvents": "Eventos ilimitados",
+          "fullQuiz": "Quiz completo (preguntas ilimitadas)",
+          "photoBoardVideos": "Cartelera de fotos + videos",
+          "liveRanking": "Ranking en tiempo real",
+          "advancedAnalytics": "Analytics avanzados",
+          "secretBox": "Caja Secreta",
+          "videoPostcards": "Videos en postal",
+          "prioritySupport": "Soporte prioritario",
+          "customThemes": "Temas personalizados"
+        }
+      },
+      "trustSignals": "Sin tarjeta de crédito requerida · Cancela cuando quieras"
+    },
+    "joinSection": {
+      "title": "Unite a la celebración",
+      "subtitle": "¿Ya tenés un código de evento?",
+      "description": "Ingresá el código que recibiste para unirte a la celebración",
+      "placeholder": "Ej: cumple-ana-2026",
+      "search": "Buscar",
+      "searching": "Buscando...",
+      "found": "¡Encontrado!",
+      "noCode": "¿No tenés un código?",
+      "createOwnEvent": "Creá tu propio evento",
+      "helpText": "El código es la última parte de la URL del evento",
+      "errorNoCode": "Ingresá un código de evento",
+      "errorNotFound": "Evento no encontrado. Verificá el código e intentá de nuevo.",
+      "errorConnection": "Error de conexión. Intentá de nuevo."
     },
     "footer": {
-      "about": "Acerca de",
+      "product": "Producto",
+      "legal": "Legal",
+      "functions": "Funciones",
+      "demo": "Demo",
+      "faq": "FAQ",
+      "privacy": "Política de Privacidad",
+      "terms": "Términos de Servicio",
       "contact": "Contacto",
-      "privacy": "Privacidad",
-      "terms": "Términos",
-      "madeWith": "Hecho con ❤️ para celebraciones"
+      "about": "Sobre nosotros",
+      "rights": "Todos los derechos reservados.",
+      "madeWith": "Hecho con ❤️ para celebraciones memorables",
+      "description": "Creá experiencias memorables para tus celebraciones. Eventos interactivos con quizzes, carteleras de fotos y cajas secretas."
     }
   },
   "quiz": {

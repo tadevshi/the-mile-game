@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, AlertCircle, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/shared/lib/api';
 import { useLandingStore } from '../store/landingStore';
 import { useAuthStore } from '@/features/auth/store/authStore';
 
 export function EventCodeForm() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const { eventCode, setEventCode, isValidatingCode, codeError, setCodeValidation, trackCTA } = useLandingStore();
@@ -26,7 +28,7 @@ export function EventCodeForm() {
     
     const code = eventCode.trim().toLowerCase();
     if (!code) {
-      setCodeValidation(false, 'Ingresá un código de evento');
+      setCodeValidation(false, t('landing.joinSection.errorNoCode'));
       return;
     }
 
@@ -52,9 +54,9 @@ export function EventCodeForm() {
                         error?.message?.includes('No existe');
       
       if (isNotFound) {
-        setCodeValidation(false, 'Evento no encontrado. Verificá el código e intentá de nuevo.');
+        setCodeValidation(false, t('landing.joinSection.errorNotFound'));
       } else {
-        setCodeValidation(false, 'Error de conexión. Intentá de nuevo.');
+        setCodeValidation(false, t('landing.joinSection.errorConnection'));
       }
     }
   };
@@ -84,16 +86,16 @@ export function EventCodeForm() {
             className="inline-block px-4 py-1 text-sm font-medium rounded-full mb-4"
             style={{ background: 'var(--surface-container)', color: 'var(--primary)' }}
           >
-            Únete a la celebración
+            {t('landing.joinSection.title')}
           </motion.span>
           <h2 
             className="text-2xl md:text-3xl mb-3"
             style={{ fontFamily: 'var(--font-serif)', color: 'var(--on-background)' }}
           >
-            ¿Ya tenés un código de evento?
+            {t('landing.joinSection.subtitle')}
           </h2>
           <p style={{ color: 'var(--on-surface-variant)' }}>
-            Ingresá el código que recibiste para unirte a la celebración
+            {t('landing.joinSection.description')}
           </p>
         </motion.div>
 
@@ -116,7 +118,7 @@ export function EventCodeForm() {
               type="text"
               value={eventCode}
               onChange={handleChange}
-              placeholder="Ej: cumple-ana-2026"
+              placeholder={t('landing.joinSection.placeholder')}
               disabled={isValidatingCode || isSuccess}
               className={`
                 w-full pl-12 pr-32 py-4 text-lg rounded-full
@@ -153,17 +155,17 @@ export function EventCodeForm() {
                 {isValidatingCode ? (
                   <span className="flex items-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Buscando...
+                    {t('landing.joinSection.searching')}
                   </span>
                 ) : isSuccess ? (
                   <span className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4" />
-                    ¡Encontrado!
+                    {t('landing.joinSection.found')}
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
                     <Search className="w-4 h-4" />
-                    Buscar
+                    {t('landing.joinSection.search')}
                   </span>
                 )}
               </button>
@@ -186,7 +188,7 @@ export function EventCodeForm() {
           {/* Help text */}
           {!codeError && !isSuccess && (
             <p className="mt-3 text-xs text-center" style={{ color: 'var(--on-surface-variant)' }}>
-              El código es la última parte de la URL del evento
+              {t('landing.joinSection.helpText')}
             </p>
           )}
         </motion.form>
@@ -200,14 +202,14 @@ export function EventCodeForm() {
           className="mt-8 text-center"
         >
           <p className="text-sm mb-2" style={{ color: 'var(--on-surface-variant)' }}>
-            ¿No tenés un código?
+            {t('landing.joinSection.noCode')}
           </p>
           <button
             onClick={handleCreateEvent}
             className="font-medium text-sm underline underline-offset-4 transition-colors"
             style={{ color: 'var(--primary)' }}
           >
-            Creá tu propio evento
+            {t('landing.joinSection.createOwnEvent')}
           </button>
         </motion.div>
       </div>
