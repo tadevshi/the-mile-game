@@ -2,61 +2,6 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-interface PricingFeature {
-  text: string;
-  included: boolean;
-}
-
-interface PricingTier {
-  name: string;
-  price?: string;
-  description: string;
-  features: PricingFeature[];
-  cta: string;
-  ctaVariant: 'primary' | 'outline';
-  popular?: boolean;
-}
-
-const tiers: PricingTier[] = [
-  {
-    name: 'Free',
-    description: 'Ideal para probar EventHub con eventos pequeños',
-    features: [
-      { text: 'Hasta 20 invitados por evento', included: true },
-      { text: '1 evento activo', included: true },
-      { text: 'Quiz básico (10 preguntas)', included: true },
-      { text: 'Cartelera de fotos', included: true },
-      { text: 'Ranking en tiempo real', included: true },
-      { text: 'Analytics básicos', included: false },
-      { text: 'Caja Secreta', included: false },
-      { text: 'Videos en postal', included: false },
-      { text: 'Soporte prioritario', included: false },
-      { text: 'Eventos ilimitados', included: false },
-    ],
-    cta: 'Empezar gratis',
-    ctaVariant: 'outline',
-  },
-  {
-    name: 'Premium',
-    description: 'Para celebraciones memorables sin límites',
-    features: [
-      { text: 'Invitados ilimitados', included: true },
-      { text: 'Eventos ilimitados', included: true },
-      { text: 'Quiz completo (preguntas ilimitadas)', included: true },
-      { text: 'Cartelera de fotos + videos', included: true },
-      { text: 'Ranking en tiempo real', included: true },
-      { text: 'Analytics avanzados', included: true },
-      { text: 'Caja Secreta', included: true },
-      { text: 'Videos en postal', included: true },
-      { text: 'Soporte prioritario', included: true },
-      { text: 'Temas personalizados', included: true },
-    ],
-    cta: 'Desbloquear Premium',
-    ctaVariant: 'primary',
-    popular: true,
-  },
-];
-
 /**
  * PricingTable - Free vs Premium comparison with CTA buttons.
  * Price point: $4.99 USD (user-specified).
@@ -64,15 +9,6 @@ const tiers: PricingTier[] = [
 export function PricingTable() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-
-  const handleCTA = (tier: PricingTier) => {
-    if (tier.name === 'Free') {
-      navigate('/register');
-    } else {
-      // Premium: redirect to register (payment handled separately for MVP)
-      navigate('/register');
-    }
-  };
 
   return (
     <section
@@ -262,7 +198,7 @@ export function PricingTable() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => handleCTA({ name: tier.name } as any)}
+                  onClick={() => navigate('/register')}
                   className={`w-full py-3 rounded-full font-semibold transition-colors ${
                     tier.popular ? '' : 'border-2 hover:opacity-80'
                   }`}
