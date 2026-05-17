@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, AlertCircle, RefreshCw, Globe } from 'lucide-react';
+import { AlertCircle, RefreshCw, Globe } from 'lucide-react';
 import { useWizardStore } from '../store/wizardStore';
 import { api } from '@/shared/lib/api';
+import { CustomDatePicker } from '@/shared/components/DatePicker';
 
 function generateSlug(name: string): string {
   const base = name
@@ -129,25 +130,17 @@ export function Step1_BasicInfo() {
           >
             Fecha del evento *
           </label>
-          <div className="relative">
-            <input
-              id="date"
-              name="date"
-              type="date"
-              value={formData.date}
-              onChange={handleChange}
-              className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${
-                validationErrors.date
-                  ? 'border-[var(--color-error)] focus:border-[var(--color-error)]'
-                  : 'border-[var(--color-border)] focus:border-[var(--color-primary)]'
-              }`}
-              style={{ backgroundColor: 'color-mix(in srgb, var(--color-surface) 70%, transparent)' }}
-            />
-            <Calendar 
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" 
-              style={{ color: 'var(--color-on-surface-muted)' }} 
-            />
-          </div>
+          <CustomDatePicker
+            value={formData.date}
+            onChange={(date) => {
+              const dateString = date ? date.toISOString().split('T')[0] : '';
+              updateFormData({ date: dateString });
+              if (validationErrors.date) {
+                setValidationErrors({ ...validationErrors, date: '' });
+              }
+            }}
+            error={validationErrors.date}
+          />
           {validationErrors.date && (
             <p 
               className="mt-1 text-sm flex items-center gap-1"
