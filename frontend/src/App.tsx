@@ -4,7 +4,7 @@ import { RegisterPage, QuizPage, ThankYouPage } from '@features/quiz';
 import { RankingPage } from '@features/ranking';
 import { CorkboardPage, SecretBoxPage } from '@features/postcards';
 import { AdminPage } from '@features/admin';
-import { LoginPage, RegisterPage as AuthRegisterPage } from '@/features/auth';
+import { LoginPage, RegisterPage as AuthRegisterPage, ForgotPasswordPage, ResetPasswordPage } from '@/features/auth';
 import { DashboardPage, CreateEventPage } from '@/features/dashboard';
 import { LandingPage } from '@/features/landing';
 import { ProtectedRoute, ErrorBoundary, EventLayout, EventLoader, useFeatureEnabled } from '@/shared';
@@ -208,6 +208,23 @@ function LegacyRoutes() {
         element={
           <AnimatedPage variants={slideUpVariants}>
             <AuthRegisterPage />
+          </AnimatedPage>
+        }
+      />
+
+      <Route
+        path="/forgot-password"
+        element={
+          <AnimatedPage variants={slideUpVariants}>
+            <ForgotPasswordPage />
+          </AnimatedPage>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <AnimatedPage variants={slideUpVariants}>
+            <ResetPasswordPage />
           </AnimatedPage>
         }
       />

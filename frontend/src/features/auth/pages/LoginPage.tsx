@@ -205,9 +205,9 @@ export function LoginPage() {
               </Link>
             </p>
             <p className="text-sm text-gray-500">
-              <a href="#" className="hover:text-[var(--color-primary)] transition-colors">
+              <Link to="/forgot-password" className="text-[var(--color-primary)] hover:text-[var(--color-accent)] font-medium transition-colors">
                 {t('auth.forgotPassword')}
-              </a>
+              </Link>
             </p>
           </div>
         </div>

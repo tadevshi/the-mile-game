@@ -36,7 +36,18 @@
     "passwordsMismatch": "Las contraseñas no coinciden",
     "weak": "Débil",
     "medium": "Media",
-    "strong": "Fuerte"
+    "strong": "Fuerte",
+    "forgotPasswordTitle": "Recuperar contraseña",
+    "forgotPasswordSubtitle": "Ingresá tu email y te enviaremos un link para restablecer tu contraseña",
+    "sendResetLink": "Enviar link",
+    "resetEmailSent": "Si tu email está registrado, recibirás instrucciones para recuperar tu contraseña.",
+    "resetPasswordTitle": "Nueva contraseña",
+    "newPassword": "Nueva contraseña",
+    "confirmNewPassword": "Confirmar nueva contraseña",
+    "passwordResetSuccess": "Tu contraseña fue actualizada correctamente. Iniciá sesión con tu nueva contraseña.",
+    "invalidOrExpiredToken": "El link de recuperación es inválido o expiró. Solicitá uno nuevo.",
+    "backToLogin": "Volver al inicio de sesión",
+    "resetPassword": "Restablecer contraseña"
   },
   "dashboard": {
     "title": "Mis Eventos",
