@@ -39,6 +39,9 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8081/api/admin/drive/callback}
       DRIVE_ENCRYPTION_KEY: ${DRIVE_ENCRYPTION_KEY:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8081}
     volumes:
       - uploads_data:/app/uploads
     networks:

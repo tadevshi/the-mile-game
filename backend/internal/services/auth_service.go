@@ -329,10 +329,10 @@ func HashPassword(password string) (string, error) {
 
 // Errores del servicio de auth
 var (
-	ErrDuplicateEmail           = errors.New("email already exists")
-	ErrInvalidCredentials       = errors.New("invalid credentials")
-	ErrInvalidToken             = errors.New("invalid or expired token")
-	ErrInvalidRefreshToken      = errors.New("invalid refresh token")
+	ErrDuplicateEmail             = errors.New("email already exists")
+	ErrInvalidCredentials         = errors.New("invalid credentials")
+	ErrInvalidToken               = errors.New("invalid or expired token")
+	ErrInvalidRefreshToken        = errors.New("invalid refresh token")
 	ErrPasswordResetNotConfigured = errors.New("password reset not configured")
-	ErrInvalidResetToken        = errors.New("invalid or expired reset token")
+	ErrInvalidResetToken          = errors.New("invalid or expired reset token")
 )
