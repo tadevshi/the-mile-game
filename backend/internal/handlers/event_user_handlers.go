@@ -33,7 +33,7 @@ type EventHandler struct {
 }
 
 // NewEventHandler creates a new event handler
-func NewEventHandler(eventRepo *repository.EventRepository, collabRepo CollaboratorEventIDsGetter) *EventHandler {
+func NewEventHandler(eventRepo EventRepo, collabRepo CollaboratorEventIDsGetter) *EventHandler {
 	return &EventHandler{
 		eventRepo:  eventRepo,
 		collabRepo: collabRepo,

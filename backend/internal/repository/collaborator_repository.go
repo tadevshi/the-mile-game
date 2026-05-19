@@ -18,7 +18,7 @@ func NewCollaboratorRepository(db *sql.DB) *CollaboratorRepository {
 	return &CollaboratorRepository{db: db}
 }
 
-// Create agrega un colaborador a un evento
+// Create agrega un colaborador a un evento. Es idempotente: si ya existe, retorna el existente.
 func (r *CollaboratorRepository) Create(eventID, userID uuid.UUID) (*models.Collaborator, error) {
 	collaborator := &models.Collaborator{
 		ID:        uuid.New(),
@@ -38,7 +38,23 @@ func (r *CollaboratorRepository) Create(eventID, userID uuid.UUID) (*models.Coll
 		return nil, err
 	}
 
-	return collaborator, nil
+	// Retornar el colaborador existente o recién creado
+	existing, err := r.GetByEventAndUser(eventID, userID)
+	if err != nil {
+		return collaborator, nil // fallback: retornar el que intentamos crear
+	}
+	return existing, nil
+}
+
+// GetByEventAndUser obtiene un colaborador específico
+func (r *CollaboratorRepository) GetByEventAndUser(eventID, userID uuid.UUID) (*models.Collaborator, error) {
+	var c models.Collaborator
+	query := `SELECT id, event_id, user_id, created_at FROM event_collaborators WHERE event_id = $1 AND user_id = $2`
+	err := r.db.QueryRow(query, eventID, userID).Scan(&c.ID, &c.EventID, &c.UserID, &c.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
 }
 
 // ListByEvent obtiene todos los colaboradores de un evento con datos de usuario

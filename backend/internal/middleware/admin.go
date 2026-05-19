@@ -14,7 +14,8 @@ type CollaboratorChecker interface {
 }
 
 // AdminMiddleware verifica que el usuario autenticado sea owner del evento
-// o un colaborador con permisos de administración
+// o un colaborador con permisos de administración.
+// Todos los colaboradores tienen acceso completo de admin (full admin).
 func AdminMiddleware(collabRepo CollaboratorChecker) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Obtener user_id del contexto (seteado por AuthMiddleware)
@@ -42,7 +43,7 @@ func AdminMiddleware(collabRepo CollaboratorChecker) gin.HandlerFunc {
 			return
 		}
 
-		// Verificar si es colaborador
+		// Verificar si es colaborador (todos los colaboradores tienen full admin)
 		isCollaborator, err := collabRepo.Exists(eventModel.ID, currentUserID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify permissions"})
