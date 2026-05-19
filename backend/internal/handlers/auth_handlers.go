@@ -118,3 +118,47 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	// El servidor solo confirma el logout
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
 }
+
+// ForgotPassword solicita un email de recuperación de password
+// POST /api/auth/forgot-password
+// Siempre retorna 200 por seguridad (no revelar si el email existe)
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var req models.ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// El servicio maneja la lógica de buscar usuario y enviar email
+	// Si el email no existe, retorna nil error (seguridad)
+	_, err := h.authService.RequestPasswordReset(req.Email)
+	if err != nil {
+		// Loguear error pero no revelar al cliente
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process request"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "If that email exists, a reset link has been sent"})
+}
+
+// ResetPassword resetea el password usando un token válido
+// POST /api/auth/reset-password
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req models.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.authService.ResetPassword(req.Token, req.Password)
+	if err != nil {
+		if err == services.ErrInvalidResetToken {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired reset token"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reset password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password successfully reset"})
+}
