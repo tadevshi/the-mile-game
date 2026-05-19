@@ -1,7 +1,7 @@
 # AGENTS.md - EventHub
 
 > Documento de contexto para agentes de IA y colaboradores humanos.
-> Última actualización: 2026-03-20 (Phase 3 Growth & Polish mergeado)
+> Última actualización: 2026-05-19 (Password Recovery + Resend Integration)
 
 ---
 
@@ -325,10 +325,15 @@ El Theme Marketplace ofrece 6 presets pre-diseñados como punto de partida.
 - [x] **Video Postcards (Phase 3)** — Upload videos up to 30s, ffmpeg thumbnails, HTML5 player
 - [x] **PWA Support (Phase 3)** — vite-plugin-pwa, manifest, service worker, install prompt
 - [x] **i18n (Phase 3)** — react-i18next with ES/EN translations, language switcher
-- [x] **Testing**:
+  - [x] **Testing**:
   - [x] Playwright E2E (35/38 passing)
   - [x] Vitest unit tests frontend
   - [x] Go tests backend 100% coverage
+  - [x] **Password Recovery** — Forgot password / reset password flow with email (Resend integration)
+  - [x] **i18n Fix** — Language switcher wired up to all landing, auth, and dashboard pages
+  - [x] **Google Drive Backup MVP** — OAuth2, admin panel, backup jobs system
+  - [x] **Custom Date Picker** — react-datepicker in event wizard (replaced native input)
+  - [x] **Frontend .env.example** — Documented Vite environment variables
 
 ### Pendiente — Phase 3 Growth & Polish
 
@@ -339,6 +344,7 @@ El Theme Marketplace ofrece 6 presets pre-diseñados como punto de partida.
 ### Pendiente — Deuda Técnica
 
 - [ ] Gift Box animation (Secret Box reveal)
+- [ ] Real email provider (Resend is configured but needs verified domain in production)
 
 ---
 
@@ -441,9 +447,27 @@ EventHub usa JWT Bearer tokens para autenticación.
 
 1. **Registration**: User creates account at `/register`
 2. **Login**: User authenticates at `/login` → receives JWT tokens
-3. **Dashboard**: Authenticated users see their events at `/dashboard`
-4. **Create Event**: Users create events at `/events/new`
-5. **Event Admin**: Event owners manage via `/e/:slug/admin`
+3. **Password Recovery**: User requests reset at `/forgot-password` → receives email with reset link → sets new password at `/reset-password?token=xxx`
+4. **Dashboard**: Authenticated users see their events at `/dashboard`
+5. **Create Event**: Users create events at `/events/new`
+6. **Event Admin**: Event owners manage via `/e/:slug/admin`
+
+### Password Recovery
+
+Implemented password recovery flow with email support:
+
+| Step | Endpoint | Description |
+|------|----------|-------------|
+| Request reset | `POST /api/auth/forgot-password` | Sends reset email (Resend in prod, console log in dev) |
+| Reset password | `POST /api/auth/reset-password` | Validates token and updates password |
+
+**Security**:
+- Tokens: crypto-random 32 bytes, SHA-256 hashed before storage
+- Expiry: 15 minutes, single-use
+- Generic responses prevent email enumeration
+- Rate limiting: 1 request per email per minute
+
+**Email**: Uses Resend API in production (configurable via `RESEND_API_KEY`), falls back to console logging in development.
 
 ### Auth Store
 
@@ -470,11 +494,13 @@ Unauthenticated users are redirected to `/login`.
 ### Authentication (JWT)
 
 ```
-POST /api/auth/register    # Register new user (name, email, password)
-POST /api/auth/login       # Login → returns JWT access + refresh tokens
-POST /api/auth/refresh    # Refresh access token using refresh token
-GET  /api/auth/me         # Get current authenticated user
-POST /api/auth/logout     # Logout and revoke refresh token
+POST /api/auth/register         # Register new user (name, email, password)
+POST /api/auth/login            # Login → returns JWT access + refresh tokens
+POST /api/auth/refresh          # Refresh access token using refresh token
+GET  /api/auth/me              # Get current authenticated user
+POST /api/auth/logout          # Logout and revoke refresh token
+POST /api/auth/forgot-password  # Request password reset email
+POST /api/auth/reset-password   # Reset password with token
 ```
 
 ### Events & Users
@@ -685,6 +711,12 @@ REFRESH_TOKEN_EXPIRY_DAYS=7
 
 # CORS
 CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8080
+
+# Email (Resend) — Password Recovery
+# Dejar vacío en desarrollo para usar modo consola
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+RESEND_FROM_EMAIL=noreply@tudominio.com
+APP_BASE_URL=http://localhost:8081
 
 # Secret Box
 # El token se genera por evento desde el panel admin y se valida vía X-Secret-Token
