@@ -1,6 +1,9 @@
 package services
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -15,9 +18,12 @@ import (
 // AuthService maneja la lógica de autenticación
 type AuthService struct {
 	userRepo        *repository.UserRepository
+	resetTokenRepo  *repository.ResetTokenRepository
+	emailSender     EmailSender
 	jwtSecret       []byte
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
+	resetTokenTTL   time.Duration // e.g., 1 hour
 }
 
 // NewAuthService crea un nuevo servicio de autenticación
@@ -27,7 +33,16 @@ func NewAuthService(userRepo *repository.UserRepository, jwtSecret string) *Auth
 		jwtSecret:       []byte(jwtSecret),
 		accessTokenTTL:  15 * time.Minute,   // 15 minutos
 		refreshTokenTTL: 7 * 24 * time.Hour, // 7 días
+		resetTokenTTL:   1 * time.Hour,      // 1 hora
 	}
+}
+
+// NewAuthServiceWithReset crea un nuevo AuthService con soporte para reset de password
+func NewAuthServiceWithReset(userRepo *repository.UserRepository, resetTokenRepo *repository.ResetTokenRepository, emailSender EmailSender, jwtSecret string) *AuthService {
+	svc := NewAuthService(userRepo, jwtSecret)
+	svc.resetTokenRepo = resetTokenRepo
+	svc.emailSender = emailSender
+	return svc
 }
 
 // customClaims estructura de claims JWT personalizada
@@ -195,6 +210,115 @@ func (s *AuthService) validateRefreshToken(tokenString string) (*models.JWTClaim
 	return nil, errors.New("invalid token")
 }
 
+// RequestPasswordReset genera un token de reset y lo envía por email
+// Retorna el token en bruto (paradevelopment/debug) y error
+func (s *AuthService) RequestPasswordReset(email string) (string, error) {
+	// Buscar usuario por email (si no existe, no retornar error - seguridad)
+	user, err := s.userRepo.GetByEmail(email)
+	if err != nil {
+		// No revelar si el email existe o no
+		if err == repository.ErrUserNotFound {
+			return "", nil
+		}
+		return "", err
+	}
+
+	// Verificar que el servicio tiene repositorio de reset y email sender
+	if s.resetTokenRepo == nil || s.emailSender == nil {
+		return "", ErrPasswordResetNotConfigured
+	}
+
+	// Limpiar tokens expirados o usados previamente
+	_ = s.resetTokenRepo.DeleteExpiredByUserID(user.ID)
+
+	// Generar token (32 bytes aleatorios, URL-safe base64)
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return "", fmt.Errorf("failed to generate token: %w", err)
+	}
+	rawToken := base64.URLEncoding.EncodeToString(tokenBytes)
+
+	// Hashear para almacenamiento (SHA256 hex)
+	hash := sha256.Sum256([]byte(rawToken))
+	tokenHash := fmt.Sprintf("%x", hash)
+
+	// Crear registro en base de datos
+	resetToken := &models.PasswordResetToken{
+		ID:        uuid.New(),
+		UserID:    user.ID,
+		TokenHash: tokenHash,
+		ExpiresAt: time.Now().Add(s.resetTokenTTL),
+		Used:      false,
+		CreatedAt: time.Now(),
+	}
+	if err := s.resetTokenRepo.Create(resetToken); err != nil {
+		return "", fmt.Errorf("failed to store reset token: %w", err)
+	}
+
+	// Construir URL de reset (el frontend reconstruye la URL completa)
+	// Aquí solo generamos el token raw; el frontend/army añade el token a la URL
+	if err := s.emailSender.SendPasswordReset(email, rawToken); err != nil {
+		return "", fmt.Errorf("failed to send reset email: %w", err)
+	}
+
+	return rawToken, nil
+}
+
+// ResetPassword valida el token y actualiza el password del usuario
+func (s *AuthService) ResetPassword(rawToken, newPassword string) error {
+	if s.resetTokenRepo == nil {
+		return ErrPasswordResetNotConfigured
+	}
+
+	// Hashear el token para buscarlo
+	hash := sha256.Sum256([]byte(rawToken))
+	tokenHash := fmt.Sprintf("%x", hash)
+
+	// Buscar token
+	token, err := s.resetTokenRepo.FindByTokenHash(tokenHash)
+	if err != nil {
+		if err == repository.ErrResetTokenNotFound {
+			return ErrInvalidResetToken
+		}
+		return err
+	}
+
+	// Verificar que no fue usado
+	if token.Used {
+		return ErrInvalidResetToken
+	}
+
+	// Verificar que no expiró
+	if time.Now().After(token.ExpiresAt) {
+		return ErrInvalidResetToken
+	}
+
+	// Obtener usuario
+	user, err := s.userRepo.GetByID(token.UserID)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Hashear nuevo password con bcrypt
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	// Actualizar password en base de datos (directo en userRepo)
+	if err := s.userRepo.UpdatePassword(user.ID, string(passwordHash)); err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	// Marcar token como usado
+	if err := s.resetTokenRepo.MarkUsed(token.ID); err != nil {
+		// No fallar si no se puede marcar - el password ya fue cambiado
+		// El token expirará eventualmente
+	}
+
+	return nil
+}
+
 // HashPassword hashea un password usando bcrypt (útil para scripts de admin)
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -203,8 +327,10 @@ func HashPassword(password string) (string, error) {
 
 // Errores del servicio de auth
 var (
-	ErrDuplicateEmail      = errors.New("email already exists")
-	ErrInvalidCredentials  = errors.New("invalid credentials")
-	ErrInvalidToken        = errors.New("invalid or expired token")
-	ErrInvalidRefreshToken = errors.New("invalid refresh token")
+	ErrDuplicateEmail           = errors.New("email already exists")
+	ErrInvalidCredentials       = errors.New("invalid credentials")
+	ErrInvalidToken             = errors.New("invalid or expired token")
+	ErrInvalidRefreshToken      = errors.New("invalid refresh token")
+	ErrPasswordResetNotConfigured = errors.New("password reset not configured")
+	ErrInvalidResetToken        = errors.New("invalid or expired reset token")
 )

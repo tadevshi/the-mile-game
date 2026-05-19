@@ -104,6 +104,27 @@ func (r *UserRepository) VerifyPassword(user *models.User, password string) bool
 	return err == nil
 }
 
+// UpdatePassword actualiza el password hasheado de un usuario
+func (r *UserRepository) UpdatePassword(userID uuid.UUID, passwordHash string) error {
+	query := `
+		UPDATE users
+		SET password_hash = $1
+		WHERE id = $2
+	`
+	result, err := r.db.Exec(query, passwordHash, userID)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
 // ErrDuplicateEmail error cuando el email ya existe
 var ErrDuplicateEmail = errors.New("email already exists")
 

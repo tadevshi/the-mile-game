@@ -78,6 +78,7 @@ func main() {
 	}
 	postcardRepo := repository.NewPostcardRepository(db, uploadPath)
 	userRepo := repository.NewUserRepository(db)
+	resetTokenRepo := repository.NewResetTokenRepository(db)
 	eventRepo := repository.NewEventRepository(db)
 	quizQuestionRepo := repository.NewQuizQuestionRepository(db)
 	themeRepo := repository.NewThemeRepository(db)
@@ -89,6 +90,8 @@ func main() {
 		log.Fatal("JWT_SECRET environment variable is required")
 	}
 	authService := services.NewAuthService(userRepo, jwtSecret)
+	emailSender := services.NewConsoleEmailSender()
+	authServiceWithReset := services.NewAuthServiceWithReset(userRepo, resetTokenRepo, emailSender, jwtSecret)
 	themeService := services.NewThemeService(themeRepo, eventRepo)
 
 	// Google Drive backup configuration
@@ -143,7 +146,7 @@ func main() {
 		handler = handlers.NewHandler(playerRepo, quizRepo, quizQuestionRepo, postcardRepo, hub, uploadsDir)
 	}
 
-	authHandler := handlers.NewAuthHandler(authService)
+	authHandler := handlers.NewAuthHandler(authServiceWithReset)
 	themeHandler := handlers.NewThemeHandler(themeService)
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
 	adminEventHandler := handlers.NewAdminEventHandler(eventRepo, uploadsDir)
@@ -183,6 +186,8 @@ func main() {
 		api.POST("/auth/register", authHandler.Register)
 		api.POST("/auth/login", authHandler.Login)
 		api.POST("/auth/refresh", authHandler.Refresh)
+		api.POST("/auth/forgot-password", authHandler.ForgotPassword)
+		api.POST("/auth/reset-password", authHandler.ResetPassword)
 
 		// Auth (protegido)
 		auth := api.Group("/auth")
