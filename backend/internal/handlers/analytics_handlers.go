@@ -134,7 +134,7 @@ func (h *AnalyticsHandler) GetAnalyticsSummary(c *gin.Context) {
 			COALESCE(ps.total_players, 0) as total_players,
 			COALESCE(qs.quiz_started, 0) as quiz_started,
 			COALESCE(qs.quiz_completed, 0) as quiz_completed,
-			CASE WHEN COALESCE(qs.quiz_started, 0) > 0 THEN ROUND((qs.quiz_completed::float / qs.quiz_started) * 100, 2) ELSE 0 END as quiz_completion_rate,
+			CASE WHEN COALESCE(qs.quiz_started, 0) > 0 THEN ROUND(((qs.quiz_completed::float / qs.quiz_started) * 100)::numeric, 2) ELSE 0 END as quiz_completion_rate,
 			COALESCE(qs.avg_score, 0) as avg_score,
 			qs.min_score,
 			qs.max_score,
