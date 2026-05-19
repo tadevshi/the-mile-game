@@ -21,6 +21,7 @@ import { EventAdminPage } from '@/features/event-admin';
 import { EventLandingPage } from '@/features/event-public';
 import { QuestionEditorPage } from '@/features/admin/pages/QuestionEditorPage';
 import { ThemeEditorPage } from '@/features/admin/pages/ThemeEditorPage';
+import { AcceptInvitationPage } from '@/features/collaborators/pages/AcceptInvitationPage';
 
 // === VARIANTES DE TRANSICIÓN ESPECÍFICAS ===
 
@@ -225,6 +226,16 @@ function LegacyRoutes() {
         element={
           <AnimatedPage variants={slideUpVariants}>
             <ResetPasswordPage />
+          </AnimatedPage>
+        }
+      />
+
+      {/* COLLABORATOR INVITATION ACCEPT */}
+      <Route
+        path="/join/:slug"
+        element={
+          <AnimatedPage variants={fadeVariants}>
+            <AcceptInvitationPage />
           </AnimatedPage>
         }
       />

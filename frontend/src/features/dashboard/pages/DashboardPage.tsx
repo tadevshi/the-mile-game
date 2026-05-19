@@ -119,10 +119,11 @@ export function DashboardPage() {
           >
             <AnimatePresence mode="popLayout">
               {events.map((event) => (
-                <EventCard 
-                  key={event.id} 
+                <EventCard
+                  key={event.id}
                   event={event}
-                  onDelete={deleteEvent}
+                  isOwner={event.owner_id === user?.id}
+                  onDelete={event.owner_id === user?.id ? deleteEvent : undefined}
                 />
               ))}
             </AnimatePresence>
