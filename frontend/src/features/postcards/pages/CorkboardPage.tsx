@@ -12,7 +12,6 @@ import { CorkboardMobileActionBar } from '../components/CorkboardMobileActionBar
 import { GiftBox } from '../components/GiftBox';
 import { PostcardCard } from '../components/PostcardCard';
 import { PostcardModal } from '../components/PostcardModal';
-import { StampLayer } from '../components/StampLayer';
 import { useCorkboardCapture } from '../hooks/useCorkboardCapture';
 import { usePostcards } from '../hooks/usePostcards';
 import type { Postcard } from '../types/postcards.types';
@@ -105,12 +104,7 @@ export function CorkboardPage() {
         className="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.18)_100%)]"
       />
 
-      {/* ── Estampillas decorativas (desktop / proyección) ──────────────────
-          z-[2]: detrás de postcards (z-10) y el header, delante del fondo.
-          Solo visible en pantallas medianas+. Se ocultan en mobile.          ── */}
-      <div className="hidden md:block">
-        <StampLayer />
-      </div>
+      
 
       {/* Botón guardar recuerdo — arriba a la derecha (desktop) */}
       <div data-export-hide="true" className="fixed top-4 right-4 z-40 hidden md:block">
