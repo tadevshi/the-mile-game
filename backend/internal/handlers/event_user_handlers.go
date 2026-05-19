@@ -14,25 +14,33 @@ import (
 // EventRepo defines the repository interface for event operations
 type EventRepo interface {
 	ListByOwner(ownerID uuid.UUID) ([]models.Event, error)
+	ListAccessibleByUser(userID uuid.UUID, collaboratorEventIDs []uuid.UUID) ([]models.Event, error)
 	Create(ownerID uuid.UUID, slug, name, description string,
 		features models.EventFeatures, settings models.EventSettings,
 		startsAt, endsAt *time.Time) (*models.Event, error)
 	Delete(id uuid.UUID) error
 }
 
+// CollaboratorEventIDsGetter defines the operation to get event IDs where user is collaborator
+type CollaboratorEventIDsGetter interface {
+	GetEventsByUser(userID uuid.UUID) ([]uuid.UUID, error)
+}
+
 // EventHandler handles user event endpoints
 type EventHandler struct {
-	eventRepo EventRepo
+	eventRepo  EventRepo
+	collabRepo CollaboratorEventIDsGetter
 }
 
 // NewEventHandler creates a new event handler
-func NewEventHandler(eventRepo *repository.EventRepository) *EventHandler {
+func NewEventHandler(eventRepo *repository.EventRepository, collabRepo CollaboratorEventIDsGetter) *EventHandler {
 	return &EventHandler{
-		eventRepo: eventRepo,
+		eventRepo:  eventRepo,
+		collabRepo: collabRepo,
 	}
 }
 
-// GetUserEvents returns all events owned by the current authenticated user
+// GetUserEvents returns all events owned by or shared with the current authenticated user
 func (h *EventHandler) GetUserEvents(c *gin.Context) {
 	// Get user_id from context (set by AuthMiddleware)
 	userID, exists := c.Get("user_id")
@@ -40,9 +48,16 @@ func (h *EventHandler) GetUserEvents(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
+	currentUserID := userID.(uuid.UUID)
 
-	// Query events by owner
-	events, err := h.eventRepo.ListByOwner(userID.(uuid.UUID))
+	// Get event IDs where user is collaborator
+	var collaboratorEventIDs []uuid.UUID
+	if h.collabRepo != nil {
+		collaboratorEventIDs, _ = h.collabRepo.GetEventsByUser(currentUserID)
+	}
+
+	// Query events by owner or collaborator access
+	events, err := h.eventRepo.ListAccessibleByUser(currentUserID, collaboratorEventIDs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve events"})
 		return

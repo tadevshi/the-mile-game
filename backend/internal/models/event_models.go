@@ -25,10 +25,20 @@ type Event struct {
 	Features       EventFeatures `json:"features" db:"features"`                           // JSONB
 	Settings       EventSettings `json:"settings" db:"settings"`                           // JSONB
 	SecretBoxToken *string       `json:"secret_box_token,omitempty" db:"secret_box_token"` // UUID para acceso a Secret Box
+	InviteToken    *string       `json:"invite_token,omitempty" db:"invite_token"`         // Token para invitar colaboradores
 	StartsAt       *time.Time    `json:"starts_at,omitempty" db:"starts_at"`
 	EndsAt         *time.Time    `json:"ends_at,omitempty" db:"ends_at"`
 	IsActive       bool          `json:"is_active" db:"is_active"`
 	CreatedAt      time.Time     `json:"created_at" db:"created_at"`
+}
+
+// Collaborator representa un usuario co-administrador de un evento
+type Collaborator struct {
+	ID        uuid.UUID `json:"id" db:"id"`
+	EventID   uuid.UUID `json:"event_id" db:"event_id"`
+	UserID    uuid.UUID `json:"user_id" db:"user_id"`
+	User      *User     `json:"user,omitempty" db:"-"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
 // EventFeatures flags de features habilitadas para el evento

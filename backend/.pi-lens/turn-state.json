@@ -1,0 +1,200 @@
+{
+  "files": {
+    "internal/repository/collaborator_repository.go": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 114
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-05-19T23:38:38.219Z"
+    },
+    "internal/repository/event_repository.go": {
+      "modifiedRanges": [
+        {
+          "start": 73,
+          "end": 73
+        },
+        {
+          "start": 78,
+          "end": 78
+        },
+        {
+          "start": 80,
+          "end": 81
+        },
+        {
+          "start": 83,
+          "end": 85
+        },
+        {
+          "start": 102,
+          "end": 102
+        },
+        {
+          "start": 106,
+          "end": 106
+        },
+        {
+          "start": 109,
+          "end": 109
+        },
+        {
+          "start": 111,
+          "end": 111
+        },
+        {
+          "start": 114,
+          "end": 114
+        },
+        {
+          "start": 116,
+          "end": 118
+        },
+        {
+          "start": 127,
+          "end": 127
+        },
+        {
+          "start": 135,
+          "end": 135
+        },
+        {
+          "start": 146,
+          "end": 146
+        },
+        {
+          "start": 152,
+          "end": 152
+        },
+        {
+          "start": 155,
+          "end": 155
+        },
+        {
+          "start": 157,
+          "end": 159
+        },
+        {
+          "start": 169,
+          "end": 170
+        },
+        {
+          "start": 175,
+          "end": 175
+        },
+        {
+          "start": 181,
+          "end": 183
+        },
+        {
+          "start": 188,
+          "end": 189
+        },
+        {
+          "start": 194,
+          "end": 240
+        },
+        {
+          "start": 248,
+          "end": 279
+        }
+      ],
+      "importsChanged": false,
+      "lastEdit": "2026-05-19T23:41:36.085Z"
+    },
+    "internal/middleware/admin.go": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 68
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-05-19T23:39:44.625Z"
+    },
+    "internal/handlers/collaborator_handlers.go": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 225
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-05-19T23:42:09.775Z"
+    },
+    "internal/handlers/event_user_handlers.go": {
+      "modifiedRanges": [
+        {
+          "start": 17,
+          "end": 17
+        },
+        {
+          "start": 24,
+          "end": 29
+        },
+        {
+          "start": 31,
+          "end": 32
+        },
+        {
+          "start": 35,
+          "end": 36
+        },
+        {
+          "start": 38,
+          "end": 39
+        },
+        {
+          "start": 43,
+          "end": 45
+        },
+        {
+          "start": 51,
+          "end": 51
+        },
+        {
+          "start": 53,
+          "end": 60
+        }
+      ],
+      "importsChanged": false,
+      "lastEdit": "2026-05-19T23:42:45.097Z"
+    },
+    "cmd/api/main.go": {
+      "modifiedRanges": [
+        {
+          "start": 86,
+          "end": 86
+        },
+        {
+          "start": 171,
+          "end": 172
+        },
+        {
+          "start": 174,
+          "end": 174
+        },
+        {
+          "start": 200,
+          "end": 200
+        },
+        {
+          "start": 335,
+          "end": 355
+        },
+        {
+          "start": 359,
+          "end": 359
+        }
+      ],
+      "importsChanged": false,
+      "lastEdit": "2026-05-19T23:43:21.703Z"
+    }
+  },
+  "turnCycles": 0,
+  "maxCycles": 3,
+  "lastUpdated": "2026-05-19T23:43:21.703Z",
+  "sessionId": "lens-mpd8dpb9-f277bfa2"
+}
