@@ -23,7 +23,8 @@ type AuthService struct {
 	jwtSecret       []byte
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
-	resetTokenTTL   time.Duration // e.g., 1 hour
+	resetTokenTTL   time.Duration // e.g., 15 minutes
+	baseURL         string        // URL base de la app para links en emails
 }
 
 // NewAuthService crea un nuevo servicio de autenticación
@@ -38,10 +39,11 @@ func NewAuthService(userRepo *repository.UserRepository, jwtSecret string) *Auth
 }
 
 // NewAuthServiceWithReset crea un nuevo AuthService con soporte para reset de password
-func NewAuthServiceWithReset(userRepo *repository.UserRepository, resetTokenRepo *repository.ResetTokenRepository, emailSender EmailSender, jwtSecret string) *AuthService {
+func NewAuthServiceWithReset(userRepo *repository.UserRepository, resetTokenRepo *repository.ResetTokenRepository, emailSender EmailSender, jwtSecret, baseURL string) *AuthService {
 	svc := NewAuthService(userRepo, jwtSecret)
 	svc.resetTokenRepo = resetTokenRepo
 	svc.emailSender = emailSender
+	svc.baseURL = baseURL
 	return svc
 }
 
@@ -255,9 +257,9 @@ func (s *AuthService) RequestPasswordReset(email string) (string, error) {
 		return "", fmt.Errorf("failed to store reset token: %w", err)
 	}
 
-	// Construir URL de reset (el frontend reconstruye la URL completa)
-	// Aquí solo generamos el token raw; el frontend/army añade el token a la URL
-	if err := s.emailSender.SendPasswordReset(email, rawToken); err != nil {
+	// Construir URL completo de reset
+	resetURL := fmt.Sprintf("%s/reset-password?token=%s", s.baseURL, rawToken)
+	if err := s.emailSender.SendPasswordReset(email, resetURL); err != nil {
 		return "", fmt.Errorf("failed to send reset email: %w", err)
 	}
 

@@ -90,8 +90,25 @@ func main() {
 		log.Fatal("JWT_SECRET environment variable is required")
 	}
 	authService := services.NewAuthService(userRepo, jwtSecret)
-	emailSender := services.NewConsoleEmailSender()
-	authServiceWithReset := services.NewAuthServiceWithReset(userRepo, resetTokenRepo, emailSender, jwtSecret)
+
+	// Email sender: Resend en producción, console log en desarrollo
+	var emailSender services.EmailSender
+	resendAPIKey := os.Getenv("RESEND_API_KEY")
+	resendFrom := os.Getenv("RESEND_FROM_EMAIL")
+	if resendAPIKey != "" && resendFrom != "" {
+		emailSender = services.NewResendEmailSender(resendAPIKey, resendFrom)
+		log.Println("Using Resend for password reset emails")
+	} else {
+		emailSender = services.NewConsoleEmailSender()
+		log.Println("Using console logger for password reset emails (dev mode)")
+	}
+
+	appBaseURL := os.Getenv("APP_BASE_URL")
+	if appBaseURL == "" {
+		appBaseURL = "http://localhost:8081"
+	}
+
+	authServiceWithReset := services.NewAuthServiceWithReset(userRepo, resetTokenRepo, emailSender, jwtSecret, appBaseURL)
 	themeService := services.NewThemeService(themeRepo, eventRepo)
 
 	// Google Drive backup configuration
