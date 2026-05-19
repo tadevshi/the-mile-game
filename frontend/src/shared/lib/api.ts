@@ -409,10 +409,7 @@ class ApiClient {
     return response.data;
   }
 
-  async getDescriptions(): Promise<string[]> {
-    const response = await this.client.get<{ descriptions: string[] }>('/quiz/descriptions');
-    return response.data.descriptions ?? [];
-  }
+  
 
   // ==========================================
   // Admin — Secret Box
