@@ -268,6 +268,14 @@ class ApiClient {
     await this.client.post('/auth/logout');
   }
 
+  async requestPasswordReset(email: string): Promise<void> {
+    await this.client.post('/auth/forgot-password', { email });
+  }
+
+  async resetPassword(token: string, password: string): Promise<void> {
+    await this.client.post('/auth/reset-password', { token, password });
+  }
+
   async getCurrentUser(): Promise<User> {
     const response = await this.client.get<{ user_id: string; email: string }>('/auth/me');
     // Transform backend response { user_id, email } to User type

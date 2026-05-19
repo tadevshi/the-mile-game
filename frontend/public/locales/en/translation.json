@@ -36,7 +36,18 @@
     "passwordsMismatch": "Passwords don't match",
     "weak": "Weak",
     "medium": "Medium",
-    "strong": "Strong"
+    "strong": "Strong",
+    "forgotPasswordTitle": "Reset password",
+    "forgotPasswordSubtitle": "Enter your email and we'll send you a link to reset your password",
+    "sendResetLink": "Send reset link",
+    "resetEmailSent": "If your email is registered, you will receive instructions to reset your password.",
+    "resetPasswordTitle": "New password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "passwordResetSuccess": "Your password has been updated. Log in with your new password.",
+    "invalidOrExpiredToken": "The recovery link is invalid or expired. Request a new one.",
+    "backToLogin": "Back to login",
+    "resetPassword": "Reset password"
   },
   "dashboard": {
     "title": "My Events",
