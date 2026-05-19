@@ -348,6 +348,38 @@ El Theme Marketplace ofrece 6 presets pre-diseñados como punto de partida.
 
 ---
 
+## Incidentes Resueltos
+
+### 2026-05-19 — Error `round(double precision, integer) does not exist` en PostgreSQL
+
+**Síntoma**: Logs de PostgreSQL mostraban error repetido al consultar estadísticas de eventos:
+```
+ERROR:  function round(double precision, integer) does not exist at character 1268
+HINT:  No function matches the given name and argument types.
+```
+
+**Causa raíz**: PostgreSQL no tiene la función `ROUND(double precision, integer)`. El query de analytics en `analytics_handlers.go` usaba:
+```sql
+ROUND((qs.quiz_completed::float / qs.quiz_started) * 100, 2)
+```
+La división retorna `double precision`, pero `ROUND` con dos argumentos requiere `numeric`.
+
+**Fix**: Castear a `numeric` antes de aplicar `ROUND`:
+```sql
+ROUND(((qs.quiz_completed::float / qs.quiz_started) * 100)::numeric, 2)
+```
+
+**Archivo**: `backend/internal/handlers/analytics_handlers.go:137`
+**PR**: #86
+
+### 2026-04-03 / 2026-05-19 — Shutdowns de PostgreSQL
+
+**Síntoma**: Logs muestran `received fast shutdown request` y `database system is shut down`.
+
+**Causa**: Reinicios normales del contenedor Docker (deploys, mantenimiento). No son fallos — el shutdown fue limpio con checkpoint.
+
+---
+
 ## Quiz Framework — Especificaciones
 
 EventHub usa un sistema de quiz configurable por evento. Cada evento define sus propias preguntas a través del Admin Panel.
