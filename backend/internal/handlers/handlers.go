@@ -39,6 +39,7 @@ type PostcardRepo interface {
 	GetSecretBoxStatus() (*models.SecretBoxStatus, error)
 	GetSecretBoxStatusByEvent(eventID uuid.UUID) (*models.SecretBoxStatus, error)
 	ResetSecretBoxByEvent(eventID uuid.UUID) (int64, error)
+	DeleteAllByEvent(eventID uuid.UUID) ([]string, int64, error)
 	UpdateBackupStatus(postcardID uuid.UUID, status models.BackupStatus, backupJobID *uuid.UUID) error
 }
 
@@ -53,6 +54,7 @@ type BroadcastHub interface {
 	BroadcastPostcardToRoom(eventSlug string, postcard models.Postcard)
 	BroadcastSecretRevealToRoom(eventSlug string, postcards []models.Postcard)
 	BroadcastSecretResetToRoom(eventSlug string, count int64)
+	BroadcastCorkboardClearedToRoom(eventSlug string, count int64)
 }
 
 // BackupWorkerEnqueuer defines operations for enqueueing backup jobs
@@ -1087,6 +1089,49 @@ func (h *Handler) ResetSecretBox(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Secret Box reset",
 		"count":   count,
+	})
+}
+
+// ClearCorkboard elimina todas las postales (regulares + secretas) de un evento.
+// Requiere que el evento esté en contexto (inyectado por EventMiddleware).
+func (h *Handler) ClearCorkboard(c *gin.Context) {
+	eventID, exists := c.Get("event_id")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Event not in context"})
+		return
+	}
+
+	eventSlug, hasSlug := c.Get("event_slug")
+
+	// Delete all postcards
+	paths, count, err := h.postcardRepo.DeleteAllByEvent(eventID.(uuid.UUID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear corkboard"})
+		return
+	}
+
+	// Remove files from disk (silently ignore missing files)
+	for _, relPath := range paths {
+		// relPath is stored as public path like "/uploads/postcards/xyz.jpg"
+		// Construct absolute path for os.Remove
+		baseDir := h.uploadsDir
+		if baseDir == "" {
+			baseDir = os.Getenv("UPLOADS_DIR")
+		}
+		if baseDir == "" {
+			baseDir = "/app/uploads"
+		}
+		absPath := filepath.Join(baseDir, strings.TrimPrefix(relPath, "/uploads/"))
+		os.Remove(absPath)
+	}
+
+	// Broadcast to WebSocket room (skip if count==0)
+	if h.hub != nil && count > 0 && hasSlug {
+		h.hub.BroadcastCorkboardClearedToRoom(eventSlug.(string), count)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"deleted": count,
 	})
 }
 

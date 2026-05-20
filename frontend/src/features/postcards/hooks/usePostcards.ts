@@ -24,6 +24,7 @@ export function usePostcards(eventSlug?: string) {
     setError,
     setRevealing,
     addRevealedPostcards,
+    clearPostcards,
   } = usePostcardStore();
 
   const hasFetchedRef = useRef(false);
@@ -55,6 +56,13 @@ export function usePostcards(eventSlug?: string) {
         // Store the incoming postcards temporarily in revealedPostcards
         // The GiftBox component will call addRevealedPostcards when animation finishes
         usePostcardStore.setState({ revealedPostcards: message.postcards as Postcard[] });
+      }
+      if (message.type === 'corkboard_cleared') {
+        const msgEventSlug = (message as { event_slug?: string }).event_slug;
+        if (msgEventSlug && msgEventSlug !== eventSlug) {
+          return; // Ignore messages for other events
+        }
+        clearPostcards();
       }
     });
 

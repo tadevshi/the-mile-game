@@ -106,6 +106,13 @@ type SecretResetMessage struct {
 	Count     int64  `json:"count"`
 }
 
+// CorkboardClearedMessage mensaje para notificar que la cartelera fue limpiada
+type CorkboardClearedMessage struct {
+	Type      string `json:"type"`
+	EventSlug string `json:"event_slug"`
+	Count     int64  `json:"deleted_count"`
+}
+
 // getAllowedOrigins returns the list of allowed origins from the CORS_ALLOWED_ORIGINS env var.
 // If empty, defaults to localhost patterns for development.
 func getAllowedOrigins() []string {
@@ -472,6 +479,36 @@ func (h *Hub) BroadcastSecretResetToRoom(eventSlug string, count int64) {
 	roomCount := len(h.rooms[eventSlug])
 	h.mu.RUnlock()
 	log.Printf("WebSocket: Secret Box reseteada al room '%s' — %d postcards ocultadas (%d clientes)", eventSlug, count, roomCount)
+}
+
+// BroadcastCorkboardClearedToRoom envía el evento de cartelera limpiada solo a clientes de un evento específico
+func (h *Hub) BroadcastCorkboardClearedToRoom(eventSlug string, count int64) {
+	if eventSlug == "" {
+		log.Printf("WebSocket: Corkboard cleared ignorado — no hay eventSlug")
+		return
+	}
+
+	msg := CorkboardClearedMessage{
+		Type:      "corkboard_cleared",
+		EventSlug: eventSlug,
+		Count:     count,
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Error marshaling corkboard cleared: %v", err)
+		return
+	}
+
+	h.broadcastToRoom <- &RoomMessage{
+		EventSlug: eventSlug,
+		Message:   data,
+	}
+
+	h.mu.RLock()
+	roomCount := len(h.rooms[eventSlug])
+	h.mu.RUnlock()
+	log.Printf("WebSocket: Corkboard limpiada al room '%s' — %d postcards eliminadas (%d clientes)", eventSlug, count, roomCount)
 }
 
 // readPump bombea mensajes desde el WebSocket al hub

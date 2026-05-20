@@ -378,3 +378,48 @@ func (r *PostcardRepository) UpdateBackupStatus(postcardID uuid.UUID, status mod
 	_, err := r.db.Exec(query, status, backupJobID, postcardID)
 	return err
 }
+
+// DeleteAllByEvent deletes all postcards for an event and returns their file paths.
+// Used by the "Clear Corkboard" admin action.
+func (r *PostcardRepository) DeleteAllByEvent(eventID uuid.UUID) ([]string, int64, error) {
+	// Collect all file paths before deleting rows
+	rows, err := r.db.Query(`
+		SELECT image_path, thumbnail_path
+		FROM postcards
+		WHERE event_id = $1
+	`, eventID)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var paths []string
+	for rows.Next() {
+		var imagePath, thumbnailPath sql.NullString
+		if err := rows.Scan(&imagePath, &thumbnailPath); err != nil {
+			return nil, 0, err
+		}
+		if imagePath.Valid && imagePath.String != "" {
+			paths = append(paths, imagePath.String)
+		}
+		if thumbnailPath.Valid && thumbnailPath.String != "" {
+			paths = append(paths, thumbnailPath.String)
+		}
+	}
+
+	// Delete all postcard rows for this event (covers regular + secret postcards)
+	result, err := r.db.Exec(`
+		DELETE FROM postcards
+		WHERE event_id = $1
+	`, eventID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	count, err := result.RowsAffected()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return paths, count, nil
+}

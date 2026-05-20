@@ -341,6 +341,7 @@ func main() {
 			adminEvents.GET("/secret-box", handler.ListSecretPostcards)
 			adminEvents.POST("/reveal", handler.RevealSecretBox)
 			adminEvents.POST("/secret-box/reset", handler.ResetSecretBox)
+			adminEvents.DELETE("/postcards", handler.ClearCorkboard)
 			adminEvents.PUT("/theme", themeHandler.UpdateTheme)
 			adminEvents.POST("/theme/preset", themeHandler.ApplyPreset)
 

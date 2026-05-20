@@ -249,6 +249,9 @@ func (r *mockPostcardRepo) RevealSecretBoxByEvent(eventID uuid.UUID) ([]models.P
 func (r *mockPostcardRepo) ResetSecretBoxByEvent(eventID uuid.UUID) (int64, error) {
 	return 0, nil
 }
+func (r *mockPostcardRepo) DeleteAllByEvent(eventID uuid.UUID) ([]string, int64, error) {
+	return nil, 0, nil
+}
 func (r *mockPostcardRepo) UpdateBackupStatus(postcardID uuid.UUID, status models.BackupStatus, backupJobID *uuid.UUID) error {
 	return nil
 }
@@ -268,6 +271,7 @@ func (h *mockHub) BroadcastPostcardToRoom(eventSlug string, postcard models.Post
 }
 func (h *mockHub) BroadcastSecretRevealToRoom(eventSlug string, postcards []models.Postcard) {}
 func (h *mockHub) BroadcastSecretResetToRoom(eventSlug string, count int64)                  {}
+func (h *mockHub) BroadcastCorkboardClearedToRoom(eventSlug string, count int64)           {}
 
 // ──────────────────────────────────────────────────────────────────────────
 
