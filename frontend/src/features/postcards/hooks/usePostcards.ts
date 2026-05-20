@@ -69,7 +69,7 @@ export function usePostcards(eventSlug?: string) {
     return () => {
       unsubscribe();
     };
-  }, [addPostcard, setRevealing]);
+  }, [addPostcard, setRevealing, eventSlug, clearPostcards]);
 
   // Fetch inicial de postales
   const fetchPostcards = useCallback(async () => {

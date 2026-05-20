@@ -394,7 +394,9 @@ func (r *PostcardRepository) DeleteAllByEvent(eventID uuid.UUID) ([]string, int6
 	defer rows.Close()
 
 	var paths []string
+	var count int64
 	for rows.Next() {
+		count++
 		var imagePath, thumbnailPath sql.NullString
 		if err := rows.Scan(&imagePath, &thumbnailPath); err != nil {
 			return nil, 0, err
@@ -410,5 +412,5 @@ func (r *PostcardRepository) DeleteAllByEvent(eventID uuid.UUID) ([]string, int6
 		return nil, 0, err
 	}
 
-	return paths, int64(len(paths)), nil
+	return paths, count, nil
 }

@@ -321,6 +321,20 @@ export function CorkboardTab({ slug, previewTheme }: CorkboardTabProps) {
               </div>
             </div>
           </div>
+
+          {/* Clear Corkboard Button */}
+          <div className="pt-3">
+            <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
+              Esta opción elimina TODAS las postales de forma permanente, incluyendo las secretas.
+            </p>
+            <button
+              onClick={handleClearClick}
+              className="w-full px-4 py-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-sm transition-colors flex items-center justify-center gap-2 border border-red-200"
+            >
+              <Trash2 className="w-4 h-4" />
+              Limpiar Cartelera
+            </button>
+          </div>
         </motion.div>
       )}
 
