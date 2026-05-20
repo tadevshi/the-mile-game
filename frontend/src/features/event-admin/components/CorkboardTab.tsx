@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Trash2, Image as ImageIcon, AlertTriangle, ChevronDown, ChevronUp, X, Loader2 } from 'lucide-react';
+import { Upload, Trash2, Image as ImageIcon, AlertTriangle, X, Loader2 } from 'lucide-react';
 import { useEventAdmin } from '../hooks/useEventAdmin';
 import { useResetSecretBox } from '../hooks/useSecretBox';
 import { TokenSection } from './TokenSection';
@@ -35,9 +35,6 @@ export function CorkboardTab({ slug, previewTheme }: CorkboardTabProps) {
   const [isUploadingBackground, setIsUploadingBackground] = useState(false);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
-
-  // Advanced options collapsible state
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // Reset confirmation modal state
   const [showResetModal, setShowResetModal] = useState(false);
