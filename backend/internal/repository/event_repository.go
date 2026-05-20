@@ -70,15 +70,19 @@ func (r *EventRepository) GetBySlug(slug string) (*models.Event, error) {
 	var featuresJSON, settingsJSON []byte
 
 	query := `
-		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token, invite_token
 		FROM events
 		WHERE slug = $1
 	`
 
+	var inviteToken sql.NullString
 	err := r.db.QueryRow(query, slug).Scan(
 		&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
-		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken,
+		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
 	)
+	if err == nil && inviteToken.Valid {
+		event.InviteToken = &inviteToken.String
+	}
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrEventNotFound
@@ -99,15 +103,19 @@ func (r *EventRepository) GetByID(id uuid.UUID) (*models.Event, error) {
 	var featuresJSON, settingsJSON []byte
 
 	query := `
-		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token, invite_token
 		FROM events
 		WHERE id = $1
 	`
 
+	var inviteToken sql.NullString
 	err := r.db.QueryRow(query, id).Scan(
 		&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
-		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken,
+		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
 	)
+	if err == nil && inviteToken.Valid {
+		event.InviteToken = &inviteToken.String
+	}
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrEventNotFound
@@ -124,7 +132,7 @@ func (r *EventRepository) GetByID(id uuid.UUID) (*models.Event, error) {
 // ListByOwner obtiene todos los eventos de un usuario
 func (r *EventRepository) ListByOwner(ownerID uuid.UUID) ([]models.Event, error) {
 	query := `
-		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token, invite_token
 		FROM events
 		WHERE owner_id = $1
 		ORDER BY created_at DESC
@@ -141,10 +149,14 @@ func (r *EventRepository) ListByOwner(ownerID uuid.UUID) ([]models.Event, error)
 		var event models.Event
 		var featuresJSON, settingsJSON []byte
 
+		var inviteToken sql.NullString
 		err := rows.Scan(
 			&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
-			&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken,
+			&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
 		)
+		if inviteToken.Valid {
+			event.InviteToken = &inviteToken.String
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -166,15 +178,64 @@ func (r *EventRepository) Update(event *models.Event) error {
 	query := `
 		UPDATE events
 		SET name = $1, description = $2, features = $3, settings = $4,
-		    starts_at = $5, ends_at = $6, is_active = $7, secret_box_token = $8
-		WHERE id = $9
+		    starts_at = $5, ends_at = $6, is_active = $7, secret_box_token = $8,
+		    invite_token = $9
+		WHERE id = $10
 	`
 
 	_, err := r.db.Exec(query,
 		event.Name, event.Description, featuresJSON, settingsJSON,
-		event.StartsAt, event.EndsAt, event.IsActive, event.SecretBoxToken, event.ID)
+		event.StartsAt, event.EndsAt, event.IsActive, event.SecretBoxToken,
+		event.InviteToken, event.ID)
 
 	return err
+}
+
+// ListAccessibleByUser obtiene eventos donde el usuario es owner O colaborador
+func (r *EventRepository) ListAccessibleByUser(userID uuid.UUID, collaboratorEventIDs []uuid.UUID) ([]models.Event, error) {
+	// Si no hay eventos como colaborador, usar query simple
+	if len(collaboratorEventIDs) == 0 {
+		return r.ListByOwner(userID)
+	}
+
+	query := `
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token, invite_token
+		FROM events
+		WHERE owner_id = $1 OR id = ANY($2)
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.db.Query(query, userID, pq.Array(collaboratorEventIDs))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var events []models.Event
+	for rows.Next() {
+		var event models.Event
+		var featuresJSON, settingsJSON []byte
+		var inviteToken sql.NullString
+
+		err := rows.Scan(
+			&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
+			&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt,
+			&event.SecretBoxToken, &inviteToken,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		json.Unmarshal(featuresJSON, &event.Features)
+		json.Unmarshal(settingsJSON, &event.Settings)
+		if inviteToken.Valid {
+			event.InviteToken = &inviteToken.String
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
 }
 
 // Delete elimina un evento (cascade elimina todo lo relacionado)
@@ -182,6 +243,38 @@ func (r *EventRepository) Delete(id uuid.UUID) error {
 	query := `DELETE FROM events WHERE id = $1`
 	_, err := r.db.Exec(query, id)
 	return err
+}
+
+// GetByInviteToken obtiene un evento por su invite_token
+func (r *EventRepository) GetByInviteToken(token string) (*models.Event, error) {
+	event := &models.Event{}
+	var featuresJSON, settingsJSON []byte
+	var inviteToken sql.NullString
+
+	query := `
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token, invite_token
+		FROM events
+		WHERE invite_token = $1
+	`
+
+	err := r.db.QueryRow(query, token).Scan(
+		&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
+		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrEventNotFound
+		}
+		return nil, err
+	}
+
+	json.Unmarshal(featuresJSON, &event.Features)
+	json.Unmarshal(settingsJSON, &event.Settings)
+	if inviteToken.Valid {
+		event.InviteToken = &inviteToken.String
+	}
+
+	return event, nil
 }
 
 // ErrDuplicateSlug error cuando el slug ya existe

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
@@ -11,6 +11,8 @@ export function LoginPage() {
   const { t } = useTranslation();
   const { login, isLoading, error, clearError, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('return_to') || '/dashboard';
 
   const [formData, setFormData] = useState({
     email: '',
@@ -20,12 +22,12 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  // Navigate to dashboard after successful login
+  // Navigate to return_to or dashboard after successful login
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
+      navigate(returnTo, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, returnTo]);
 
   // Clear error when unmounting
   useEffect(() => {

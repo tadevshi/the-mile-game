@@ -83,6 +83,7 @@ func main() {
 	quizQuestionRepo := repository.NewQuizQuestionRepository(db)
 	themeRepo := repository.NewThemeRepository(db)
 	driveRepo := repository.NewDriveRepository(db)
+	collaboratorRepo := repository.NewCollaboratorRepository(db)
 
 	// JWT secret — siempre requerido
 	jwtSecret := os.Getenv("JWT_SECRET")
@@ -168,8 +169,9 @@ func main() {
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
 	adminEventHandler := handlers.NewAdminEventHandler(eventRepo, uploadsDir)
 	adminSecretBoxHandler := handlers.NewSecretBoxAdminHandler(eventRepo)
-	eventHandler := handlers.NewEventHandler(eventRepo)
+	eventHandler := handlers.NewEventHandler(eventRepo, collaboratorRepo)
 	analyticsHandler := handlers.NewAnalyticsHandler(db, eventRepo)
+	collaboratorHandler := handlers.NewCollaboratorHandler(collaboratorRepo, eventRepo)
 
 	// Configurar router
 	r := gin.Default()
@@ -195,6 +197,7 @@ func main() {
 	// Middlewares
 	eventMiddleware := middleware.EventMiddleware(eventRepo)
 	authMiddleware := middleware.AuthMiddleware(authService)
+	adminMiddleware := middleware.AdminMiddleware(collaboratorRepo)
 
 	// Rutas API
 	api := r.Group("/api")
@@ -329,14 +332,32 @@ func main() {
 			}
 		}
 
+		// Collaborator invitation accept (autenticado, no requiere ser owner)
+		api.POST("/collaborators/accept", authMiddleware, collaboratorHandler.AcceptInvitation)
+
 		// Admin routes (event-scoped - multi-event)
+		// Operaciones sensibles: solo el owner real puede gestionar colaboradores o eliminar evento
+		adminEventsOwnerOnly := api.Group("/admin/events/:slug")
+		adminEventsOwnerOnly.Use(eventMiddleware)
+		adminEventsOwnerOnly.Use(authMiddleware)
+		adminEventsOwnerOnly.Use(middleware.OwnerOnlyMiddleware())
+		{
+			// Event management
+			adminEventsOwnerOnly.DELETE("", eventHandler.DeleteEvent)
+
+			// Collaborators management
+			adminEventsOwnerOnly.GET("/collaborators/invite", collaboratorHandler.GetInviteToken)
+			adminEventsOwnerOnly.POST("/collaborators/invite", collaboratorHandler.GenerateInviteToken)
+			adminEventsOwnerOnly.GET("/collaborators", collaboratorHandler.ListCollaborators)
+			adminEventsOwnerOnly.DELETE("/collaborators/:user_id", collaboratorHandler.RemoveCollaborator)
+		}
+
+		// Admin routes: owner o colaboradores con permisos de admin
 		adminEvents := api.Group("/admin/events/:slug")
 		adminEvents.Use(eventMiddleware)
 		adminEvents.Use(authMiddleware)
-		adminEvents.Use(middleware.OwnerMiddleware())
+		adminEvents.Use(adminMiddleware)
 		{
-			// Event management
-			adminEvents.DELETE("", eventHandler.DeleteEvent)
 			adminEvents.GET("/status", handler.GetSecretBoxStatus)
 			adminEvents.GET("/secret-box", handler.ListSecretPostcards)
 			adminEvents.POST("/reveal", handler.RevealSecretBox)

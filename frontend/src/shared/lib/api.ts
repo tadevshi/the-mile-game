@@ -80,6 +80,24 @@ export interface BackupJob {
   synced_at: string | null;
 }
 
+export interface Collaborator {
+  id: string;
+  event_id: string;
+  user_id: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    created_at: string;
+  };
+  created_at: string;
+}
+
+export interface InviteTokenResponse {
+  token: string;
+  share_url: string;
+}
+
 // Cliente API
 const PLAYER_ID_KEY = 'mile-game-player-id';
 const PLAYER_EVENT_KEY = 'mile-game-player-event'; // Guardar el eventSlug del player
@@ -719,6 +737,39 @@ class ApiClient {
     const response = await this.client.post<{ imported: number; warnings?: string[] }>(
       `/admin/events/${eventSlug}/questions/import`,
       { questions }
+    );
+    return response.data;
+  }
+
+  // ==========================================
+  // Admin — Collaborators
+  // ==========================================
+
+  async getInviteToken(eventSlug: string): Promise<InviteTokenResponse> {
+    const response = await this.client.get<InviteTokenResponse>(`/admin/events/${eventSlug}/collaborators/invite`);
+    return response.data;
+  }
+
+  async regenerateInviteToken(eventSlug: string): Promise<InviteTokenResponse> {
+    const response = await this.client.post<InviteTokenResponse>(`/admin/events/${eventSlug}/collaborators/invite`, {});
+    return response.data;
+  }
+
+  async listCollaborators(eventSlug: string): Promise<Collaborator[]> {
+    const response = await this.client.get<Collaborator[]>(`/admin/events/${eventSlug}/collaborators`);
+    return response.data;
+  }
+
+  async removeCollaborator(eventSlug: string, userId: string): Promise<{ message: string }> {
+    const response = await this.client.delete<{ message: string }>(`/admin/events/${eventSlug}/collaborators/${userId}`);
+    return response.data;
+  }
+
+  async acceptInvitation(token: string): Promise<{ message: string; event: Event; user_id: string }> {
+    const response = await this.client.post<{ message: string; event: Event; user_id: string }>(
+      '/collaborators/accept',
+      {},
+      { params: { token } }
     );
     return response.data;
   }

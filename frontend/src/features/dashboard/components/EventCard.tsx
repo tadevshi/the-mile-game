@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Settings, Eye, Copy, MoreVertical, Trash2, ExternalLink } from 'lucide-react';
+import { Calendar, Settings, Eye, Copy, MoreVertical, Trash2, ExternalLink, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Event } from '@/shared/lib/api';
 
 interface EventCardProps {
   event: Event;
   onDelete?: (slug: string) => void;
+  isOwner?: boolean;
 }
 
 // Theme color mappings for event cards
@@ -20,7 +21,7 @@ const themeGradients: Record<string, { from: string; to: string }> = {
   default: { from: 'from-pink-400', to: 'to-rose-500' },
 };
 
-export function EventCard({ event, onDelete }: EventCardProps) {
+export function EventCard({ event, onDelete, isOwner = true }: EventCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   
   const themeId = event.theme_id || 'default';
@@ -64,9 +65,17 @@ export function EventCard({ event, onDelete }: EventCardProps) {
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white truncate">
-              {event.name}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white truncate">
+                {event.name}
+              </h3>
+              {!isOwner && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
+                  <Users className="w-3 h-3" />
+                  Compartido
+                </span>
+              )}
+            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
               themile.game/{event.slug}
             </p>
@@ -103,13 +112,15 @@ export function EventCard({ event, onDelete }: EventCardProps) {
                       <Copy className="w-4 h-4" />
                       Copiar link
                     </button>
-                    <button
-                      onClick={handleDelete}
-                      className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Eliminar
-                    </button>
+                    {onDelete && (
+                      <button
+                        onClick={handleDelete}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Eliminar
+                      </button>
+                    )}
                   </motion.div>
                 </>
               )}

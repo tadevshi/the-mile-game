@@ -11,6 +11,7 @@ import type { PreviewTheme } from '@/themes';
 import { useTheme } from '@/shared/theme/useTheme';
 import { DriveConnectionPanel } from '@/features/admin/components/DriveConnectionPanel';
 import { BackupJobsList } from '@/features/admin/components/BackupJobsList';
+import { CollaboratorsSection } from './CollaboratorsSection';
 
 interface ConfigTabProps {
   slug: string;
@@ -337,6 +338,12 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
           </div>
         </div>
       </div>
+
+      <CollaboratorsSection
+        slug={slug}
+        ownerId={event?.owner_id || ''}
+        theme={theme}
+      />
 
       {FEATURES.GOOGLE_DRIVE && event?.id && (
         <div className="space-y-3">

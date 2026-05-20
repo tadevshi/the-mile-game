@@ -62,6 +62,13 @@ func (m *MockUserEventRepo) Delete(id uuid.UUID) error {
 	return nil
 }
 
+func (m *MockUserEventRepo) ListAccessibleByUser(userID uuid.UUID, collaboratorEventIDs []uuid.UUID) ([]models.Event, error) {
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	return m.Events, nil
+}
+
 // ========== TESTS FOR GetUserEvents ==========
 
 func TestGetUserEvents_Success(t *testing.T) {

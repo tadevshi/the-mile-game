@@ -1,0 +1,142 @@
+{
+  "files": {
+    "src/features/event-admin/components/ConfigTab.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 3,
+          "end": 3
+        },
+        {
+          "start": 7,
+          "end": 7
+        },
+        {
+          "start": 9,
+          "end": 9
+        },
+        {
+          "start": 14,
+          "end": 14
+        },
+        {
+          "start": 342,
+          "end": 347
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-05-19T23:50:11.254Z"
+    },
+    "src/features/event-admin/components/CollaboratorsSection.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 222
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-05-19T23:49:40.986Z"
+    },
+    "src/features/collaborators/pages/AcceptInvitationPage.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 1,
+          "end": 104
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-05-19T23:52:25.909Z"
+    },
+    "src/App.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 24,
+          "end": 24
+        },
+        {
+          "start": 233,
+          "end": 242
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-05-19T23:52:55.646Z"
+    },
+    "src/features/dashboard/components/EventCard.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 3,
+          "end": 3
+        },
+        {
+          "start": 10,
+          "end": 10
+        },
+        {
+          "start": 23,
+          "end": 24
+        },
+        {
+          "start": 67,
+          "end": 78
+        },
+        {
+          "start": 106,
+          "end": 112
+        },
+        {
+          "start": 115,
+          "end": 123
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-05-19T23:53:41.527Z"
+    },
+    "src/features/dashboard/pages/DashboardPage.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 122,
+          "end": 123
+        },
+        {
+          "start": 125,
+          "end": 126
+        }
+      ],
+      "importsChanged": false,
+      "lastEdit": "2026-05-19T23:53:54.512Z"
+    },
+    "src/features/auth/pages/LoginPage.tsx": {
+      "modifiedRanges": [
+        {
+          "start": 2,
+          "end": 2
+        },
+        {
+          "start": 14,
+          "end": 15
+        },
+        {
+          "start": 23,
+          "end": 23
+        },
+        {
+          "start": 25,
+          "end": 26
+        },
+        {
+          "start": 28,
+          "end": 28
+        },
+        {
+          "start": 30,
+          "end": 30
+        }
+      ],
+      "importsChanged": true,
+      "lastEdit": "2026-05-19T23:54:34.833Z"
+    }
+  },
+  "turnCycles": 0,
+  "maxCycles": 3,
+  "lastUpdated": "2026-05-19T23:54:34.833Z",
+  "sessionId": "lens-mpd8dpb9-f277bfa2"
+}
