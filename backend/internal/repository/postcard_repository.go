@@ -406,6 +406,9 @@ func (r *PostcardRepository) DeleteAllByEvent(eventID uuid.UUID) ([]string, int6
 			paths = append(paths, thumbnailPath.String)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
 
 	// Delete all postcard rows for this event (covers regular + secret postcards)
 	result, err := r.db.Exec(`
