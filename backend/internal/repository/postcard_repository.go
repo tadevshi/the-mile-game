@@ -382,11 +382,11 @@ func (r *PostcardRepository) UpdateBackupStatus(postcardID uuid.UUID, status mod
 // DeleteAllByEvent deletes all postcards for an event and returns their file paths.
 // Used by the "Clear Corkboard" admin action.
 func (r *PostcardRepository) DeleteAllByEvent(eventID uuid.UUID) ([]string, int64, error) {
-	// Collect all file paths before deleting rows
+	// Single DELETE with RETURNING to avoid race condition between SELECT and DELETE.
 	rows, err := r.db.Query(`
-		SELECT image_path, thumbnail_path
-		FROM postcards
+		DELETE FROM postcards
 		WHERE event_id = $1
+		RETURNING image_path, thumbnail_path
 	`, eventID)
 	if err != nil {
 		return nil, 0, err
@@ -410,19 +410,5 @@ func (r *PostcardRepository) DeleteAllByEvent(eventID uuid.UUID) ([]string, int6
 		return nil, 0, err
 	}
 
-	// Delete all postcard rows for this event (covers regular + secret postcards)
-	result, err := r.db.Exec(`
-		DELETE FROM postcards
-		WHERE event_id = $1
-	`, eventID)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	count, err := result.RowsAffected()
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return paths, count, nil
+	return paths, int64(len(paths)), nil
 }

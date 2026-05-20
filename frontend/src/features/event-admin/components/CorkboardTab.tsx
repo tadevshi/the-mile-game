@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Trash2, Image as ImageIcon, AlertTriangle, ChevronDown, ChevronUp, X, Loader2 } from 'lucide-react';
 import { useEventAdmin } from '../hooks/useEventAdmin';
@@ -18,6 +19,7 @@ interface CorkboardTabProps {
 export function CorkboardTab({ slug, previewTheme }: CorkboardTabProps) {
   const { event, refetchEvent } = useEventAdmin(slug);
   const resetSecretBox = useResetSecretBox(slug);
+  const queryClient = useQueryClient();
 
   // Use preview theme colors if provided, otherwise use the event's current theme
   const theme = previewTheme;
@@ -147,6 +149,10 @@ export function CorkboardTab({ slug, previewTheme }: CorkboardTabProps) {
         success: true,
         message: `Se eliminaron ${result.deleted} postales.`,
       });
+      // Invalidate postcard queries so the preview grid refreshes
+      queryClient.invalidateQueries({ queryKey: ['secret-postcards', slug] });
+      queryClient.invalidateQueries({ queryKey: ['event-stats', slug] });
+      refetchEvent();
       setTimeout(() => {
         setShowClearModal(false);
         setClearConfirmText('');
@@ -225,72 +231,19 @@ export function CorkboardTab({ slug, previewTheme }: CorkboardTabProps) {
             <RevealButton slug={slug} theme={theme} />
           </motion.div>
 
-          {/* Advanced Options */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="rounded-xl overflow-hidden"
-            style={{ backgroundColor: `${theme.secondaryColor}10`, borderColor: `${theme.secondaryColor}30`, borderWidth: '1px' }}
-          >
-            {/* Collapsible Header */}
+          {/* Reset Secret Box Button */}
+          <div className="pt-3">
+            <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
+              Esta opción oculta todas las postales secretas que fueron reveladas, permitiendo ver la animación de revelación nuevamente.
+            </p>
             <button
-              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-              className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-black/5 transition-colors"
+              onClick={handleResetClick}
+              className="w-full px-4 py-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-sm transition-colors flex items-center justify-center gap-2 border border-red-200"
             >
-              <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: `${theme.textColor}80` }}>
-                Opciones Avanzadas
-              </span>
-              {showAdvancedOptions ? (
-                <ChevronUp className="w-4 h-4" style={{ color: theme.textColor }} />
-              ) : (
-                <ChevronDown className="w-4 h-4" style={{ color: theme.textColor }} />
-              )}
+              <AlertTriangle className="w-4 h-4" />
+              Resetear Secret Box
             </button>
-
-            {/* Collapsible Content */}
-            <AnimatePresence>
-              {showAdvancedOptions && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-4 pb-4 pt-2 border-t" style={{ borderColor: `${theme.secondaryColor}30` }}>
-                    {/* Reset Secret Box Button */}
-                    <div className="pt-3">
-                      <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
-                        Esta opción oculta todas las postales secretas que fueron reveladas, permitiendo ver la animación de revelación nuevamente.
-                      </p>
-                      <button
-                        onClick={handleResetClick}
-                        className="w-full px-4 py-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-sm transition-colors flex items-center justify-center gap-2 border border-red-200"
-                      >
-                        <AlertTriangle className="w-4 h-4" />
-                        Resetear Secret Box
-                      </button>
-                    </div>
-
-                    {/* Clear Corkboard Button */}
-                    <div className="pt-3 mt-3 border-t" style={{ borderColor: `${theme.secondaryColor}30` }}>
-                      <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
-                        Elimina TODAS las postales (regulares y secretas) de forma permanente. Esta acción no se puede deshacer.
-                      </p>
-                      <button
-                        onClick={handleClearClick}
-                        className="w-full px-4 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Limpiar Cartelera
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+          </div>
         </motion.div>
       )}
 

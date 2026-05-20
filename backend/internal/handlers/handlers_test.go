@@ -195,8 +195,9 @@ func TestSubmitQuizValidation(t *testing.T) {
 // These satisfy the PostcardRepo and BroadcastHub interfaces defined in handlers.go.
 
 type mockState struct {
-	secretBoxRevealed bool
-	broadcastCalled   bool
+	secretBoxRevealed   bool
+	broadcastCalled     bool
+	corkboardClearedCalled bool
 }
 
 type mockPostcardRepo struct {
@@ -284,7 +285,9 @@ func (h *mockHub) BroadcastPostcardToRoom(eventSlug string, postcard models.Post
 }
 func (h *mockHub) BroadcastSecretRevealToRoom(eventSlug string, postcards []models.Postcard) {}
 func (h *mockHub) BroadcastSecretResetToRoom(eventSlug string, count int64)                  {}
-func (h *mockHub) BroadcastCorkboardClearedToRoom(eventSlug string, count int64)           {}
+func (h *mockHub) BroadcastCorkboardClearedToRoom(eventSlug string, count int64) {
+	h.state.corkboardClearedCalled = true
+}
 
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -616,11 +619,12 @@ func TestClearCorkboard(t *testing.T) {
 				if !ok {
 					t.Fatal("mockHub is not *mockHub")
 				}
-				// Check indirectly: the hub's BroadcastCorkboardClearedToRoom would have been called
-				// Since our mock doesn't track this call, we verify the handler behavior
-				// by checking if broadcast state was set when count > 0
-				if *tt.hubBroadcasted && hub.state == nil {
-					t.Error("Expected hub to be used but it wasn't")
+				// Assert on the corkboardClearedCalled flag set by BroadcastCorkboardClearedToRoom
+				if *tt.hubBroadcasted && !hub.state.corkboardClearedCalled {
+					t.Error("Expected BroadcastCorkboardClearedToRoom to be called but it wasn't")
+				}
+				if !*tt.hubBroadcasted && hub.state.corkboardClearedCalled {
+					t.Error("Expected BroadcastCorkboardClearedToRoom NOT to be called but it was")
 				}
 			}
 		})
