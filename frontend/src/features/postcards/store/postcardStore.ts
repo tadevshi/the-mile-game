@@ -15,6 +15,7 @@ export interface PostcardState {
   setError: (error: string | null) => void;
   setRevealing: (revealing: boolean) => void;
   addRevealedPostcards: (postcards: Postcard[]) => void;
+  clearPostcards: () => void;
 }
 
 export const usePostcardStore = create<PostcardState>()((set, get) => ({
@@ -48,4 +49,7 @@ export const usePostcardStore = create<PostcardState>()((set, get) => ({
       isRevealing: false,
     });
   },
+
+  clearPostcards: () =>
+    set({ postcards: [], revealedPostcards: [], isRevealing: false }),
 }));

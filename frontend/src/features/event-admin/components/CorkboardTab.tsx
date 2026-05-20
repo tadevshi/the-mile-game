@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Trash2, Image as ImageIcon, AlertTriangle, ChevronDown, ChevronUp, X, Loader2 } from 'lucide-react';
 import { useEventAdmin } from '../hooks/useEventAdmin';
@@ -18,6 +19,7 @@ interface CorkboardTabProps {
 export function CorkboardTab({ slug, previewTheme }: CorkboardTabProps) {
   const { event, refetchEvent } = useEventAdmin(slug);
   const resetSecretBox = useResetSecretBox(slug);
+  const queryClient = useQueryClient();
 
   // Use preview theme colors if provided, otherwise use the event's current theme
   const theme = previewTheme;
@@ -41,6 +43,12 @@ export function CorkboardTab({ slug, previewTheme }: CorkboardTabProps) {
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [resetResult, setResetResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Clear corkboard modal state
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearConfirmText, setClearConfirmText] = useState('');
+  const [clearResult, setClearResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isClearing, setIsClearing] = useState(false);
 
   // Initialize from event data
   useEffect(() => {
@@ -125,6 +133,47 @@ export function CorkboardTab({ slug, previewTheme }: CorkboardTabProps) {
     setResetResult(null);
   };
 
+  const handleClearClick = () => {
+    setShowClearModal(true);
+    setClearConfirmText('');
+    setClearResult(null);
+  };
+
+  const handleClearConfirm = async () => {
+    if (clearConfirmText !== 'CLEAR') return;
+
+    setIsClearing(true);
+    try {
+      const result = await api.clearCorkboard(slug);
+      setClearResult({
+        success: true,
+        message: `Se eliminaron ${result.deleted} postales.`,
+      });
+      // Invalidate postcard queries so the preview grid refreshes
+      queryClient.invalidateQueries({ queryKey: ['secret-postcards', slug] });
+      queryClient.invalidateQueries({ queryKey: ['event-stats', slug] });
+      refetchEvent();
+      setTimeout(() => {
+        setShowClearModal(false);
+        setClearConfirmText('');
+        setClearResult(null);
+      }, 2000);
+    } catch (err) {
+      setClearResult({
+        success: false,
+        message: err instanceof Error ? err.message : 'Error al limpiar la cartelera.',
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  const handleCloseClearModal = () => {
+    setShowClearModal(false);
+    setClearConfirmText('');
+    setClearResult(null);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -182,58 +231,19 @@ export function CorkboardTab({ slug, previewTheme }: CorkboardTabProps) {
             <RevealButton slug={slug} theme={theme} />
           </motion.div>
 
-          {/* Advanced Options */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="rounded-xl overflow-hidden"
-            style={{ backgroundColor: `${theme.secondaryColor}10`, borderColor: `${theme.secondaryColor}30`, borderWidth: '1px' }}
-          >
-            {/* Collapsible Header */}
+          {/* Reset Secret Box Button */}
+          <div className="pt-3">
+            <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
+              Esta opción oculta todas las postales secretas que fueron reveladas, permitiendo ver la animación de revelación nuevamente.
+            </p>
             <button
-              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-              className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-black/5 transition-colors"
+              onClick={handleResetClick}
+              className="w-full px-4 py-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-sm transition-colors flex items-center justify-center gap-2 border border-red-200"
             >
-              <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: `${theme.textColor}80` }}>
-                Opciones Avanzadas
-              </span>
-              {showAdvancedOptions ? (
-                <ChevronUp className="w-4 h-4" style={{ color: theme.textColor }} />
-              ) : (
-                <ChevronDown className="w-4 h-4" style={{ color: theme.textColor }} />
-              )}
+              <AlertTriangle className="w-4 h-4" />
+              Resetear Secret Box
             </button>
-
-            {/* Collapsible Content */}
-            <AnimatePresence>
-              {showAdvancedOptions && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-4 pb-4 pt-2 border-t" style={{ borderColor: `${theme.secondaryColor}30` }}>
-                    {/* Reset Secret Box Button */}
-                    <div className="pt-3">
-                      <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
-                        Esta opción oculta todas las postales secretas que fueron reveladas, permitiendo ver la animación de revelación nuevamente.
-                      </p>
-                      <button
-                        onClick={handleResetClick}
-                        className="w-full px-4 py-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-sm transition-colors flex items-center justify-center gap-2 border border-red-200"
-                      >
-                        <AlertTriangle className="w-4 h-4" />
-                        Resetear Secret Box
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+          </div>
         </motion.div>
       )}
 
@@ -310,6 +320,20 @@ export function CorkboardTab({ slug, previewTheme }: CorkboardTabProps) {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Clear Corkboard Button */}
+          <div className="pt-3">
+            <p className="text-sm mb-3" style={{ color: `${theme.textColor}80` }}>
+              Esta opción elimina TODAS las postales de forma permanente, incluyendo las secretas.
+            </p>
+            <button
+              onClick={handleClearClick}
+              className="w-full px-4 py-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-sm transition-colors flex items-center justify-center gap-2 border border-red-200"
+            >
+              <Trash2 className="w-4 h-4" />
+              Limpiar Cartelera
+            </button>
           </div>
         </motion.div>
       )}
@@ -419,6 +443,122 @@ export function CorkboardTab({ slug, previewTheme }: CorkboardTabProps) {
                           </>
                         ) : (
                           'Resetear'
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Clear Corkboard Confirmation Modal */}
+      <AnimatePresence>
+        {showClearModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={handleCloseClearModal}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="bg-red-600 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
+                      <Trash2 className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-white">Limpiar Cartelera</h3>
+                  </div>
+                  <button
+                    onClick={handleCloseClearModal}
+                    className="p-1 hover:bg-red-500 rounded-full transition-colors"
+                    disabled={isClearing}
+                  >
+                    <X className="w-5 h-5 text-white" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                {clearResult?.success ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center py-4"
+                  >
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+                      <span className="text-3xl">✓</span>
+                    </div>
+                    <p className="text-green-700 font-medium">{clearResult.message}</p>
+                  </motion.div>
+                ) : (
+                  <>
+                    <div className="mb-6">
+                      <p className="text-red-700 font-semibold text-lg mb-2">
+                        ⚠️ Esta acción eliminará TODAS las postales de forma permanente
+                      </p>
+                      <p className="text-gray-600 text-sm">
+                        Se eliminarán todas las postales (regulares y secretas). No se puede deshacer.
+                      </p>
+                    </div>
+
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Escribe <span className="font-bold text-red-600">CLEAR</span> para confirmar:
+                      </label>
+                      <input
+                        type="text"
+                        value={clearConfirmText}
+                        onChange={(e) => setClearConfirmText(e.target.value.toUpperCase())}
+                        placeholder="CLEAR"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-center font-mono text-lg focus:border-red-400 focus:outline-none transition-colors"
+                        disabled={isClearing}
+                      />
+                    </div>
+
+                    {clearResult && !clearResult.success && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg"
+                      >
+                        <p className="text-red-700 text-sm">{clearResult.message}</p>
+                      </motion.div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleCloseClearModal}
+                        disabled={isClearing}
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleClearConfirm}
+                        disabled={clearConfirmText !== 'CLEAR' || isClearing}
+                        className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {isClearing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Eliminando...
+                          </>
+                        ) : (
+                          'Limpiar'
                         )}
                       </button>
                     </div>

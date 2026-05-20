@@ -696,6 +696,14 @@ class ApiClient {
     return response.data;
   }
 
+  // Clear all postcards (regular + secret) for an event (admin action)
+  async clearCorkboard(eventSlug: string): Promise<{ deleted: number }> {
+    const response = await this.client.delete<{ deleted: number }>(
+      `/admin/events/${eventSlug}/postcards`
+    );
+    return response.data;
+  }
+
   // ==========================================
   // Admin — Questions
   // ==========================================
