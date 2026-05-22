@@ -15,18 +15,22 @@ interface WebSocketState {
   isConnecting: boolean;
   error: Error | null;
   lastMessage: WebSocketMessage | null;
-  
+
   // Internal connection instance
   socket: WebSocket | null;
-  
+
+  // Current URL for multi-endpoint support
+  currentUrl: string | null;
+
   // Reconnection state
   reconnectAttempts: number;
   maxReconnectAttempts: number;
   reconnectInterval: number;
-  
+  reconnectUrl: string | null;
+
   // Subscribers
   subscribers: Set<MessageHandler>;
-  
+
   // Actions
   connect: (url: string) => void;
   disconnect: () => void;
@@ -44,14 +48,18 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
       return;
     }
 
-    set({ reconnectAttempts: state.reconnectAttempts + 1 });
+    const attempt = state.reconnectAttempts + 1;
+    // Exponential backoff with jitter: cap at 30s, add random jitter
+    const delay = Math.min(30000, 1000 * Math.pow(2, attempt)) + Math.random() * 1000;
+
+    set({ reconnectAttempts: attempt, reconnectInterval: delay });
     console.log(
-      `[WebSocket Store] Reconnecting in ${state.reconnectInterval}ms... (${state.reconnectAttempts + 1}/${state.maxReconnectAttempts})`
+      `[WebSocket Store] Reconnecting in ${delay}ms... (${attempt}/${state.maxReconnectAttempts})`
     );
 
     reconnectTimer = setTimeout(() => {
       get().connect(url);
-    }, state.reconnectInterval);
+    }, delay);
   };
 
   return {
@@ -60,20 +68,52 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
     error: null,
     lastMessage: null,
     socket: null,
+    currentUrl: null,
     reconnectAttempts: 0,
     maxReconnectAttempts: 5,
     reconnectInterval: 3000,
+    reconnectUrl: null,
     subscribers: new Set(),
 
     connect: (url: string) => {
       const state = get();
-      
-      // Prevent multiple connections
-      if (state.isConnecting || state.socket?.readyState === WebSocket.OPEN) {
-        return;
+
+      // If there's an existing socket with a different URL, close it first
+      if (state.socket && state.currentUrl !== url) {
+        // Null out handlers to prevent callbacks from stale socket
+        state.socket.onopen = null;
+        state.socket.onclose = null;
+        state.socket.onerror = null;
+        state.socket.onmessage = null;
+        state.socket.close();
+        // Immediately clear state so the guard below sees no stale socket
+        set({ socket: null, currentUrl: null });
       }
 
-      set({ isConnecting: true, error: null });
+      // Prevent multiple concurrent connections (including CLOSING state)
+      if (
+        state.isConnecting ||
+        (state.socket?.readyState !== undefined &&
+          state.socket.readyState !== WebSocket.CLOSED &&
+          state.socket.readyState !== WebSocket.CLOSING)
+      ) {
+        // If already connected to the same URL, skip
+        if (state.currentUrl === url && state.isConnected) {
+          return;
+        }
+        // If connecting to same URL, also skip
+        if (state.currentUrl === url && state.isConnecting) {
+          return;
+        }
+        // For different URL case, we closed above, so proceed
+      }
+
+      set({ isConnecting: true, error: null, reconnectUrl: url });
+
+      // Add beforeunload handler for clean disconnect
+      // Remove any existing listener first to prevent duplicates
+      window.removeEventListener('beforeunload', get().disconnect);
+      window.addEventListener('beforeunload', get().disconnect);
 
       try {
         console.log('[WebSocket Store] Connecting to:', url);
@@ -89,6 +129,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
             isConnected: true,
             isConnecting: false,
             socket: ws,
+            currentUrl: url,
             reconnectAttempts: 0,
             error: null,
           });
@@ -100,10 +141,10 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
           try {
             const message: WebSocketMessage = JSON.parse(event.data);
             console.log('[WebSocket Store] Message received:', message.type);
-            
+
             // Update last message
             set({ lastMessage: message });
-            
+
             // Notify all subscribers
             get().subscribers.forEach((handler) => handler(message));
           } catch {
@@ -117,11 +158,15 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
             isConnected: false,
             isConnecting: false,
             socket: null,
+            currentUrl: null,
           });
 
+          // Clean up beforeunload listener
+          window.removeEventListener('beforeunload', get().disconnect);
+
           // Only attempt reconnect if it wasn't a clean close (1000)
-          if (event.code !== 1000) {
-            handleReconnect(url);
+          if (event.code !== 1000 && get().reconnectUrl) {
+            handleReconnect(get().reconnectUrl!);
           }
         };
 
@@ -135,7 +180,9 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
           isConnecting: false,
           error: error instanceof Error ? error : new Error('Failed to connect'),
         });
-        handleReconnect(url);
+        if (get().reconnectUrl) {
+          handleReconnect(get().reconnectUrl!);
+        }
       }
     },
 
@@ -145,11 +192,22 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
         clearTimeout(reconnectTimer);
         reconnectTimer = null;
       }
-      
+
       if (socket) {
+        // Null out handlers to prevent callbacks
+        socket.onopen = null;
+        socket.onclose = null;
+        socket.onerror = null;
+        socket.onmessage = null;
         // Prevent auto-reconnect
-        set({ reconnectAttempts: get().maxReconnectAttempts });
+        set({ reconnectAttempts: get().maxReconnectAttempts, reconnectUrl: null });
         socket.close(1000, 'Manual disconnect');
+        set({ socket: null, currentUrl: null });
+      }
+
+      // Remove beforeunload handler if added
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('beforeunload', get().disconnect);
       }
     },
 
