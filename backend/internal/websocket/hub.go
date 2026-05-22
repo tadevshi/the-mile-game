@@ -182,8 +182,9 @@ func (h *Hub) Run() {
 				h.rooms[client.EventSlug][client] = true
 				log.Printf("WebSocket: Cliente conectado al room '%s'. Clientes en room: %d", client.EventSlug, len(h.rooms[client.EventSlug]))
 			}
+			totalClients := len(h.clients)
 			h.mu.Unlock()
-			log.Printf("WebSocket: Cliente conectado. Total: %d", len(h.clients))
+			log.Printf("WebSocket: Cliente conectado. Total: %d", totalClients)
 
 		case client := <-h.unregister:
 			h.mu.Lock()
@@ -267,8 +268,9 @@ func (h *Hub) Run() {
 						close(client.send)
 					}
 				}
+				totalClients := len(h.clients)
 				h.mu.Unlock()
-				log.Printf("WebSocket: Borrados %d clientes lentos. Total: %d", len(deadClients), len(h.clients))
+				log.Printf("WebSocket: Borrados %d clientes lentos. Total: %d", len(deadClients), totalClients)
 			}
 		}
 	}
@@ -326,7 +328,7 @@ func (h *Hub) BroadcastRanking(ranking []models.RankingEntry) {
 	}
 
 	h.broadcast <- data
-	log.Printf("WebSocket: Ranking broadcasteado a %d clientes", len(h.clients))
+	log.Printf("WebSocket: Ranking broadcasteado a %d clientes", h.GetClientCount())
 }
 
 // BroadcastPostcard envía una nueva postal a todos los clientes conectados
@@ -343,7 +345,7 @@ func (h *Hub) BroadcastPostcard(postcard models.Postcard) {
 	}
 
 	h.broadcast <- data
-	log.Printf("WebSocket: Postal broadcasteada a %d clientes", len(h.clients))
+	log.Printf("WebSocket: Postal broadcasteada a %d clientes", h.GetClientCount())
 }
 
 // BroadcastSecretReveal envía el evento de reveal de la Secret Box a todos los clientes.
@@ -361,7 +363,7 @@ func (h *Hub) BroadcastSecretReveal(postcards []models.Postcard) {
 	}
 
 	h.broadcast <- data
-	log.Printf("WebSocket: Secret Box revelada — %d postales broadcasteadas a %d clientes", len(postcards), len(h.clients))
+	log.Printf("WebSocket: Secret Box revelada — %d postales broadcasteadas a %d clientes", len(postcards), h.GetClientCount())
 }
 
 // GetClientCount devuelve el número de clientes conectados

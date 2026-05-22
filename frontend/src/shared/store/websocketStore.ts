@@ -86,6 +86,8 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
         state.socket.onerror = null;
         state.socket.onmessage = null;
         state.socket.close();
+        // Immediately clear state so the guard below sees no stale socket
+        set({ socket: null, currentUrl: null });
       }
 
       // Prevent multiple concurrent connections (including CLOSING state)
@@ -109,7 +111,9 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
       set({ isConnecting: true, error: null, reconnectUrl: url });
 
       // Add beforeunload handler for clean disconnect
-      window.addEventListener('beforeunload', disconnect);
+      // Remove any existing listener first to prevent duplicates
+      window.removeEventListener('beforeunload', get().disconnect);
+      window.addEventListener('beforeunload', get().disconnect);
 
       try {
         console.log('[WebSocket Store] Connecting to:', url);
@@ -157,6 +161,9 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
             currentUrl: null,
           });
 
+          // Clean up beforeunload listener
+          window.removeEventListener('beforeunload', get().disconnect);
+
           // Only attempt reconnect if it wasn't a clean close (1000)
           if (event.code !== 1000 && get().reconnectUrl) {
             handleReconnect(get().reconnectUrl!);
@@ -200,7 +207,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
 
       // Remove beforeunload handler if added
       if (typeof window !== 'undefined') {
-        window.removeEventListener('beforeunload', disconnect);
+        window.removeEventListener('beforeunload', get().disconnect);
       }
     },
 
