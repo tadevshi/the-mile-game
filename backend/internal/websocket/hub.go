@@ -151,9 +151,9 @@ var upgrader = websocket.Upgrader{
 // NewHub crea un nuevo Hub sin validador de eventos
 func NewHub() *Hub {
 	return &Hub{
-		register:        make(chan *Client),
+		register:        make(chan *Client, 256),
 		unregister:      make(chan *Client),
-		broadcast:       make(chan []byte),
+		broadcast:       make(chan []byte, 256),
 		broadcastToRoom: make(chan *RoomMessage, 256), // Buffered para no bloquear
 		clients:         make(map[*Client]bool),
 		rooms:           make(map[string]map[*Client]bool),
@@ -187,17 +187,24 @@ func (h *Hub) Run() {
 
 		case client := <-h.unregister:
 			h.mu.Lock()
+			var roomCount int
+			var hadSlug string
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
 				// Remover del room si tenía uno
 				if client.EventSlug != "" && h.rooms[client.EventSlug] != nil {
 					delete(h.rooms[client.EventSlug], client)
-					log.Printf("WebSocket: Cliente removido del room '%s'. Clientes restantes: %d", client.EventSlug, len(h.rooms[client.EventSlug]))
+					roomCount = len(h.rooms[client.EventSlug])
+					hadSlug = client.EventSlug
 				}
 			}
+			totalClients := len(h.clients)
 			h.mu.Unlock()
-			log.Printf("WebSocket: Cliente desconectado. Total: %d", len(h.clients))
+			if hadSlug != "" {
+				log.Printf("WebSocket: Cliente removido del room '%s'. Clientes restantes: %d", hadSlug, roomCount)
+			}
+			log.Printf("WebSocket: Cliente desconectado. Total: %d", totalClients)
 
 		case roomMsg := <-h.broadcastToRoom:
 			// Broadcast a un room específico (evento)
@@ -219,13 +226,16 @@ func (h *Hub) Run() {
 			}
 			h.mu.RUnlock()
 
-			// Limpiar clientes muertos
+// Limpiar clientes muertos
 			if len(deadClients) > 0 {
 				h.mu.Lock()
 				for _, client := range deadClients {
-					delete(h.clients, client)
-					delete(h.rooms[roomMsg.EventSlug], client)
-					close(client.send)
+					// Guard against double-close: check if client still exists before deleting and closing
+					if _, ok := h.clients[client]; ok {
+						delete(h.clients, client)
+						delete(h.rooms[roomMsg.EventSlug], client)
+						close(client.send)
+					}
 				}
 				h.mu.Unlock()
 			}
@@ -517,6 +527,7 @@ func (h *Hub) BroadcastCorkboardClearedToRoom(eventSlug string, count int64) {
 // reads from this goroutine.
 func (c *Client) readPump() {
 	defer func() {
+		recover() // Prevent panics from cascading
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
@@ -548,6 +559,7 @@ func (c *Client) readPump() {
 func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
+		recover() // Prevent panics from cascading
 		ticker.Stop()
 		c.conn.Close()
 	}()
@@ -562,7 +574,9 @@ func (c *Client) writePump() {
 				return
 			}
 
-			c.conn.WriteMessage(websocket.TextMessage, message)
+			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
+				return
+			}
 
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))

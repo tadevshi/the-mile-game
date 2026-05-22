@@ -1,30 +1,38 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { useWebSocketStore } from '@/shared/store/websocketStore';
 import { api, type RankingEntry } from '@/shared/lib/api';
 import { rankingService } from '../services/rankingApi';
 
-const WS_URL =
+const WS_URL_BASE =
   import.meta.env.VITE_WS_URL ||
   (window.location.protocol === 'https:'
     ? `wss://${window.location.host}/ws`
     : `ws://${window.location.host}/ws`);
 
 export function useRanking() {
+  const { slug } = useParams<{ slug: string }>();
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
-  
+
   // Use selectors to avoid unnecessary re-renders
   const isWsConnected = useWebSocketStore((state) => state.isConnected);
+
+  // Build WebSocket URL with event slug
+  const wsUrl = slug ? `${WS_URL_BASE}?event=${slug}` : WS_URL_BASE;
 
   // Initialize WebSocket connection and subscriptions
   useEffect(() => {
     const wsStore = useWebSocketStore.getState();
-    
-    // Connect if not already connected
+
+    // Connect if not already connected or URL changed
     if (!wsStore.isConnected && !wsStore.isConnecting) {
-      wsStore.connect(WS_URL);
+      wsStore.connect(wsUrl);
+    } else if (wsStore.currentUrl !== wsUrl) {
+      // URL changed, reconnect with new event slug
+      wsStore.connect(wsUrl);
     }
 
     // Subscribe to messages
@@ -38,7 +46,7 @@ export function useRanking() {
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [wsUrl]);
 
   const loadRanking = useCallback(async () => {
     try {
