@@ -64,8 +64,8 @@ export function CorkboardPage() {
   }, [searchParams]);
 
   const handleAddPostcard = async (image: File, message: string, senderName?: string) => {
-    // Default sender name if not provided
-    const name = senderName?.trim() || 'Anónimo';
+    // Pass name as-is; empty names are allowed for quick party uploads
+    const name = senderName?.trim() || '';
     await createPostcard(image, message, name);
     if (!hasRegisteredPlayer && senderName?.trim()) {
       setHasRegisteredPlayer(true);
@@ -297,7 +297,7 @@ export function CorkboardPage() {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         onSubmit={handleAddPostcard}
-        requireSenderName={!hasRegisteredPlayer}
+        requireSenderName={false}
       />
 
       {!isAddOpen && (

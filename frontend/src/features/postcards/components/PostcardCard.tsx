@@ -74,7 +74,7 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
           onKeyDown={handleKeyDown}
           role="button"
           tabIndex={0}
-          aria-label={`Abrir postal de ${presentation.captionName}`}
+          aria-label={presentation.captionName ? `Abrir postal de ${presentation.captionName}` : 'Abrir postal'}
           layout
           initial={{ opacity: 0, scale: 0.8, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -85,7 +85,7 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
               src={postcard.image_path}
               isVideo={isVideo}
               orientation={orientation}
-              caption={presentation.captionName}
+              caption={presentation.captionName || ''}
               theme={theme}
               thumbnailPath={postcard.thumbnail_path}
               durationMs={postcard.media_duration_ms}
@@ -122,7 +122,7 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
-        aria-label={`Abrir postal de ${postcard.player_name}`}
+          aria-label={postcard.player_name ? `Abrir postal de ${postcard.player_name}` : 'Abrir postal'}
         layout
         initial={{ opacity: 0, scale: 0.8, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -141,7 +141,7 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
                 {/* Video thumbnail con play overlay */}
                 <img
                   src={imageError ? videoFallback : (postcard.thumbnail_path || videoFallback)}
-                  alt={`Video de ${postcard.player_name}`}
+                  alt={postcard.player_name ? `Video de ${postcard.player_name}` : 'Video'}
                   className={`absolute inset-0 w-full h-full ${imageError ? 'object-contain p-4 opacity-50' : 'object-cover'}`}
                   loading="lazy"
                   onError={() => setImageError(true)}
@@ -180,7 +180,7 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
             ) : (
               <img
                 src={imageError ? imageFallback : postcard.image_path}
-                alt={`Postal de ${postcard.player_name}`}
+                alt={postcard.player_name ? `Postal de ${postcard.player_name}` : 'Postal'}
                 className={`absolute inset-0 w-full h-full ${imageError ? 'object-contain p-4 opacity-50' : 'object-cover'}`}
                 loading="lazy"
                 onError={() => setImageError(true)}
@@ -219,15 +219,17 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
               </p>
             </div>
 
-            {/* From: nombre */}
-            <div className="relative z-10 mt-2 pt-2" style={{ borderTopColor: `${primaryColor}30`, borderTopWidth: '1px' }}>
-              <p className="text-[10px] flex items-center gap-1" style={{ color: `${textColor}80` }}>
-                <span className="text-sm">{postcard.player_avatar}</span>
-                <span className="font-medium" style={{ color: primaryColor }}>
-                  {postcard.player_name}
-                </span>
-              </p>
-            </div>
+            {/* From: nombre — solo si hay nombre */}
+            {postcard.player_name && (
+              <div className="relative z-10 mt-2 pt-2" style={{ borderTopColor: `${primaryColor}30`, borderTopWidth: '1px' }}>
+                <p className="text-[10px] flex items-center gap-1" style={{ color: `${textColor}80` }}>
+                  <span className="text-sm">{postcard.player_avatar}</span>
+                  <span className="font-medium" style={{ color: primaryColor }}>
+                    {postcard.player_name}
+                  </span>
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
