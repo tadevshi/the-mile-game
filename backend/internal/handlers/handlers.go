@@ -816,9 +816,9 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 		rawName := truncateMessage(c.Request.FormValue("name"), 255)
 		rawAvatar := truncateMessage(c.Request.FormValue("avatar"), 10)
 
+		// Allow empty name for quick party uploads (photo-only, no name required)
 		if rawName == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Player ID or name required"})
-			return
+			rawName = ""
 		}
 
 		// Avatar por defecto si no se proporciona
@@ -853,11 +853,9 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	message := truncateMessage(c.Request.FormValue("message"), 500)
 
 	// sender_name opcional: permite que alguien use el celular de otro
+	// Empty string is intentional (guest didn't type a name) and is preserved
 	rawSenderName := truncateMessage(c.Request.FormValue("sender_name"), 255)
-	var senderName *string
-	if rawSenderName != "" {
-		senderName = &rawSenderName
-	}
+	senderName := &rawSenderName
 
 	rotation := (rand.Float64() * 60) - 30 // -30 a 30
 

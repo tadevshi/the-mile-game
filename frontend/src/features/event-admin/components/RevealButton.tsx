@@ -180,7 +180,7 @@ export function RevealButton({ slug, theme }: RevealButtonProps) {
                     >
                       <span className="text-lg">🎁</span>
                       <span className="text-sm font-medium" style={{ color: theme.textColor }}>
-                        {postcard.sender_name || 'Anónimo'}
+                        {postcard.sender_name || 'Sin nombre'}
                       </span>
                     </div>
                   ))}
