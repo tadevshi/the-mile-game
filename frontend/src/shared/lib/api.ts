@@ -594,9 +594,11 @@ class ApiClient {
     }
 
     // Si sigue sin haber player, intentar con senderName como fallback
-    if (!effectivePlayerId && options?.senderName) {
+    // Empty string is allowed (guest didn't type a name), backend auto-creates a generic player
+    if (!effectivePlayerId && options?.senderName !== undefined) {
+      const playerName = options.senderName?.trim() || '';
       const player = await this.createPlayerScoped(eventSlug, {
-        name: options.senderName,
+        name: playerName,
         avatar: '📸',
       });
       effectivePlayerId = player.id;

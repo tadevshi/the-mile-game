@@ -92,7 +92,7 @@ const publicPostcardCols = `
 	p.event_id::text,
 	p.player_id::text,
 	p.sender_name,
-	COALESCE(p.sender_name, pl.name, 'Invitado') AS player_name,
+	COALESCE(NULLIF(p.sender_name, ''), pl.name, 'Invitado') AS player_name,
 	CASE WHEN p.is_secret = TRUE THEN '🎁' ELSE COALESCE(pl.avatar, '👤') END AS player_avatar,
 	p.image_path, p.message, p.rotation, p.is_secret, p.revealed_at, p.created_at,
 	p.media_type, p.thumbnail_path, p.media_duration_ms

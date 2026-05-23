@@ -34,7 +34,7 @@ type RankingEntry struct {
 
 // CreatePlayerRequest representa el body de creación de jugador
 type CreatePlayerRequest struct {
-	Name   string `json:"name" binding:"required"`
+	Name   string `json:"name"`
 	Avatar string `json:"avatar"`
 }
 

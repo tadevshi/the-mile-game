@@ -42,7 +42,7 @@ interface PostcardCardProps {
 
 function PostcardCard({ postcard, theme }: PostcardCardProps) {
   const isNew = isNewerThan24Hours(postcard.created_at);
-  const displayName = postcard.sender_name || 'Anónimo';
+  const displayName = postcard.sender_name || undefined;
   const imagePath = postcard.thumbnail_path || postcard.image_path;
   const [imageError, setImageError] = useState(false);
 
@@ -65,14 +65,14 @@ function PostcardCard({ postcard, theme }: PostcardCardProps) {
           {postcard.media_type === 'video' ? (
             <img
               src={imageError ? VIDEO_PLACEHOLDER : (postcard.thumbnail_path || VIDEO_PLACEHOLDER)}
-              alt={displayName}
+              alt={displayName || 'Postal'}
               className="w-full h-full object-cover"
               onError={() => setImageError(true)}
             />
           ) : imagePath ? (
             <img
               src={imagePath}
-              alt={displayName}
+              alt={displayName || 'Postal'}
               className="w-full h-full object-cover"
               onError={() => setImageError(true)}
             />
@@ -95,12 +95,14 @@ function PostcardCard({ postcard, theme }: PostcardCardProps) {
 
         {/* Info */}
         <div className="p-2">
-          <div className="flex items-center gap-1 mb-1">
-            <span className="text-lg">🎁</span>
-            <span className="text-xs font-medium truncate" style={{ color: theme.textColor }}>
-              {displayName}
-            </span>
-          </div>
+          {displayName && (
+            <div className="flex items-center gap-1 mb-1">
+              <span className="text-lg">🎁</span>
+              <span className="text-xs font-medium truncate" style={{ color: theme.textColor }}>
+                {displayName}
+              </span>
+            </div>
+          )}
           <div className="flex items-center gap-1 text-xs" style={{ color: `${theme.textColor}60` }}>
             <Clock className="w-3 h-3" />
             <span>{formatRelativeTime(postcard.created_at)}</span>
