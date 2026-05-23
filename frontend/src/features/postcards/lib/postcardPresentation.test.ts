@@ -95,7 +95,7 @@ describe('getPostcardPresentation', () => {
     expect(result.captionName).toBe('Player Name');
   });
 
-  it('falls back to player_name when sender_name is empty string', () => {
+  it('keeps empty sender_name as captionName (no fallback to player_name)', () => {
     const postcard = makePostcard({
       message: '',
       sender_name: '',
@@ -103,7 +103,7 @@ describe('getPostcardPresentation', () => {
     });
     const result = getPostcardPresentation(postcard);
 
-    // Empty string is falsy in JS, so || falls back to player_name
-    expect(result.captionName).toBe('Player Name');
+    // Empty string is intentionally kept so the UI can hide the caption
+    expect(result.captionName).toBe('');
   });
 });

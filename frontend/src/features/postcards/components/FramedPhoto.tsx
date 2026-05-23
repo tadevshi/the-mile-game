@@ -57,7 +57,7 @@ export function FramedPhoto({
       <div
         className="relative bg-white px-3 pt-3 pb-4 shadow-md overflow-hidden"
         role={isVideo ? 'group' : 'img'}
-        aria-label={isVideo ? `Video de ${caption}` : `Foto de ${caption}`}
+        aria-label={isVideo ? (caption ? `Video de ${caption}` : 'Video') : (caption ? `Foto de ${caption}` : 'Foto')}
       >
         <div className={`relative w-full ${aspectRatio} overflow-hidden bg-gray-100`}>
           {isVideo ? (
@@ -70,7 +70,7 @@ export function FramedPhoto({
           ) : (
             <img
               src={imageError ? fallbackSrc : src}
-              alt={`Foto de ${caption}`}
+              alt={caption ? `Foto de ${caption}` : 'Foto'}
               className={`w-full h-full ${imageError ? 'object-contain p-4 opacity-50' : 'object-cover'}`}
               loading="lazy"
               onError={() => setImageError(true)}
@@ -79,23 +79,25 @@ export function FramedPhoto({
         </div>
       </div>
 
-      <div className="mt-2 text-center">
-        <p
-          className="text-sm font-medium truncate max-w-[200px]"
-          style={{ color: textColor }}
-          title={caption}
-        >
-          {caption}
-        </p>
-        {isVideo && (
+      {caption && (
+        <div className="mt-2 text-center">
           <p
-            className="text-[10px] uppercase tracking-wider mt-0.5"
-            style={{ color: `${textColor}80` }}
+            className="text-sm font-medium truncate max-w-[200px]"
+            style={{ color: textColor }}
+            title={caption}
           >
-            video
+            {caption}
           </p>
-        )}
-      </div>
+          {isVideo && (
+            <p
+              className="text-[10px] uppercase tracking-wider mt-0.5"
+              style={{ color: `${textColor}80` }}
+            >
+              video
+            </p>
+          )}
+        </div>
+      )}
     </motion.div>
   );
 }

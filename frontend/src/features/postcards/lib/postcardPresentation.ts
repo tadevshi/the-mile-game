@@ -20,6 +20,6 @@ export function getPostcardPresentation(postcard: Postcard): PostcardPresentatio
   return {
     mode: hasMessage ? 'postcard' : 'photo',
     hasMessage,
-    captionName: postcard.sender_name || postcard.player_name,
+    captionName: postcard.sender_name !== undefined ? postcard.sender_name : postcard.player_name,
   };
 }
