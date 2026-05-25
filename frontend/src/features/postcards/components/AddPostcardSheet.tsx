@@ -460,7 +460,6 @@ export function AddPostcardSheet({
                   ref={fileInputRef}
                   type="file"
                   accept={mediaMode === 'video' ? 'video/*' : 'image/*'}
-                  capture={mediaMode === 'photo' ? 'user' : undefined}
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -510,9 +509,9 @@ export function AddPostcardSheet({
                         className="w-full aspect-[4/3] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors"
                         style={{ borderColor: `${colors.primary}40`, backgroundColor: `${colors.primary}10` }}
                       >
-                        <span className="text-4xl">📸</span>
+                        <span className="text-4xl">📷</span>
                         <span className="text-sm font-medium" style={{ color: `${colors.text}80` }}>
-                          Tomar foto / Elegir imagen
+                          Tomar foto o elegir de galería
                         </span>
                       </motion.button>
                     ) : (
