@@ -39,8 +39,9 @@ export function AddPostcardSheet({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // File input ref
+  // File input refs
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   // Video recording refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -459,7 +460,16 @@ export function AddPostcardSheet({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept={mediaMode === 'video' ? 'video/*' : 'image/*'}
+                  accept="image/*"
+                  capture="user"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                {/* Separate input for gallery selection (no capture attribute) */}
+                <input
+                  ref={galleryInputRef}
+                  type="file"
+                  accept="image/*"
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -502,18 +512,32 @@ export function AddPostcardSheet({
                   <>
                     {/* Modo foto */}
                     {mediaMode === 'photo' ? (
-                      <motion.button
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full aspect-[4/3] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors"
-                        style={{ borderColor: `${colors.primary}40`, backgroundColor: `${colors.primary}10` }}
-                      >
-                        <span className="text-4xl">📷</span>
-                        <span className="text-sm font-medium" style={{ color: `${colors.text}80` }}>
-                          Tomar foto o elegir de galería
-                        </span>
-                      </motion.button>
+                      <div className="flex gap-3">
+                        <motion.button
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex-1 aspect-[4/3] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors"
+                          style={{ borderColor: `${colors.primary}40`, backgroundColor: `${colors.primary}10` }}
+                        >
+                          <span className="text-3xl">📸</span>
+                          <span className="text-xs font-medium" style={{ color: `${colors.text}80` }}>
+                            Tomar foto
+                          </span>
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => galleryInputRef.current?.click()}
+                          className="flex-1 aspect-[4/3] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors"
+                          style={{ borderColor: `${colors.primary}40`, backgroundColor: `${colors.primary}10` }}
+                        >
+                          <span className="text-3xl">🖼️</span>
+                          <span className="text-xs font-medium" style={{ color: `${colors.text}80` }}>
+                            Galería
+                          </span>
+                        </motion.button>
+                      </div>
                     ) : (
                       /* Modo video con cámara en vivo */
                       <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-900">
