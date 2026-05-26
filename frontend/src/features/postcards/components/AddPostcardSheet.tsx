@@ -457,7 +457,7 @@ export function AddPostcardSheet({
 
               {/* Zona de foto/video */}
               <div className="relative">
-                <input
+<input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
@@ -510,7 +510,7 @@ export function AddPostcardSheet({
                   </div>
                 ) : (
                   <>
-                    {/* Modo foto */}
+{/* Modo foto */}
                     {mediaMode === 'photo' ? (
                       <div className="flex gap-3">
                         <motion.button
