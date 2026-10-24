@@ -339,6 +339,69 @@ func TestUpdateEventFeatures_UpdateError(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Failed to update")
 }
 
+func TestUpdateEventFeatures_PostcardStyle(t *testing.T) {
+	ownerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+
+	tests := []struct {
+		name           string
+		initialStyle   models.PostcardStyle
+		body           string
+		expectedStatus int
+		expectedStyle  models.PostcardStyle
+	}{
+		{
+			name:           "updates postcard style",
+			initialStyle:   models.PostcardStyleClassic,
+			body:           `{"features":{"quiz":true},"settings":{"postcard_style":"polaroid"}}`,
+			expectedStatus: http.StatusOK,
+			expectedStyle:  models.PostcardStylePolaroid,
+		},
+		{
+			name:           "preserves postcard style when omitted",
+			initialStyle:   models.PostcardStylePolaroid,
+			body:           `{"features":{"corkboard":true}}`,
+			expectedStatus: http.StatusOK,
+			expectedStyle:  models.PostcardStylePolaroid,
+		},
+		{
+			name:           "rejects invalid postcard style",
+			initialStyle:   models.PostcardStyleClassic,
+			body:           `{"features":{"quiz":true},"settings":{"postcard_style":"instant"}}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedStyle:  models.PostcardStyleClassic,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockUpdater := newMockEventUpdater()
+			event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
+			event.Settings.PostcardStyle = tt.initialStyle
+			mockUpdater.AddEvent(event)
+			handler := NewAdminEventHandler(mockUpdater, "")
+
+			gin.SetMode(gin.TestMode)
+			router := gin.New()
+			router.Use(func(c *gin.Context) {
+				eventCopy := *event
+				c.Set("event", &eventCopy)
+				c.Set("user_id", ownerID)
+				c.Next()
+			})
+			router.PUT("/api/admin/events/:slug/features", handler.UpdateEventFeatures)
+
+			req, err := http.NewRequest("PUT", "/api/admin/events/test-event/features", bytes.NewBufferString(tt.body))
+			require.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expectedStatus, w.Code)
+			assert.Equal(t, tt.expectedStyle, mockUpdater.events[event.ID].Settings.PostcardStyle)
+		})
+	}
+}
+
 // ============== UploadMedia TESTS ==============
 
 func TestUploadMedia_InvalidType(t *testing.T) {

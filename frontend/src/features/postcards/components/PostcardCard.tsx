@@ -4,18 +4,21 @@ import { toPng } from 'html-to-image';
 import { type Theme } from '@/shared/theme/ThemeProvider';
 import { FramedPhoto } from './FramedPhoto';
 import { PushPin } from './PushPin';
+import { PolaroidCard } from './PolaroidCard';
 import { getPostcardPresentation } from '../lib/postcardPresentation';
 import { useMediaOrientation } from '../hooks/useMediaOrientation';
 import type { Postcard } from '../types/postcards.types';
+import type { PostcardStyle } from '@/shared/lib/api';
 
 interface PostcardCardProps {
   postcard: Postcard;
   onSelect: (postcard: Postcard) => void;
   eventLogoUrl?: string;  // Logo del evento para fallback en videos
   theme?: Theme;          // Tema del evento para colores dinámicos
+  postcardStyle?: PostcardStyle;
 }
 
-export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: PostcardCardProps) {
+export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme, postcardStyle = 'classic' }: PostcardCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [imageError, setImageError] = useState(false);
 
@@ -48,6 +51,34 @@ export function PostcardCard({ postcard, onSelect, eventLogoUrl, theme }: Postca
       handleSelect();
     }
   };
+
+  if (postcardStyle === 'polaroid') {
+    return (
+      <div className="relative pt-4">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+          <PushPin />
+        </div>
+        <motion.div
+          ref={cardRef}
+          className="postcard-card relative cursor-pointer"
+          style={{ rotate: postcard.rotation }}
+          whileHover={{ scale: 1.05, zIndex: 30, rotate: 0 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={handleSelect}
+          onKeyDown={handleKeyDown}
+          role="button"
+          tabIndex={0}
+          aria-label={postcard.player_name ? `Abrir postal de ${postcard.player_name}` : 'Abrir postal'}
+          layout
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+        >
+          <PolaroidCard postcard={postcard} eventLogoUrl={eventLogoUrl} />
+        </motion.div>
+      </div>
+    );
+  }
 
   // --- Photo mode: framed photo layout ---
   if (presentation.mode === 'photo') {

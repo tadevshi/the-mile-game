@@ -4,14 +4,15 @@ import { Copy, CheckCircle, Save, Share2, Upload, Trash2, Eye } from 'lucide-rea
 import { Button } from '@/shared/components/Button';
 import { Switch } from '@/shared/components/Switch';
 import { useEventAdmin, type AdminTab } from '../hooks/useEventAdmin';
-import type { EventFeatures } from '@/shared/lib/api';
-import { api } from '@/shared/lib/api';
+import { api, getPostcardStyle, type EventFeatures, type PostcardStyle } from '@/shared/lib/api';
+import { useEventStore } from '@/shared/store/eventStore';
 import { FEATURES } from '@/shared/lib/featureFlags';
 import type { PreviewTheme } from '@/themes';
 import { useTheme } from '@/shared/theme/useTheme';
 import { DriveConnectionPanel } from '@/features/admin/components/DriveConnectionPanel';
 import { BackupJobsList } from '@/features/admin/components/BackupJobsList';
 import { CollaboratorsSection } from './CollaboratorsSection';
+import { PostcardStyleSelector } from './PostcardStyleSelector';
 
 interface ConfigTabProps {
   slug: string;
@@ -22,6 +23,7 @@ interface ConfigTabProps {
 export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
   const { event, refetchEvent } = useEventAdmin(slug);
   const { currentTheme } = useTheme();
+  const syncSettings = useEventStore((state) => state.syncSettings);
   
   // Use preview theme colors if provided, otherwise use the event's current theme
   const theme = previewTheme || currentTheme;
@@ -33,6 +35,7 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
     corkboard: true,
     secretBox: false,
   });
+  const [postcardStyle, setPostcardStyle] = useState<PostcardStyle>('classic');
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -94,6 +97,10 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
     }
   }, [event?.features]);
 
+  useEffect(() => {
+    setPostcardStyle(getPostcardStyle(event?.settings?.postcard_style));
+  }, [event?.settings?.postcard_style]);
+
   const handleToggle = (key: keyof EventFeatures) => (checked: boolean) => {
     setFeatures((prev) => ({ ...prev, [key]: checked }));
     setSuccess(false);
@@ -106,7 +113,10 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
     setSuccess(false);
 
     try {
-      await api.updateEventFeatures(slug, features);
+      const updatedEvent = await api.updateEventFeatures(slug, features, {
+        postcard_style: postcardStyle,
+      });
+      syncSettings(slug, updatedEvent.settings);
       setSuccess(true);
       refetchEvent();
       setTimeout(() => setSuccess(false), 3000);
@@ -205,6 +215,15 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
           </div>
         </div>
       </div>
+
+      <PostcardStyleSelector
+        value={postcardStyle}
+        onChange={(style) => {
+          setPostcardStyle(style);
+          setSuccess(false);
+          setError(null);
+        }}
+      />
 
       {/* Logo / Imagen representativa */}
       <div className="space-y-3">

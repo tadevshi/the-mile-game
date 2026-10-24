@@ -40,12 +40,19 @@ export interface EventFeatures {
   secretBox: boolean;
 }
 
+export type PostcardStyle = 'classic' | 'polaroid';
+
+export function getPostcardStyle(value: unknown): PostcardStyle {
+  return value === 'polaroid' ? 'polaroid' : 'classic';
+}
+
 export interface EventSettings {
   theme?: string;
   primary_color?: string;
   background_image?: string;
   logo_url?: string;       // URL del logo/imagen representativa
   background_url?: string; // URL del fondo custom del corkboard
+  postcard_style?: PostcardStyle;
 }
 
 export interface Event {
@@ -647,7 +654,11 @@ class ApiClient {
   // Admin — Event Features
   // ==========================================
 
-  async updateEventFeatures(eventSlug: string, features: EventFeatures): Promise<Event> {
+  async updateEventFeatures(
+    eventSlug: string,
+    features: EventFeatures,
+    settings?: { postcard_style: PostcardStyle }
+  ): Promise<Event> {
     // Transform camelCase to snake_case for backend compatibility
     const snakeFeatures = {
       quiz: features.quiz,
@@ -657,7 +668,7 @@ class ApiClient {
     
     const response = await this.client.put<Event>(
       `/admin/events/${eventSlug}/features`,
-      { features: snakeFeatures }
+      { features: snakeFeatures, ...(settings && { settings }) }
     );
     return response.data;
   }

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useSearchParams } from 'react-router-dom';
 import emptyAnimation from '@/assets/animations/empty.json';
 import { Button, LottieAnimation } from '@/shared';
-import { api } from '@/shared/lib/api';
+import { api, getPostcardStyle } from '@/shared/lib/api';
 import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { useEventStore } from '@/shared/store/eventStore';
 import { useTheme } from '@/shared/theme/useTheme';
@@ -38,6 +38,7 @@ export function CorkboardPage() {
   
   const eventLogoUrl = currentEvent?.settings?.logo_url;
   const backgroundUrl = currentEvent?.settings?.background_url;
+  const postcardStyle = getPostcardStyle(currentEvent?.settings?.postcard_style);
 
   const [selectedPostcard, setSelectedPostcard] = useState<Postcard | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -241,6 +242,7 @@ export function CorkboardPage() {
                   onSelect={setSelectedPostcard}
                   eventLogoUrl={eventLogoUrl}
                   theme={theme}
+                  postcardStyle={postcardStyle}
                 />
               </motion.div>
             ))}
@@ -290,6 +292,8 @@ export function CorkboardPage() {
         postcard={selectedPostcard}
         onClose={() => setSelectedPostcard(null)}
         theme={theme}
+        eventLogoUrl={eventLogoUrl}
+        postcardStyle={postcardStyle}
       />
 
       {/* Sheet para agregar postal */}
@@ -314,6 +318,8 @@ export function CorkboardPage() {
         <GiftBox
           postcards={revealedPostcards}
           onRevealComplete={handleRevealComplete}
+          postcardStyle={postcardStyle}
+          eventLogoUrl={eventLogoUrl}
         />
       )}
 

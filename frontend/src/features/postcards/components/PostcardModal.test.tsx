@@ -96,6 +96,41 @@ function makeTheme(): Theme {
 }
 
 describe('PostcardModal', () => {
+  describe('event postcard style', () => {
+    it('renders a Polaroid image with its message and attribution', () => {
+      const postcard = makePostcard({ message: 'A special memory', sender_name: 'Grandma' });
+      const { container } = render(
+        React.createElement(PostcardModal, {
+          postcard,
+          onClose: vi.fn(),
+          postcardStyle: 'polaroid',
+        })
+      );
+
+      expect(container.querySelector('[data-testid="polaroid-card"]')).toBeInTheDocument();
+      expect(container.textContent).toContain('A special memory');
+      expect(container.textContent).toContain('Grandma');
+      expect(container.textContent).not.toContain('mensaje:');
+    });
+
+    it('renders a Polaroid video with the playable media source', () => {
+      const postcard = makePostcard({
+        media_type: 'video',
+        image_path: '/videos/test.mp4',
+        thumbnail_path: '/thumbnails/test.jpg',
+      });
+      const { container } = render(
+        React.createElement(PostcardModal, {
+          postcard,
+          onClose: vi.fn(),
+          postcardStyle: 'polaroid',
+        })
+      );
+
+      expect(container.querySelector('[data-testid="video-player"]')).toHaveAttribute('data-src', '/videos/test.mp4');
+    });
+  });
+
   describe('presentation mode branching', () => {
     it('renders postcard mode (split layout) when message is present', () => {
       const postcard = makePostcard({ message: 'Hola mundo' });

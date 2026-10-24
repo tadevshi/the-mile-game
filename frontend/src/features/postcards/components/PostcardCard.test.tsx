@@ -71,6 +71,38 @@ function makeTheme(): Theme {
 }
 
 describe('PostcardCard', () => {
+  describe('event postcard style', () => {
+    it('keeps the classic renderer by default', () => {
+      const { container } = render(
+        <PostcardCard postcard={makePostcard()} onSelect={vi.fn()} theme={makeTheme()} />
+      );
+
+      expect(container.querySelector('[data-testid="polaroid-card"]')).not.toBeInTheDocument();
+      expect(container.textContent).toContain('mensaje:');
+    });
+
+    it('renders image and video postcards as Polaroids', () => {
+      const image = render(
+        <PostcardCard postcard={makePostcard()} onSelect={vi.fn()} postcardStyle="polaroid" />
+      );
+      expect(image.container.querySelector('[data-testid="polaroid-card"]')).toBeInTheDocument();
+      image.unmount();
+
+      const video = render(
+        <PostcardCard
+          postcard={makePostcard({
+            media_type: 'video',
+            image_path: '/videos/test.mp4',
+            thumbnail_path: '/thumbnails/test.jpg',
+          })}
+          onSelect={vi.fn()}
+          postcardStyle="polaroid"
+        />
+      );
+      expect(video.getByRole('img', { name: /postal de test user/i })).toHaveAttribute('src', '/thumbnails/test.jpg');
+    });
+  });
+
   describe('presentation mode branching', () => {
     it('renders postcard mode (split layout) when message is present', () => {
       const postcard = makePostcard({ message: 'Hola mundo' });
