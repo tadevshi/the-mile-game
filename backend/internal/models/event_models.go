@@ -48,13 +48,21 @@ type EventFeatures struct {
 	SecretBox bool `json:"secretBox"`
 }
 
+type PostcardStyle string
+
+const (
+	PostcardStyleClassic  PostcardStyle = "classic"
+	PostcardStylePolaroid PostcardStyle = "polaroid"
+)
+
 // EventSettings configuración específica del evento
 type EventSettings struct {
-	Theme           string `json:"theme,omitempty"`
-	PrimaryColor    string `json:"primary_color,omitempty"`
-	BackgroundImage string `json:"background_image,omitempty"`
-	LogoURL         string `json:"logo_url,omitempty"`       // URL del logo/imagen representativa del evento
-	BackgroundURL   string `json:"background_url,omitempty"` // URL del fondo custom del corkboard
+	Theme           string        `json:"theme,omitempty"`
+	PrimaryColor    string        `json:"primary_color,omitempty"`
+	BackgroundImage string        `json:"background_image,omitempty"`
+	LogoURL         string        `json:"logo_url,omitempty"`       // URL del logo/imagen representativa del evento
+	BackgroundURL   string        `json:"background_url,omitempty"` // URL del fondo custom del corkboard
+	PostcardStyle   PostcardStyle `json:"postcard_style,omitempty"`
 }
 
 // QuizQuestion representa una pregunta del quiz configurable por evento

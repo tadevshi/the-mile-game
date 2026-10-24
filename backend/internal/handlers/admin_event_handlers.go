@@ -26,6 +26,9 @@ type UpdateFeaturesRequest struct {
 		Corkboard bool `json:"corkboard"`
 		SecretBox bool `json:"secret_box"` // Accept snake_case from frontend
 	} `json:"features" binding:"required"`
+	Settings *struct {
+		PostcardStyle models.PostcardStyle `json:"postcard_style"`
+	} `json:"settings,omitempty"`
 }
 
 // allowedFeatures keys que se pueden actualizar
@@ -89,6 +92,22 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 		}
 	}
 
+	var settingsData map[string]interface{}
+	if rawSettings, exists := rawRequest["settings"]; exists {
+		settingsData, ok = rawSettings.(map[string]interface{})
+		if !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: 'settings' must be an object"})
+			return
+		}
+		if value, provided := settingsData["postcard_style"]; provided {
+			style, validString := value.(string)
+			if !validString || (style != string(models.PostcardStyleClassic) && style != string(models.PostcardStylePolaroid)) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid postcard style. Allowed values: classic, polaroid"})
+				return
+			}
+		}
+	}
+
 	// Ahora parsear correctamente al struct
 	var req UpdateFeaturesRequest
 	if err := json.Unmarshal(bodyBytes, &req); err != nil {
@@ -106,6 +125,9 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 	}
 	if featuresData["secret_box"] != nil {
 		eventModel.Features.SecretBox = req.Features.SecretBox
+	}
+	if settingsData != nil && settingsData["postcard_style"] != nil {
+		eventModel.Settings.PostcardStyle = req.Settings.PostcardStyle
 	}
 
 	// Actualizar en DB
