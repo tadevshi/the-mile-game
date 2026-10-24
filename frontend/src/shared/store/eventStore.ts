@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../lib/api';
+import type { PostcardStyle } from '../lib/api';
 
 export interface EventSettings {
   theme?: string;
@@ -7,6 +8,7 @@ export interface EventSettings {
   background_image?: string;
   logo_url?: string;
   background_url?: string;
+  postcard_style?: PostcardStyle;
 }
 
 export interface Event {
@@ -41,6 +43,7 @@ interface EventState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearEvent: () => void;
+  syncSettings: (slug: string, settings: EventSettings | undefined) => void;
   updateFeatures: (features: EventFeatures) => Promise<Event>;
 }
 
@@ -53,6 +56,11 @@ export const useEventStore = create<EventState>((set, get) => ({
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
   clearEvent: () => set({ currentEvent: null, isLoading: false, error: null }),
+  syncSettings: (slug, settings) => set((state) => ({
+    currentEvent: state.currentEvent?.slug === slug
+      ? { ...state.currentEvent, settings }
+      : state.currentEvent,
+  })),
   
   updateFeatures: async (features: EventFeatures) => {
     const { currentEvent } = get();
@@ -94,6 +102,7 @@ export const useEventStore = create<EventState>((set, get) => ({
           corkboard: response.features.corkboard,
           secretBox: response.features.secretBox ?? false,
         },
+        settings: response.settings,
       };
       
       // Confirmar con datos del servidor

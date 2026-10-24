@@ -5,9 +5,11 @@ import { type Theme } from '@/shared/theme/ThemeProvider';
 import { FramedPhoto } from './FramedPhoto';
 import { PushPin } from './PushPin';
 import { VideoPlayer } from './VideoPlayer';
+import { PolaroidCard } from './PolaroidCard';
 import { getPostcardPresentation } from '../lib/postcardPresentation';
 import { useMediaOrientation } from '../hooks/useMediaOrientation';
 import type { Postcard } from '../types/postcards.types';
+import type { PostcardStyle } from '@/shared/lib/api';
 
 function sanitizeFilename(value: string): string {
   return value
@@ -49,9 +51,10 @@ interface PostcardModalProps {
   onClose: () => void;
   eventLogoUrl?: string;
   theme?: Theme;
+  postcardStyle?: PostcardStyle;
 }
 
-export function PostcardModal({ postcard, onClose, eventLogoUrl, theme }: PostcardModalProps) {
+export function PostcardModal({ postcard, onClose, eventLogoUrl, theme, postcardStyle = 'classic' }: PostcardModalProps) {
   const postcardRef = useRef<HTMLDivElement>(null);
   const [imageError, setImageError] = useState(false);
 
@@ -146,7 +149,15 @@ export function PostcardModal({ postcard, onClose, eventLogoUrl, theme }: Postca
             tabIndex={-1}
           >
             {/* Photo mode: no pin, FramedPhoto centered */}
-            {presentation.mode === 'photo' ? (
+            {postcardStyle === 'polaroid' ? (
+              <div ref={postcardRef} className="mx-auto w-full max-w-lg">
+                <PolaroidCard
+                  postcard={postcard}
+                  eventLogoUrl={eventLogoUrl}
+                  playVideo={isVideo}
+                />
+              </div>
+            ) : presentation.mode === 'photo' ? (
               <div
                 ref={postcardRef}
                 className="shadow-2xl overflow-hidden p-6"

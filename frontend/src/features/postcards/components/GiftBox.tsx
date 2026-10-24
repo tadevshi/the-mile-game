@@ -2,10 +2,14 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fireConfetti } from '@/shared/components/Confetti';
 import type { Postcard } from '../types/postcards.types';
+import type { PostcardStyle } from '@/shared/lib/api';
+import { PolaroidCard } from './PolaroidCard';
 
 interface GiftBoxProps {
   postcards: Postcard[];
   onRevealComplete: (postcards: Postcard[]) => void;
+  postcardStyle?: PostcardStyle;
+  eventLogoUrl?: string;
 }
 
 type Phase = 'appear' | 'wobble' | 'open' | 'fly' | 'done';
@@ -25,7 +29,7 @@ const CARD_SLOTS_RAW = [
 // Tiempo entre que cada carta empieza a volar — más rápido = más volcánico
 const CARD_STAGGER_MS = 320;
 
-export function GiftBox({ postcards, onRevealComplete }: GiftBoxProps) {
+export function GiftBox({ postcards, onRevealComplete, postcardStyle = 'classic', eventLogoUrl }: GiftBoxProps) {
   const [phase, setPhase] = useState<Phase>('appear');
   const [lidGone, setLidGone] = useState(false);
   const [boxVisible, setBoxVisible] = useState(true);
@@ -221,7 +225,7 @@ export function GiftBox({ postcards, onRevealComplete }: GiftBoxProps) {
                 return (
                   <motion.div
                     key={pc.id}
-                    className="absolute w-36 aspect-[4/3] rounded-xl overflow-hidden shadow-2xl border-[3px] border-white"
+                    className={`absolute w-36 ${postcardStyle === 'classic' ? 'aspect-[4/3] rounded-xl overflow-hidden shadow-2xl border-[3px] border-white' : ''}`}
                     style={{ top: '50%', left: '50%', translateX: '-50%', translateY: '-50%' }}
                     initial={{ scale: 0, x: 0, y: 0, rotate: 0, opacity: 0 }}
                     animate={{
@@ -246,16 +250,22 @@ export function GiftBox({ postcards, onRevealComplete }: GiftBoxProps) {
                       ],
                     }}
                   >
-                    <img
-                      src={pc.image_path}
-                      alt={pc.player_name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
-                      <p className="text-white text-[9px] font-semibold truncate">
-                        🎁 {pc.player_name}
-                      </p>
-                    </div>
+                    {postcardStyle === 'polaroid' ? (
+                      <PolaroidCard postcard={pc} eventLogoUrl={eventLogoUrl} compact />
+                    ) : (
+                      <>
+                        <img
+                          src={pc.media_type === 'video' ? (pc.thumbnail_path || eventLogoUrl || '/eventhub-video-placeholder.svg') : pc.image_path}
+                          alt={pc.player_name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
+                          <p className="text-white text-[9px] font-semibold truncate">
+                            🎁 {pc.player_name}
+                          </p>
+                        </div>
+                      </>
+                    )}
 
                     {/* Pin que se "clava" al aterrizar */}
                     <motion.div
