@@ -1,7 +1,11 @@
 import '@testing-library/jest-dom/vitest'
 import React from 'react'
 import type { CSSProperties } from 'react'
-import { vi } from 'vitest'
+import { afterEach, vi } from 'vitest'
+import { cleanup } from '@testing-library/react'
+
+// Vitest uses explicit hooks, so RTL cannot register its global auto-cleanup.
+afterEach(cleanup)
 
 function MockLottiePlayer({ style }: { style?: CSSProperties }) {
   return React.createElement('div', { 'data-testid': 'lottie-player', style })
@@ -10,11 +14,7 @@ function MockLottiePlayer({ style }: { style?: CSSProperties }) {
 // Mock lottie-react (which internally uses lottie-web that requires HTMLCanvasElement.getContext()
 // which is not implemented in jsdom). Must mock before any module that depends on lottie-react loads.
 vi.mock('lottie-react', () => ({
-  default: {
-    __esModule: true,
-    ReactLottie: MockLottiePlayer,
-  },
-  ReactLottie: MockLottiePlayer,
+  Lottie: MockLottiePlayer,
 }))
 
 function createMockContext2D(): CanvasRenderingContext2D {

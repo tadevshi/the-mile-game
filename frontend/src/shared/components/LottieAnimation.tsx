@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Lottie from 'lottie-react';
+import { Lottie } from 'lottie-react';
 import { motion } from 'framer-motion';
 
 interface LottieAnimationProps {
@@ -37,11 +37,11 @@ export function LottieAnimation({
         </div>
       )}
       <Lottie
-        animationData={animationData}
+        src={animationData}
         loop={loop}
         autoplay={autoplay}
         style={{ height: '100%', width: '100%' }}
-        onDOMLoaded={() => setIsLoaded(true)}
+        subscriptions={{ ready: () => setIsLoaded(true) }}
       />
     </motion.div>
   );
