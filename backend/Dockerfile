@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.23-alpine3.20 AS builder
+FROM golang:1.26.10-alpine3.24 AS builder
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api/main.go
 
 # Final stage
-FROM alpine:3.20
+FROM alpine:3.24.3
 
 WORKDIR /app
 
