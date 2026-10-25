@@ -139,8 +139,12 @@ cleanup lifetime, not production upload/retry behavior or lint. The tests-only
 correction now updates all five processing callbacks to `UploadFileMultipart`,
 checks upload content/filename/MIME/idempotency/parent routing and persisted outcomes,
 and closes the fixture DB via `t.Cleanup` after per-test deferred cleanup. All original
-tests/assertions are retained. Compile-only and DB-free checks pass; corrected live
-integration results are still pending and must not be inferred from compilation.
+tests/assertions are retained. Compile-only and DB-free checks passed, followed by
+actual PostgreSQL-backed success in
+[run 40235540978](https://github.com/tadevshi/the-mile-game/actions/runs/40235540978)
+for commit `642802c`: both frontend and backend jobs passed. The worker package
+passed in 10.456 seconds, and the retrieved log contained no closed-database warnings.
+This is live integration evidence, not a claim based only on compilation.
 
 During that tests-only correction, inspection also found a separate production
 limitation: `DriveRepository.GetEventByPostcardID` loads only event ID and owner ID,
