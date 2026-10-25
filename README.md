@@ -3,8 +3,8 @@
 > **Creá experiencias memorables con quizzes interactivos, carteleras de fotos y cajas secretas. Todo en un solo lugar, fácil de compartir.**
 
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![Go](https://img.shields.io/badge/Go-1.23-00ADD8?logo=go)](https://go.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)](https://go.dev)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?logo=postgresql)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docs.docker.com/compose/)
 
@@ -54,23 +54,23 @@
 | Tecnología | Versión | Propósito |
 |------------|---------|-----------|
 | React | 19.x | Framework UI |
-| TypeScript | 5.x | Type safety |
-| Vite | 7.x | Build tool / Dev server |
+| TypeScript | 6.0.3 | Type safety (compatible con typescript-eslint) |
+| Vite | 8.x | Build tool / Dev server |
 | React Router | 7.x | Navegación SPA |
 | Tailwind CSS | 4.x | Estilos utility-first |
-| Framer Motion | 12.x | Animaciones 2D + transiciones |
+| Framer Motion | 14.x | Animaciones 2D + transiciones |
 | React Three Fiber | 9.x | 3D declarativo (Three.js) |
 | Drei | 10.x | Helpers para R3F |
 | Zustand | 5.x | Estado global |
 | Axios | 1.x | HTTP client |
 | canvas-confetti | 1.x | Efectos de celebración |
-| lottie-react | 2.x | Animaciones Lottie |
+| lottie-react | 3.x | Animaciones Lottie |
 
 ### **Backend**
 
 | Tecnología | Propósito |
 |------------|-----------|
-| Go 1.23 | API REST + WebSockets |
+| Go 1.26.10 | API REST + WebSockets |
 | Gin | HTTP framework |
 | gorilla/websocket | WebSocket hub con auto-reconnect |
 | PostgreSQL 15 | Base de datos relacional |
@@ -363,6 +363,11 @@ go build -o bin/server cmd/api/main.go
 
 ## 🧪 Testing
 
+El workflow de GitHub Actions ejecuta tests de frontend, build, tests de Go con
+PostgreSQL aislado y Playwright en PRs a `main` y pushes a `main`.
+Ver [configuración, comandos y limitaciones de CI](docs/testing-ci.md).
+Los tests de repositorio borran datos: usá siempre una base descartable.
+
 ### **Backend (Go)**
 
 ```bash
@@ -383,7 +388,7 @@ go tool cover -html=coverage.out
 - ✅ `normalizer_test.go` - 100% coverage
 - ✅ `scorer_test.go` - 100% coverage
 
-### **Frontend (Futuro)**
+### **Frontend**
 
 ```bash
 cd frontend

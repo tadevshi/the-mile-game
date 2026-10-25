@@ -1,0 +1,121 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main, 'chore/issue-96-*']
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend unit tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Production build and type checks
+        if: ${{ !cancelled() }}
+        run: npm run build
+
+  backend:
+    name: Backend tests with PostgreSQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: milegame_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U user -d milegame_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      TEST_DB_HOST: localhost
+      TEST_DB_PORT: '5432'
+      TEST_DB_USER: user
+      TEST_DB_PASSWORD: password
+      TEST_DB_NAME: milegame_test
+      TEST_DB_SSLMODE: disable
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: user
+      PGPASSWORD: password
+      PGDATABASE: milegame_test
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version: '1.26.10'
+          cache-dependency-path: backend/go.sum
+      - run: go mod download
+      - run: go mod verify
+      - name: Initialize isolated repository test schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -c 'SELECT 1'
+          for migration in migrations/*.up.sql; do
+            psql -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Build
+        run: go build ./...
+      - name: Unit and database integration tests
+        # Packages share one isolated database; avoid cross-package cleanup races.
+        run: go test -p 1 -count=1 -timeout=10m ./...
+
+  browser:
+    name: Playwright Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: npm run test:e2e
+      - name: Upload browser diagnostics
+        uses: actions/upload-artifact@v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

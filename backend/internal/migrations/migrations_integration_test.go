@@ -90,8 +90,8 @@ func TestRunAppliesMigrationsOnEmptyDatabase(t *testing.T) {
 		t.Fatalf("schema_migrations query error = %v", err)
 	}
 
-	if version != 10 {
-		t.Fatalf("schema_migrations version = %d, want 10", version)
+	if version != 13 {
+		t.Fatalf("schema_migrations version = %d, want 13", version)
 	}
 
 	if dirty {
