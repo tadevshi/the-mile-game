@@ -215,6 +215,13 @@ func setupTestWorker(t *testing.T) (*BackupWorker, *repository.DriveRepository, 
 		t.Skipf("Skipping: cannot ping test database: %v", err)
 	}
 
+	// Register first so each test's deferred worker stop and data cleanup run before close.
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("Failed to close test database: %v", err)
+		}
+	})
+
 	// Create temp uploads directory
 	tmpDir, err := os.MkdirTemp("", "test-uploads-*")
 	if err != nil {
@@ -286,7 +293,6 @@ func TestBackupWorker_EnqueueBackupJob(t *testing.T) {
 		cleanupDriveTestData(t, db)
 		os.RemoveAll(uploadsDir)
 	}()
-	defer db.Close()
 
 	// Set up the full data chain: user -> event -> player -> postcard
 	// Pass empty uploadsDir since this test doesn't process jobs (just enqueues)
@@ -330,7 +336,6 @@ func TestBackupWorker_EnqueueBackupJob_Idempotent(t *testing.T) {
 		cleanupDriveTestData(t, db)
 		os.RemoveAll(uploadsDir)
 	}()
-	defer db.Close()
 
 	// Set up the full data chain (pass empty uploadsDir - enqueue only)
 	user := createTestUserForWorker(t, db)
@@ -365,7 +370,6 @@ func TestBackupWorker_ProcessJob_Success(t *testing.T) {
 		cleanupDriveTestData(t, db)
 		os.RemoveAll(uploadsDir)
 	}()
-	defer db.Close()
 
 	// Set up proper test data chain (pass uploadsDir to create media files)
 	user := createTestUserForWorker(t, db)
@@ -393,9 +397,11 @@ func TestBackupWorker_ProcessJob_Success(t *testing.T) {
 		t.Fatalf("Failed to create job: %v", err)
 	}
 
-	// Track upload calls
+	// Track multipart upload calls and validate folder routing.
+	expectDriveFolders(t, mockDrive, "decrypted-token", 1)
 	var uploadCalled int32
-	mockDrive.UploadFileFunc = func(ctx context.Context, accessToken string, content []byte, mimeType, key string) (*services.UploadResult, error) {
+	mockDrive.UploadFileMultipartFunc = func(ctx context.Context, accessToken string, content []byte, filename, mimeType, key string, parentID *string) (*services.UploadResult, error) {
+		assertMultipartUploadArgs(t, postcard, idempotencyKey, "decrypted-token", accessToken, content, filename, mimeType, key, parentID)
 		atomic.AddInt32(&uploadCalled, 1)
 		return &services.UploadResult{
 			DriveFileID: "uploaded-file-id",
@@ -426,6 +432,7 @@ func TestBackupWorker_ProcessJob_Success(t *testing.T) {
 	if updatedJob.DriveFileID == nil || *updatedJob.DriveFileID != "uploaded-file-id" {
 		t.Error("Expected drive_file_id to be set")
 	}
+	assertSyncedJob(t, worker.repo, postcard.ID, idempotencyKey, "uploaded-file-id", 0)
 	// Verify synced_at is set for successful job
 	if updatedJob.SyncedAt == nil {
 		t.Error("Expected synced_at to be set for successful job")
@@ -442,7 +449,6 @@ func TestBackupWorker_ProcessJob_RetryOnFailure(t *testing.T) {
 		cleanupDriveTestData(t, db)
 		os.RemoveAll(uploadsDir)
 	}()
-	defer db.Close()
 
 	// Set up proper test data chain
 	user := createTestUserForWorker(t, db)
@@ -468,9 +474,11 @@ func TestBackupWorker_ProcessJob_RetryOnFailure(t *testing.T) {
 		t.Fatalf("Failed to create job: %v", err)
 	}
 
-	// Make upload fail twice, then succeed
+	// Make upload fail twice, then succeed.
+	expectDriveFolders(t, mockDrive, "decrypted-token", 3)
 	var callCount int32
-	mockDrive.UploadFileFunc = func(ctx context.Context, accessToken string, content []byte, mimeType, key string) (*services.UploadResult, error) {
+	mockDrive.UploadFileMultipartFunc = func(ctx context.Context, accessToken string, content []byte, filename, mimeType, key string, parentID *string) (*services.UploadResult, error) {
+		assertMultipartUploadArgs(t, postcard, idempotencyKey, "decrypted-token", accessToken, content, filename, mimeType, key, parentID)
 		count := atomic.AddInt32(&callCount, 1)
 		if count < 3 {
 			return nil, errors.New("transient network error")
@@ -500,6 +508,7 @@ func TestBackupWorker_ProcessJob_RetryOnFailure(t *testing.T) {
 	if updatedJob.RetryCount != 2 {
 		t.Errorf("Expected retry_count 2, got %d", updatedJob.RetryCount)
 	}
+	assertSyncedJob(t, worker.repo, postcard.ID, idempotencyKey, "uploaded-on-retry", 2)
 }
 
 func TestBackupWorker_ProcessJob_MaxRetriesExceeded(t *testing.T) {
@@ -512,7 +521,6 @@ func TestBackupWorker_ProcessJob_MaxRetriesExceeded(t *testing.T) {
 		cleanupDriveTestData(t, db)
 		os.RemoveAll(uploadsDir)
 	}()
-	defer db.Close()
 
 	// Set up proper test data chain
 	user := createTestUserForWorker(t, db)
@@ -538,8 +546,12 @@ func TestBackupWorker_ProcessJob_MaxRetriesExceeded(t *testing.T) {
 		t.Fatalf("Failed to create job: %v", err)
 	}
 
-	// Make upload always fail
-	mockDrive.UploadFileFunc = func(ctx context.Context, accessToken string, content []byte, mimeType, key string) (*services.UploadResult, error) {
+	// Initial attempt plus three retries must all use the multipart interface.
+	expectDriveFolders(t, mockDrive, "decrypted-token", 4)
+	var uploadCalled int32
+	mockDrive.UploadFileMultipartFunc = func(ctx context.Context, accessToken string, content []byte, filename, mimeType, key string, parentID *string) (*services.UploadResult, error) {
+		assertMultipartUploadArgs(t, postcard, idempotencyKey, "decrypted-token", accessToken, content, filename, mimeType, key, parentID)
+		atomic.AddInt32(&uploadCalled, 1)
 		return nil, errors.New("persistent error")
 	}
 
@@ -547,6 +559,13 @@ func TestBackupWorker_ProcessJob_MaxRetriesExceeded(t *testing.T) {
 	err := worker.processJob(job)
 	if err == nil {
 		t.Error("Expected error after max retries, got nil")
+	}
+
+	if atomic.LoadInt32(&uploadCalled) != 4 {
+		t.Errorf("Expected 4 upload attempts, got %d", uploadCalled)
+	}
+	if err != nil && err.Error() != "persistent error" {
+		t.Errorf("Expected persistent upload error, got %v", err)
 	}
 
 	// Verify job status is failed
@@ -562,6 +581,18 @@ func TestBackupWorker_ProcessJob_MaxRetriesExceeded(t *testing.T) {
 	}
 	if updatedJob.RetryCount != 3 {
 		t.Errorf("Expected retry_count 3 (max), got %d", updatedJob.RetryCount)
+	}
+	if updatedJob.LastError != nil && *updatedJob.LastError != "upload failed after 3 retries: persistent error" {
+		t.Errorf("Unexpected persisted last_error: %q", *updatedJob.LastError)
+	}
+	if updatedJob.DriveFileID != nil {
+		t.Error("Expected no drive_file_id for failed job")
+	}
+	if updatedJob.ProcessedAt == nil {
+		t.Error("Expected processed_at for failed job")
+	}
+	if updatedJob.IdempotencyKey != idempotencyKey {
+		t.Errorf("Expected unchanged idempotency key %q, got %q", idempotencyKey, updatedJob.IdempotencyKey)
 	}
 	// Verify synced_at is NOT set for failed job (data consistency fix)
 	if updatedJob.SyncedAt != nil {
@@ -579,7 +610,6 @@ func TestBackupWorker_ProcessJob_ExpiredTokenRefresh(t *testing.T) {
 		cleanupDriveTestData(t, db)
 		os.RemoveAll(uploadsDir)
 	}()
-	defer db.Close()
 
 	// Set up proper test data chain
 	user := createTestUserForWorker(t, db)
@@ -606,6 +636,7 @@ func TestBackupWorker_ProcessJob_ExpiredTokenRefresh(t *testing.T) {
 		t.Fatalf("Failed to create job: %v", err)
 	}
 
+	expectDriveFolders(t, mockDrive, "refreshed-token", 1)
 	var tokenRefreshed bool
 	var uploadCalled int32
 
@@ -621,7 +652,8 @@ func TestBackupWorker_ProcessJob_ExpiredTokenRefresh(t *testing.T) {
 			Expiry:      time.Now().Add(time.Hour),
 		}, nil
 	}
-	mockDrive.UploadFileFunc = func(ctx context.Context, accessToken string, content []byte, mimeType, key string) (*services.UploadResult, error) {
+	mockDrive.UploadFileMultipartFunc = func(ctx context.Context, accessToken string, content []byte, filename, mimeType, key string, parentID *string) (*services.UploadResult, error) {
+		assertMultipartUploadArgs(t, postcard, idempotencyKey, "refreshed-token", accessToken, content, filename, mimeType, key, parentID)
 		atomic.AddInt32(&uploadCalled, 1)
 		// Verify it uses the refreshed token
 		if accessToken != "refreshed-token" {
@@ -633,6 +665,22 @@ func TestBackupWorker_ProcessJob_ExpiredTokenRefresh(t *testing.T) {
 	err := worker.processJob(job)
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
+	}
+
+	assertSyncedJob(t, worker.repo, postcard.ID, idempotencyKey, "file-id", 0)
+	updatedConn, err := worker.repo.GetDriveConnectionByUserID(user.ID)
+	if err != nil {
+		t.Fatalf("Failed to get refreshed connection: %v", err)
+	}
+	persistedAccess, err := services.DecryptToken(updatedConn.DriveAccessToken)
+	if err != nil || persistedAccess != "refreshed-token" {
+		t.Errorf("Expected persisted refreshed access token, got %q, error %v", persistedAccess, err)
+	}
+	if !updatedConn.TokenExpiry.After(time.Now()) {
+		t.Error("Expected refreshed token expiry in the future")
+	}
+	if updatedConn.DriveRefreshTokenEnc != encryptedRefresh {
+		t.Error("Expected original refresh token preserved when no rotation returned")
 	}
 
 	if !tokenRefreshed {
@@ -653,7 +701,6 @@ func TestBackupWorker_ProcessJob_RefreshTokenRotation(t *testing.T) {
 		cleanupDriveTestData(t, db)
 		os.RemoveAll(uploadsDir)
 	}()
-	defer db.Close()
 
 	// Set up proper test data chain
 	user := createTestUserForWorker(t, db)
@@ -693,7 +740,11 @@ func TestBackupWorker_ProcessJob_RefreshTokenRotation(t *testing.T) {
 			Expiry:       time.Now().Add(time.Hour),
 		}, nil
 	}
-	mockDrive.UploadFileFunc = func(ctx context.Context, accessToken string, content []byte, mimeType, key string) (*services.UploadResult, error) {
+	expectDriveFolders(t, mockDrive, "new-access-token", 1)
+	var uploadCalled int32
+	mockDrive.UploadFileMultipartFunc = func(ctx context.Context, accessToken string, content []byte, filename, mimeType, key string, parentID *string) (*services.UploadResult, error) {
+		assertMultipartUploadArgs(t, postcard, idempotencyKey, "new-access-token", accessToken, content, filename, mimeType, key, parentID)
+		atomic.AddInt32(&uploadCalled, 1)
 		return &services.UploadResult{DriveFileID: "file-id", Name: "test.jpg"}, nil
 	}
 
@@ -701,6 +752,11 @@ func TestBackupWorker_ProcessJob_RefreshTokenRotation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
+
+	if atomic.LoadInt32(&uploadCalled) != 1 {
+		t.Errorf("Expected upload called 1 time, got %d", uploadCalled)
+	}
+	assertSyncedJob(t, worker.repo, postcard.ID, idempotencyKey, "file-id", 0)
 
 	// Verify that the connection was updated with the rotated refresh token
 	updatedConn, err := worker.repo.GetDriveConnectionByUserID(user.ID)
@@ -771,6 +827,81 @@ func TestBackupWorker_MultipleStarts(t *testing.T) {
 	}
 
 	worker.Stop()
+}
+
+// expectDriveFolders checks routing without defining an event-folder naming contract.
+func expectDriveFolders(t *testing.T, mock *MockDriveService, token string, attempts int) {
+	t.Helper()
+	calls := 0
+	mock.EnsureFolderFunc = func(ctx context.Context, accessToken, folderName string, parentID *string) (string, error) {
+		if accessToken != token {
+			t.Errorf("Expected folder access token %q, got %q", token, accessToken)
+		}
+		calls++
+		if calls%2 == 1 {
+			if folderName != "EventHub Backups" || parentID != nil {
+				t.Errorf("Expected root EventHub Backups folder, got name %q, parent %v", folderName, parentID)
+			}
+			return "base-folder-id", nil
+		}
+		if parentID == nil || *parentID != "base-folder-id" {
+			t.Errorf("Expected event folder under base-folder-id, got %v", parentID)
+		}
+		return "event-folder-id", nil
+	}
+	t.Cleanup(func() {
+		if calls != 2*attempts {
+			t.Errorf("Expected %d ordered folder calls, got %d", 2*attempts, calls)
+		}
+	})
+}
+
+func assertMultipartUploadArgs(t *testing.T, postcard *models.Postcard, expectedKey, expectedToken, token string, content []byte, filename, mimeType, key string, parentID *string) {
+	t.Helper()
+	if token != expectedToken {
+		t.Errorf("Expected upload access token %q, got %q", expectedToken, token)
+	}
+	if string(content) != "fake image content for testing" {
+		t.Errorf("Unexpected uploaded content: %q", content)
+	}
+	if filename != filepath.Base(postcard.ImagePath) {
+		t.Errorf("Expected filename %q, got %q", filepath.Base(postcard.ImagePath), filename)
+	}
+	if mimeType != "image/jpeg" {
+		t.Errorf("Expected MIME type image/jpeg, got %q", mimeType)
+	}
+	if key != expectedKey {
+		t.Errorf("Expected idempotency key %q, got %q", expectedKey, key)
+	}
+	if parentID == nil || *parentID != "event-folder-id" {
+		t.Errorf("Expected upload into event-folder-id, got %v", parentID)
+	}
+}
+
+func assertSyncedJob(t *testing.T, repo *repository.DriveRepository, postcardID uuid.UUID, key, fileID string, retries int) {
+	t.Helper()
+	job, err := repo.GetBackupJobByPostcardID(postcardID)
+	if err != nil {
+		t.Fatalf("Failed to get synced job: %v", err)
+	}
+	if job.Status != models.BackupJobStatusSynced {
+		t.Errorf("Expected synced status, got %s", job.Status)
+	}
+	if job.DriveFileID == nil || *job.DriveFileID != fileID {
+		t.Errorf("Expected persisted drive file ID %q, got %v", fileID, job.DriveFileID)
+	}
+	if job.RetryCount != retries {
+		t.Errorf("Expected %d persisted retries, got %d", retries, job.RetryCount)
+	}
+	if job.LastError != nil {
+		t.Errorf("Expected no last_error after success, got %q", *job.LastError)
+	}
+	if job.ProcessedAt == nil || job.SyncedAt == nil {
+		t.Error("Expected processed_at and synced_at after success")
+	}
+	if job.IdempotencyKey != key {
+		t.Errorf("Expected unchanged idempotency key %q, got %q", key, job.IdempotencyKey)
+	}
 }
 
 // Helper
