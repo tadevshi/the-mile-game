@@ -129,3 +129,22 @@ legacy test callbacks target `UploadFile`, while the current worker uses
 `UploadFileMultipart`. Cleanup also reported a closed database. Playwright hit the
 20-minute job timeout and was cancelled; diagnostic artifact upload was skipped.
 No timeout rerun or suppression was performed. All four PRs remain draft.
+
+After the confirmed manual-only browser decision, commit `30843c0` produced
+[run 40234836367](https://github.com/tadevshi/the-mile-game/actions/runs/40234836367).
+It contained exactly two jobs: frontend passed; backend failed in the same four
+worker integration tests, with closed-database cleanup warnings. There was no
+Playwright job. The next correction targets only the stale test callbacks and
+cleanup lifetime, not production upload/retry behavior or lint. The tests-only
+correction now updates all five processing callbacks to `UploadFileMultipart`,
+checks upload content/filename/MIME/idempotency/parent routing and persisted outcomes,
+and closes the fixture DB via `t.Cleanup` after per-test deferred cleanup. All original
+tests/assertions are retained. Compile-only and DB-free checks pass; corrected live
+integration results are still pending and must not be inferred from compilation.
+
+During that tests-only correction, inspection also found a separate production
+limitation: `DriveRepository.GetEventByPostcardID` loads only event ID and owner ID,
+while `BackupWorker` uses the unloaded event slug as the event-folder name. This
+correction must not encode an empty name as the intended contract. Checks of folder
+parents/upload destinations do not prove event-folder naming correct; the missing
+slug remains an explicit unresolved defect outside the tests-only change.
