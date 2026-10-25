@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render as renderComponent, screen, fireEvent, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+
+function render(ui: React.ReactElement) {
+  return renderComponent(<MemoryRouter>{ui}</MemoryRouter>)
+}
 
 // Mock framer-motion to avoid animation issues in test environment
 vi.mock('framer-motion', () => ({
@@ -32,13 +37,7 @@ const mockDisconnectDrive = vi.mocked(api.disconnectDrive)
 describe('DriveConnectionPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: {
-        ...window.location,
-        href: '',
-      },
-    })
+    window.history.replaceState(null, '', '/')
   })
 
   // ─── Initial state: loading ──────────────────────────────────────────────────
@@ -103,7 +102,8 @@ describe('DriveConnectionPanel', () => {
 
     it('redirects to Google OAuth URL when Connect is clicked', async () => {
       mockGetDriveStatus.mockResolvedValueOnce({ connected: false, connected_at: null, last_sync_at: null })
-      const oauthUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=xyz'
+      // Hash navigation is supported by jsdom; external navigation is not.
+      const oauthUrl = `${window.location.origin}/#oauth-consent`
       mockGetDriveAuthUrl.mockResolvedValueOnce(oauthUrl)
 
       render(<DriveConnectionPanel />)
@@ -111,8 +111,8 @@ describe('DriveConnectionPanel', () => {
       const connectBtn = await screen.findByRole('button', { name: /conectar google drive/i })
       fireEvent.click(connectBtn)
 
-      expect(mockGetDriveAuthUrl).toHaveBeenCalledTimes(1)
-      expect(window.location.href).toBe(oauthUrl)
+      expect(mockGetDriveAuthUrl).toHaveBeenCalledExactlyOnceWith('/')
+      await waitFor(() => expect(window.location.href).toBe(oauthUrl))
     })
 
     it('sets loading state while fetching auth URL', async () => {
@@ -124,9 +124,9 @@ describe('DriveConnectionPanel', () => {
       const connectBtn = await screen.findByRole('button', { name: /conectar google drive/i })
       fireEvent.click(connectBtn)
 
-      // Button should show loading state (isLoading)
+      // Actions are hidden while the redirect URL is being requested.
       await waitFor(() => {
-        expect(connectBtn).toBeDisabled()
+        expect(screen.queryByRole('button', { name: /conectar google drive/i })).not.toBeInTheDocument()
       })
     })
 

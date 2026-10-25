@@ -42,7 +42,15 @@ describe('ApiClient — Drive Admin', () => {
 
       await api.getDriveAuthUrl()
 
-      expect(mockGet).toHaveBeenCalledWith('/admin/drive/auth-url')
+      expect(mockGet).toHaveBeenCalledWith('/admin/drive/auth-url', { params: undefined })
+    })
+
+    it('passes the event admin return path to the auth request', async () => {
+      mockGet.mockResolvedValueOnce({ data: { auth_url: 'https://accounts.google.com/oauth' } })
+      await api.getDriveAuthUrl('/e/birthday/admin?tab=backup')
+      expect(mockGet).toHaveBeenCalledWith('/admin/drive/auth-url', {
+        params: { return_to: '/e/birthday/admin?tab=backup' },
+      })
     })
 
     it('returns the auth URL string from the response', async () => {
