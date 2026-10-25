@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import Lottie, { type LottieRefCurrentProps } from 'lottie-react';
+import { Lottie, type LottieHandle } from 'lottie-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -30,7 +30,7 @@ export function CelebrationAnimation({
   isVisible,
   onComplete,
 }: CelebrationAnimationProps) {
-  const lottieRef = useRef<LottieRefCurrentProps>(null);
+  const lottieRef = useRef<LottieHandle>(null);
   const medal = medalColors[rank];
 
   // Trigger confetti when visible
@@ -93,7 +93,7 @@ export function CelebrationAnimation({
             <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-48 h-48 pointer-events-none">
               <Lottie
                 lottieRef={lottieRef}
-                animationData={celebrationData}
+                src={celebrationData}
                 loop={false}
                 autoplay={true}
                 style={{ height: '100%', width: '100%' }}
