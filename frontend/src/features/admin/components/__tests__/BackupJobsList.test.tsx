@@ -19,7 +19,7 @@ const FAKE_EVENT_ID = '123e4567-e89b-12d3-a456-426614174000'
 
 describe('BackupJobsList', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
   })
 
   // ─── Loading state ───────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ describe('BackupJobsList', () => {
       render(<BackupJobsList eventId={FAKE_EVENT_ID} />)
 
       await waitFor(() => {
-        expect(screen.getByText(/agregar fotos o videos/i)).toBeInTheDocument()
+        expect(screen.getByText('Los respaldos aparecerán aquí cuando se agreguen fotos o videos a la cartelera.')).toBeInTheDocument()
       })
     })
   })
@@ -150,7 +150,7 @@ describe('BackupJobsList', () => {
       render(<BackupJobsList eventId={FAKE_EVENT_ID} />)
 
       await waitFor(() => {
-        expect(screen.getByText(/respaldado/i)).toBeInTheDocument()
+        expect(screen.getByText(/^Respaldado /, { selector: 'p' })).toBeInTheDocument()
       })
     })
 
@@ -269,7 +269,12 @@ describe('BackupJobsList', () => {
   describe('manual refresh', () => {
     it('has a refresh button that re-fetches jobs', async () => {
       mockGetBackupJobs
-        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{
+          id: 'job-existing', postcard_id: 'pc-existing', status: 'synced',
+          drive_file_id: 'drive-existing', retry_count: 0, last_error: null,
+          queued_at: '2026-04-07T10:00:00Z', processed_at: null,
+          synced_at: '2026-04-07T10:01:00Z',
+        }])
         .mockResolvedValueOnce([{
           id: 'job-new',
           postcard_id: 'pc-new',
@@ -284,15 +289,15 @@ describe('BackupJobsList', () => {
 
       render(<BackupJobsList eventId={FAKE_EVENT_ID} />)
 
-      await waitFor(() => {
-        expect(screen.getByText('Aún no hay respaldos')).toBeInTheDocument()
-      })
+      await screen.findByText('Respaldado')
 
       const refreshBtn = screen.getByRole('button', { name: /actualizar/i })
       fireEvent.click(refreshBtn)
 
       await waitFor(() => {
         expect(screen.getByText('En cola')).toBeInTheDocument()
+        expect(mockGetBackupJobs).toHaveBeenCalledTimes(2)
+        expect(mockGetBackupJobs).toHaveBeenLastCalledWith(FAKE_EVENT_ID)
       })
     })
   })
@@ -336,6 +341,8 @@ describe('BackupJobsList', () => {
 
       await waitFor(() => {
         expect(screen.getByText('En cola')).toBeInTheDocument()
+        expect(mockGetBackupJobs).toHaveBeenCalledTimes(2)
+        expect(mockGetBackupJobs).toHaveBeenLastCalledWith('event-2')
       })
     })
   })

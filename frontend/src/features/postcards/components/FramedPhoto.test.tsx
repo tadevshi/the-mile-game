@@ -320,7 +320,8 @@ describe('FramedPhoto', () => {
         />
       );
 
-      const frame = container.querySelector('.bg-white.p-2.shadow-md');
+      const frame = container.querySelector('[role="img"]');
+      expect(frame).toHaveClass('bg-white', 'px-3', 'pt-3', 'pb-4', 'shadow-md');
       expect(frame).toBeInTheDocument();
     });
 

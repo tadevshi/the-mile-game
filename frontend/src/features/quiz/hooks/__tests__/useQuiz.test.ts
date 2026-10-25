@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useQuizStore } from '../../store/quizStore'
+import { useEventStore } from '@/shared/store/eventStore'
+import type { QuizQuestionResponse } from '../../types/quiz-player.types'
 
-// Mock navigate — must be set up before importing the hook
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async (importOriginal) => {
   const original = await importOriginal<typeof import('react-router-dom')>()
@@ -13,69 +14,77 @@ vi.mock('react-router-dom', async (importOriginal) => {
 })
 
 vi.mock('../../services/quizApi', () => ({
-  quizService: {
-    submitAnswers: vi.fn(),
-  },
+  quizService: { submitAnswersScoped: vi.fn() },
 }))
 
 import { useQuiz } from '../useQuiz'
 import { quizService } from '../../services/quizApi'
 
-const INITIAL_STATE = {
-  playerName: '',
-  answers: { favorites: {}, preferences: {}, description: '' },
-  hasCompleted: false,
-  score: 0,
+const questions: QuizQuestionResponse[] = [
+  { id: '1', section: 'favorites', key: 'singer', question_text: 'Singer?', options: null, sort_order: 0, is_scorable: true },
+  { id: '2', section: 'favorites', key: 'color', question_text: 'Color?', options: null, sort_order: 1, is_scorable: true },
+  { id: '3', section: 'preferences', key: 'coffee', question_text: 'Drink?', options: ['Café', 'Té'], sort_order: 2, is_scorable: true },
+  { id: '4', section: 'description', key: 'description', question_text: 'Describe', options: null, sort_order: 3, is_scorable: false },
+]
+
+function renderQuiz() {
+  return renderHook(() => useQuiz(questions))
+}
+
+function setEvent() {
+  useEventStore.getState().setEvent({
+    id: 'event-1', slug: 'birthday', name: 'Birthday', isActive: true,
+    features: { quiz: true, corkboard: true, secretBox: false },
+  })
 }
 
 describe('useQuiz', () => {
   beforeEach(() => {
-    useQuizStore.setState(INITIAL_STATE)
+    useQuizStore.getState().resetQuiz()
     localStorage.clear()
     vi.clearAllMocks()
+    setEvent()
   })
-
-  // ─── progress calculation ───────────────────────────────────────────────────
 
   describe('progress', () => {
     it('returns current=0 when there are no answers', () => {
-      const { result } = renderHook(() => useQuiz())
+      const { result } = renderQuiz()
       expect(result.current.progress.current).toBe(0)
     })
 
     it('counts a filled favorite answer', () => {
       useQuizStore.getState().setFavoriteAnswer('singer', 'Taylor Swift')
-      const { result } = renderHook(() => useQuiz())
+      const { result } = renderQuiz()
       expect(result.current.progress.current).toBe(1)
     })
 
     it('does not count a blank (whitespace-only) favorite', () => {
       useQuizStore.getState().setFavoriteAnswer('singer', '   ')
-      const { result } = renderHook(() => useQuiz())
+      const { result } = renderQuiz()
       expect(result.current.progress.current).toBe(0)
     })
 
     it('counts a filled preference answer', () => {
       useQuizStore.getState().setPreferenceAnswer('coffee', 'Café')
-      const { result } = renderHook(() => useQuiz())
+      const { result } = renderQuiz()
       expect(result.current.progress.current).toBe(1)
     })
 
     it('does not count an empty preference', () => {
       useQuizStore.getState().setPreferenceAnswer('coffee', '')
-      const { result } = renderHook(() => useQuiz())
+      const { result } = renderQuiz()
       expect(result.current.progress.current).toBe(0)
     })
 
     it('counts the description when non-empty', () => {
       useQuizStore.getState().setDescription('Increíble persona')
-      const { result } = renderHook(() => useQuiz())
+      const { result } = renderQuiz()
       expect(result.current.progress.current).toBe(1)
     })
 
     it('does not count description when only whitespace', () => {
       useQuizStore.getState().setDescription('   ')
-      const { result } = renderHook(() => useQuiz())
+      const { result } = renderQuiz()
       expect(result.current.progress.current).toBe(0)
     })
 
@@ -84,125 +93,116 @@ describe('useQuiz', () => {
       useQuizStore.getState().setFavoriteAnswer('color', 'pink')
       useQuizStore.getState().setPreferenceAnswer('coffee', 'Café')
       useQuizStore.getState().setDescription('Genial')
-      const { result } = renderHook(() => useQuiz())
+      const { result } = renderQuiz()
       expect(result.current.progress.current).toBe(4)
     })
 
-    it('total reflects TOTAL_QUESTIONS constant (14)', () => {
-      // total is fixed — does NOT grow dynamically as answers are added
-      const { result } = renderHook(() => useQuiz())
-      expect(result.current.progress.total).toBe(14)
+    it('total reflects the configured API questions, not a legacy constant', () => {
+      const { result } = renderQuiz()
+      expect(result.current.progress.total).toBe(4)
+    })
+
+    it('ignores answers to questions outside the current event', () => {
+      useQuizStore.getState().setFavoriteAnswer('old-question', 'old answer')
+      const { result } = renderQuiz()
+      expect(result.current.progress).toEqual({ current: 0, total: 4 })
     })
   })
 
-  // ─── submitQuiz ─────────────────────────────────────────────────────────────
-
   describe('submitQuiz', () => {
-    it('navigates to /thank-you on success', async () => {
-      vi.mocked(quizService.submitAnswers).mockResolvedValueOnce({ score: 8, message: '¡Excelente!' })
-
-      const { result } = renderHook(() => useQuiz())
-      await act(async () => {
-        await result.current.submitQuiz()
-      })
-
-      expect(mockNavigate).toHaveBeenCalledWith('/thank-you')
+    it('navigates to the event thank-you page on success', async () => {
+      vi.mocked(quizService.submitAnswersScoped).mockResolvedValueOnce({ score: 8, message: '¡Excelente!' })
+      const { result } = renderQuiz()
+      await act(async () => { await result.current.submitQuiz() })
+      expect(mockNavigate).toHaveBeenCalledWith('/e/birthday/thank-you')
     })
 
     it('saves the score to the store on success', async () => {
-      vi.mocked(quizService.submitAnswers).mockResolvedValueOnce({ score: 9, message: '¡Perfecto!' })
-
-      const { result } = renderHook(() => useQuiz())
-      await act(async () => {
-        await result.current.submitQuiz()
-      })
-
+      vi.mocked(quizService.submitAnswersScoped).mockResolvedValueOnce({ score: 9, message: '¡Perfecto!' })
+      const { result } = renderQuiz()
+      await act(async () => { await result.current.submitQuiz() })
       expect(useQuizStore.getState().score).toBe(9)
     })
 
     it('marks the quiz as completed on success', async () => {
-      vi.mocked(quizService.submitAnswers).mockResolvedValueOnce({ score: 5, message: 'OK' })
-
-      const { result } = renderHook(() => useQuiz())
-      await act(async () => {
-        await result.current.submitQuiz()
-      })
-
+      vi.mocked(quizService.submitAnswersScoped).mockResolvedValueOnce({ score: 5, message: 'OK' })
+      const { result } = renderQuiz()
+      await act(async () => { await result.current.submitQuiz() })
       expect(useQuizStore.getState().hasCompleted).toBe(true)
     })
 
     it('sets error message and does not navigate on failure', async () => {
-      vi.mocked(quizService.submitAnswers).mockRejectedValueOnce(new Error('Network error'))
-
-      const { result } = renderHook(() => useQuiz())
-      await act(async () => {
-        await result.current.submitQuiz()
-      })
-
+      vi.mocked(quizService.submitAnswersScoped).mockRejectedValueOnce(new Error('Network error'))
+      const { result } = renderQuiz()
+      await act(async () => { await result.current.submitQuiz() })
       expect(result.current.error).toBe('Error al enviar respuestas. Intenta de nuevo.')
       expect(mockNavigate).not.toHaveBeenCalled()
+      expect(useQuizStore.getState().score).toBe(0)
+      expect(useQuizStore.getState().hasCompleted).toBe(false)
     })
 
     it('sets isLoading=true while submitting and false after', async () => {
       let resolveSubmit!: (value: { score: number; message: string }) => void
-      vi.mocked(quizService.submitAnswers).mockReturnValueOnce(
+      vi.mocked(quizService.submitAnswersScoped).mockReturnValueOnce(
         new Promise((res) => { resolveSubmit = res })
       )
-
-      const { result } = renderHook(() => useQuiz())
-
-      // Start submit — don't await yet
+      const { result } = renderQuiz()
       act(() => { void result.current.submitQuiz() })
       expect(result.current.isLoading).toBe(true)
-
-      // Resolve the promise
       await act(async () => { resolveSubmit({ score: 5, message: 'OK' }) })
       expect(result.current.isLoading).toBe(false)
     })
 
     it('clears previous error on a new submit attempt', async () => {
-      // First submit fails
-      vi.mocked(quizService.submitAnswers).mockRejectedValueOnce(new Error('fail'))
-      const { result } = renderHook(() => useQuiz())
+      vi.mocked(quizService.submitAnswersScoped).mockRejectedValueOnce(new Error('fail'))
+      const { result } = renderQuiz()
       await act(async () => { await result.current.submitQuiz() })
       expect(result.current.error).not.toBe('')
-
-      // Second submit succeeds
-      vi.mocked(quizService.submitAnswers).mockResolvedValueOnce({ score: 7, message: 'OK' })
+      vi.mocked(quizService.submitAnswersScoped).mockResolvedValueOnce({ score: 7, message: 'OK' })
       await act(async () => { await result.current.submitQuiz() })
       expect(result.current.error).toBe('')
     })
 
-    it('passes answers from the store to the service', async () => {
+    it('passes only configured answers and event slug to the scoped service', async () => {
       useQuizStore.getState().setFavoriteAnswer('singer', 'Taylor Swift')
+      useQuizStore.getState().setFavoriteAnswer('old-question', 'omit this')
       useQuizStore.getState().setPreferenceAnswer('coffee', 'Café')
       useQuizStore.getState().setDescription('Genial')
-
-      vi.mocked(quizService.submitAnswers).mockResolvedValueOnce({ score: 8, message: 'OK' })
-
-      const { result } = renderHook(() => useQuiz())
+      vi.mocked(quizService.submitAnswersScoped).mockResolvedValueOnce({ score: 8, message: 'OK' })
+      const { result } = renderQuiz()
       await act(async () => { await result.current.submitQuiz() })
-
-      expect(quizService.submitAnswers).toHaveBeenCalledWith({
+      expect(quizService.submitAnswersScoped).toHaveBeenCalledExactlyOnceWith('birthday', {
         favorites: { singer: 'Taylor Swift' },
         preferences: { coffee: 'Café' },
         description: 'Genial',
       })
     })
-  })
 
-  // ─── exposed state ──────────────────────────────────────────────────────────
+    it('rejects a missing event without submitting or changing quiz data', async () => {
+      useEventStore.getState().clearEvent()
+      useQuizStore.getState().setFavoriteAnswer('singer', 'Taylor')
+      const { result } = renderQuiz()
+      await act(async () => { await result.current.submitQuiz() })
+      expect(result.current.error).toBe('No se encontró el evento. Intenta recargar la página.')
+      expect(result.current.isLoading).toBe(false)
+      expect(quizService.submitAnswersScoped).not.toHaveBeenCalled()
+      expect(mockNavigate).not.toHaveBeenCalled()
+      expect(result.current.answers.favorites).toEqual({ singer: 'Taylor' })
+      expect(useQuizStore.getState().score).toBe(0)
+      expect(useQuizStore.getState().hasCompleted).toBe(false)
+    })
+  })
 
   describe('exposed state', () => {
     it('exposes playerName from the store', () => {
       useQuizStore.getState().setPlayerName('Milena')
-      const { result } = renderHook(() => useQuiz())
+      const { result } = renderQuiz()
       expect(result.current.playerName).toBe('Milena')
     })
 
     it('exposes answers from the store', () => {
       useQuizStore.getState().setFavoriteAnswer('singer', 'Taylor')
-      const { result } = renderHook(() => useQuiz())
+      const { result } = renderQuiz()
       expect(result.current.answers.favorites.singer).toBe('Taylor')
     })
   })
