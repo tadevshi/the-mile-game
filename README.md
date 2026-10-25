@@ -79,7 +79,7 @@
 ### **Testing**
 
 - ✅ **Go testing** - `normalizer_test.go` + `scorer_test.go` (100% coverage)
-- ✅ **Playwright** - 35/38 passing (3 correctly skipped), config in `playwright.config.ts`
+- ⚠️ **Playwright** - Suite manual conservada en `frontend/playwright.config.ts`; última ejecución: 60 fallidos, 13 pasados, 10 omitidos. Sin cobertura automática de navegador.
 - ✅ **Vitest** - Unit tests frontend implementados
 
 ---
@@ -363,8 +363,11 @@ go build -o bin/server cmd/api/main.go
 
 ## 🧪 Testing
 
-El workflow de GitHub Actions ejecuta tests de frontend, build, tests de Go con
-PostgreSQL aislado y Playwright en PRs a `main` y pushes a `main`.
+El workflow de GitHub Actions ejecuta tests unitarios de frontend, build y tests de
+Go con PostgreSQL aislado en PRs a `main` y ramas `chore/issue-96-*`, pushes a `main`
+y ejecuciones manuales. No ejecuta E2E/Playwright, instala Chromium ni sube artefactos
+de navegador. La suite, configuración y scripts de Playwright se conservan para uso
+manual, pero la última ejecución falló: no constituyen prueba E2E en verde.
 Ver [configuración, comandos y limitaciones de CI](docs/testing-ci.md).
 Los tests de repositorio borran datos: usá siempre una base descartable.
 
@@ -396,8 +399,9 @@ cd frontend
 # Unit tests (Vitest)
 npm run test
 
-# E2E tests (Playwright)
-npx playwright test
+# E2E manual (Playwright; actualmente con fallos conocidos, fuera de CI)
+npx playwright install chromium
+npm run test:e2e
 
 # Coverage
 npm run test:coverage

@@ -11,7 +11,6 @@ npm lockfile and Go module checksums.
 | --- | --- | --- |
 | Frontend | `npm ci`, `npm test`, `npm run build` (TypeScript + Vite) | Fresh runner |
 | Backend | `go mod download`, `go mod verify`, `go build ./...`, `go test -p 1 -count=1 -timeout=10m ./...` | PostgreSQL 15 service with disposable CI-only credentials |
-| Browser | Chromium installation and `npm run test:e2e` | Playwright starts the Vite server; report/trace artifacts retained for seven days |
 
 The frontend build still runs after a unit test failure to expose independent build
 errors. The job remains failed; there is no `continue-on-error` or failure suppression.
@@ -22,9 +21,16 @@ the disposable repository test database. The migration integration test separate
 creates a database and exercises the application's migration runner. Packages run
 serially because repository tests clean shared tables. Nothing connects to production.
 
-Existing Playwright skips remain visible in its report. Browser checks are not proof
-of a fully deployed backend flow: inspect each test's network mocking and coverage
-before interpreting a green report as end-to-end application coverage.
+There is **no automatic browser/E2E coverage**: the workflow no longer installs
+Chromium, runs Playwright or uploads browser diagnostic artifacts. Only the automatic
+browser job was removed; the Playwright suite, dependencies, configuration and npm
+scripts remain available for manual use. Removing the job does not fix the suite or
+provide green E2E proof. The last manual run is known failing (see evidence below).
+
+Existing Playwright skips remain visible when the suite is run manually. Even a green
+manual browser report would not prove a fully deployed backend flow: inspect each
+test's network mocking and coverage before interpreting it as end-to-end application
+coverage.
 
 ## Local commands
 
@@ -39,8 +45,17 @@ cd frontend
 npm ci
 npm test
 npm run build
+```
+
+Optional manual browser checks (currently known failing, not part of CI):
+
+```bash
+cd frontend
 npx playwright install chromium
 npm run test:e2e
+# Optional interactive/debug modes:
+npm run test:e2e:ui
+npm run test:e2e:debug
 ```
 
 For backend integration tests, supply a **disposable** PostgreSQL instance, not a
@@ -89,18 +104,28 @@ verifier observed 65 errors/six warnings in `src` and 79 errors/ten warnings wit
 `dev-dist/` files; counts depend on generated artifacts. No baseline lint comparison
 was performed and no lint rules were disabled. Findings are in unchanged files;
 that does not prove they all predate the dependency upgrade. The workflow runs
-tests/build/browser checks, not lint; this is not an all-checks-green claim.
+frontend tests/build and backend checks, not browser tests or lint; this is not an
+all-checks-green claim.
 
-The updated Playwright run exited **1**: **60 failed, 13 passed, 10 skipped** in
+The last manual Playwright run exited **1**: **60 failed, 13 passed, 10 skipped** in
 approximately 24 minutes. Failures included API 502 responses, missing elements and
 timeouts. No browser baseline comparison exists, so causality is not established.
-The browser job intentionally exposes these failures; it does not suppress them.
+These failures remain unresolved. The automatic browser job was subsequently removed
+with user confirmation; the retained manual suite is not green proof.
 
 The migration integration test expectation was updated from schema version 10 to
-13, matching the existing migration files. Its database-backed assertion still needs
-an actual run; editing the expectation is not runtime proof.
+13, matching the existing migration files. The migration package passed against
+PostgreSQL in run 40231313102; this is runtime evidence, unlike the earlier short
+local check that skipped live integration.
 
 At initial setup the local Docker daemon was inaccessible to the agent, so local
-container-backed verification was unavailable. Workflow configuration alone is not
-proof of a successful GitHub Actions run. Record actual run results and any remaining
-failures when the implementation is published with human authorization.
+container-backed verification was unavailable. Workflow configuration alone is not proof of a successful GitHub Actions run.
+
+The first actual run, [40231313102](https://github.com/tadevshi/the-mile-game/actions/runs/40231313102),
+failed overall. Frontend install/tests/build passed. PostgreSQL startup, schema
+initialization, build and the migration/repository packages passed. Four worker
+integration tests failed (upload success/retries/max-retries/expired-token refresh);
+legacy test callbacks target `UploadFile`, while the current worker uses
+`UploadFileMultipart`. Cleanup also reported a closed database. Playwright hit the
+20-minute job timeout and was cancelled; diagnostic artifact upload was skipped.
+No timeout rerun or suppression was performed. All four PRs remain draft.
