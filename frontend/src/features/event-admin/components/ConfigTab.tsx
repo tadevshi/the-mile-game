@@ -9,8 +9,8 @@ import { useEventStore } from '@/shared/store/eventStore';
 import { FEATURES } from '@/shared/lib/featureFlags';
 import type { PreviewTheme } from '@/themes';
 import { useTheme } from '@/shared/theme/useTheme';
-import { DriveConnectionPanel } from '@/features/admin/components/DriveConnectionPanel';
-import { BackupJobsList } from '@/features/admin/components/BackupJobsList';
+import { DriveConnectionPanel } from './DriveConnectionPanel';
+import { BackupJobsList } from './BackupJobsList';
 import { CollaboratorsSection } from './CollaboratorsSection';
 import { PostcardStyleSelector } from './PostcardStyleSelector';
 
