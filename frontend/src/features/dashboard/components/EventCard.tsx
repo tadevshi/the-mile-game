@@ -183,7 +183,7 @@ export function EventCard({ event, onDelete, isOwner = true }: EventCardProps) {
 
         {/* Admin Button */}
         <Link
-          to={`/admin/${event.slug}?tab=config`}
+          to={`/e/${event.slug}/admin?tab=config`}
           className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-[var(--color-primary)] hover:bg-[var(--color-accent)] rounded-lg transition-colors"
         >
           <Settings className="w-4 h-4" />

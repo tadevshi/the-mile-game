@@ -65,7 +65,7 @@ export function EventWizardPage() {
 
       reset();
       console.log('Event created, redirecting to:', newEvent.slug);
-      navigate(`/admin/${newEvent.slug}?tab=config`, { replace: true });
+      navigate(`/e/${newEvent.slug}/admin?tab=config`, { replace: true });
     } catch (err) {
       console.error('Error creating event:', err);
       setSubmitError(

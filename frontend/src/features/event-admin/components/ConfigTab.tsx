@@ -128,7 +128,7 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
   };
 
   const eventUrl = `${window.location.origin}/e/${slug}`;
-  const adminUrl = `${window.location.origin}/admin/${slug}`;
+  const adminUrl = `${window.location.origin}/e/${slug}/admin`;
 
   const handleCopyLink = (url: string) => {
     navigator.clipboard.writeText(url);
