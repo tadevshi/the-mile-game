@@ -79,7 +79,7 @@ test.describe('Full Journey: Register → Create Event → Admin', () => {
     }
     
     // Should redirect to admin page after event creation
-    await page.waitForURL(/\/admin\//, { timeout: 15000 });
+    await page.waitForURL(/\/e\/[^/]+\/admin(?:\?|$)/, { timeout: 15000 });
     
     // ===== STEP 4: Admin Panel =====
     // Verify admin page loaded

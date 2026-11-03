@@ -728,7 +728,10 @@ chore: tareas de mantenimiento
 - ✅ **Landing Page** — Nueva página con branding EventHub
 - ✅ **Event Wizard** — Creación de eventos en 3 pasos (Info → Features → Tema)
 - ✅ **Dashboard** — Grid de eventos con feature badges
-- ✅ **Admin Panel** — Tabs (Config, Questions, Theme, Stats)
+- ✅ **Admin Panel** — `/e/:slug/admin` (autenticación requerida): Config (features y logo), Preguntas, Tema, Corkboard / Secret Box, Stats y Analytics.
+  - Editores completos: `/e/:slug/admin/questions` (CRUD, reordenar, importar/exportar) y `/e/:slug/admin/theme` (presets, colores y tipografías).
+  - `?tab=questions`, `?tab=theme`, `?tab=corkboard`, `?tab=stats` y `?tab=analytics` abren la pestaña correspondiente; sin `tab` se muestra Config.
+  - Compatibilidad: `/admin` → `/dashboard`; `/admin/:slug` → `/e/:slug/admin`. Los sufijos `questions` y `theme` abren sus editores; cualquier otro sufijo vuelve al panel del evento. Se conservan query string y hash. Las rutas públicas `/e/:slug/*` no cambian.
 - ✅ **Theme Marketplace** — 6 temas pre-diseñados + personalización
 - ✅ **Event-scoped routes** — `/e/:slug/*` para páginas públicas
 - ✅ **Legacy redirects** — URLs legacy redireccionan automáticamente

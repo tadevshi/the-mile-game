@@ -210,7 +210,7 @@ export function ThemeTab({ slug, onPreview, onSave, previewTheme }: ThemeTabProp
             Guardar Tema
           </Button>
 
-          <Link to={`/admin/${slug}/theme`} className="block">
+          <Link to={`/e/${slug}/admin/theme`} className="block">
             <Button
               variant="primary"
               fullWidth
@@ -229,7 +229,7 @@ export function ThemeTab({ slug, onPreview, onSave, previewTheme }: ThemeTabProp
 
       {/* Show customizer link even if no preset selected */}
       {!selectedPreset && (
-        <Link to={`/admin/${slug}/theme`} className="block">
+        <Link to={`/e/${slug}/admin/theme`} className="block">
           <Button
             variant="primary"
             fullWidth
