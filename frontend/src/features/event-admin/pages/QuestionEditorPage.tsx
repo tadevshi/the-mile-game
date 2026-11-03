@@ -200,7 +200,7 @@ export function QuestionEditorPage() {
         <div className="text-center">
           <p className="text-red-500 mb-2">Faltan parámetros</p>
           <p className="text-gray-500 text-sm">
-            Se requiere el slug del evento en la URL: <code>/admin/questions/:slug</code>
+            Se requiere el slug del evento en la URL: <code>/e/:slug/admin/questions</code>
           </p>
         </div>
       </div>

@@ -97,7 +97,7 @@ export function ThemeEditorPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
-              to={`/admin/${eventSlug}`}
+              to={`/e/${eventSlug}/admin?tab=theme`}
               className="p-2 rounded-lg hover:bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] transition-colors"
             >
               <ArrowLeft size={20} className="text-gray-600" />
