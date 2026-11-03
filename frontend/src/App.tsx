@@ -1,9 +1,9 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, matchPath } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { RegisterPage, QuizPage, ThankYouPage } from '@features/quiz';
 import { RankingPage } from '@features/ranking';
 import { CorkboardPage, SecretBoxPage } from '@features/postcards';
-import { AdminPage } from '@features/admin';
+import { AdminLegacyRedirect } from '@/shared/components/AdminLegacyRedirect';
 import { LoginPage, RegisterPage as AuthRegisterPage, ForgotPasswordPage, ResetPasswordPage } from '@/features/auth';
 import { DashboardPage, CreateEventPage } from '@/features/dashboard';
 import { LandingPage } from '@/features/landing';
@@ -316,15 +316,8 @@ function LegacyRoutes() {
         }
       />
 
-      {/* ADMIN: Panel de control para revelar Secret Box */}
-      <Route
-        path="/admin"
-        element={
-          <AnimatedPage variants={fadeVariants}>
-            <AdminPage />
-          </AnimatedPage>
-        }
-      />
+      {/* Legacy admin root redirects to the protected dashboard. */}
+      <Route path="/admin" element={<AdminLegacyRedirect />} />
 
       {/* Ruta 404: Fade suave */}
       <Route
@@ -366,10 +359,10 @@ function AnimatedRoutes() {
         />
 
         {/* ─────────────────────────────────────────
-           NEW ROUTES: /admin/:slug (tabbed event admin)
+           ADMIN ROUTES: /e/:slug/admin (tabbed event admin)
            ───────────────────────────────────────── */}
         <Route
-          path="/admin/:slug"
+          path="/e/:slug/admin"
           element={
             <ProtectedRoute>
               <AnimatedPage variants={fadeVariants}>
@@ -380,10 +373,10 @@ function AnimatedRoutes() {
         />
 
         {/* ─────────────────────────────────────────
-           ADMIN ROUTES: /admin/:slug/questions (question editor)
+           ADMIN ROUTES: /e/:slug/admin/questions (question editor)
            ───────────────────────────────────────── */}
         <Route
-          path="/admin/:slug/questions"
+          path="/e/:slug/admin/questions"
           element={
             <ProtectedRoute>
               <AnimatedPage variants={slideRightVariants}>
@@ -394,10 +387,10 @@ function AnimatedRoutes() {
         />
 
         {/* ─────────────────────────────────────────
-           ADMIN ROUTES: /admin/:slug/theme (theme editor)
+           ADMIN ROUTES: /e/:slug/admin/theme (theme editor)
            ───────────────────────────────────────── */}
         <Route
-          path="/admin/:slug/theme"
+          path="/e/:slug/admin/theme"
           element={
             <ProtectedRoute>
               <AnimatedPage variants={slideRightVariants}>
@@ -406,6 +399,9 @@ function AnimatedRoutes() {
             </ProtectedRoute>
           }
         />
+
+        {/* Resolve real params before redirecting; never interpolate route patterns. */}
+        <Route path="/admin/:slug/*" element={<AdminLegacyRedirect />} />
 
         {/* ─────────────────────────────────────────
            NEW ROUTES: /e/:slug/* (event public pages)
@@ -500,7 +496,7 @@ function AnimatedRoutes() {
 
 // Helper to detect public event routes (should hide theme/language controls)
 function isPublicEventRoute(pathname: string): boolean {
-  return pathname.startsWith('/e/');
+  return pathname.startsWith('/e/') && !matchPath('/e/:slug/admin/*', pathname);
 }
 
 // Componente interno que SÍ tiene acceso al contexto del Router

@@ -31,7 +31,7 @@ test.describe('Google Drive Backup — Admin Settings', () => {
     test('Drive panel is NOT visible in admin settings when flag is OFF', async ({ page }) => {
       // Navigate to an event's admin settings page
       // Assuming an event slug exists or we redirect to login
-      await page.goto('/e/mile-2026/admin/settings');
+      await page.goto('/e/mile-2026/admin?tab=config');
       await page.waitForLoadState('networkidle');
 
       // The Drive section should NOT be in the DOM when flag is off
@@ -62,7 +62,7 @@ test.describe('Google Drive Backup — Admin Settings', () => {
     //
     // NOTE: These tests are SKIPPED by default to avoid CI failures when flag is off.
     test.skip('Drive panel IS visible in admin settings when flag is ON', async ({ page }) => {
-      await page.goto('/e/mile-2026/admin/settings');
+      await page.goto('/e/mile-2026/admin?tab=config');
       await page.waitForLoadState('networkidle');
 
       // Drive section should be visible
@@ -71,7 +71,7 @@ test.describe('Google Drive Backup — Admin Settings', () => {
     });
 
     test.skip('Drive panel shows disconnected state by default', async ({ page }) => {
-      await page.goto('/e/mile-2026/admin/settings');
+      await page.goto('/e/mile-2026/admin?tab=config');
       await page.waitForLoadState('networkidle');
 
       // Should show "No conectada" status badge
@@ -80,7 +80,7 @@ test.describe('Google Drive Backup — Admin Settings', () => {
     });
 
     test.skip('Drive panel shows "Conectar Google Drive" button when disconnected', async ({ page }) => {
-      await page.goto('/e/mile-2026/admin/settings');
+      await page.goto('/e/mile-2026/admin?tab=config');
       await page.waitForLoadState('networkidle');
 
       // Connect button should be visible
@@ -89,7 +89,7 @@ test.describe('Google Drive Backup — Admin Settings', () => {
     });
 
     test.skip('Drive panel "Conectar Google Drive" button redirects to Google OAuth', async ({ page }) => {
-      await page.goto('/e/mile-2026/admin/settings');
+      await page.goto('/e/mile-2026/admin?tab=config');
       await page.waitForLoadState('networkidle');
 
       // Intercept the API call that gets the auth URL
@@ -109,7 +109,7 @@ test.describe('Google Drive Backup — Admin Settings', () => {
     });
 
     test.skip('Drive panel shows backup jobs section with empty state', async ({ page }) => {
-      await page.goto('/e/mile-2026/admin/settings');
+      await page.goto('/e/mile-2026/admin?tab=config');
       await page.waitForLoadState('networkidle');
 
       // Should show "Aún no hay respaldos" empty state
@@ -118,7 +118,7 @@ test.describe('Google Drive Backup — Admin Settings', () => {
     });
 
     test.skip('Disconnected state shows "Conectar" button, not "Desconectar"', async ({ page }) => {
-      await page.goto('/e/mile-2026/admin/settings');
+      await page.goto('/e/mile-2026/admin?tab=config');
       await page.waitForLoadState('networkidle');
 
       const connectButton = page.getByRole('button', { name: /Conectar Google Drive/i });
@@ -133,7 +133,7 @@ test.describe('Google Drive Backup — Admin Settings', () => {
     test('documents how to enable the Drive feature', async ({ page }) => {
       // This test verifies the feature flag is correctly NOT set in the built app
       // by checking that the Drive panel is absent from admin settings
-      await page.goto('/e/mile-2026/admin/settings');
+      await page.goto('/e/mile-2026/admin?tab=config');
       await page.waitForLoadState('networkidle');
 
       // Verify the page loaded correctly (admin settings loaded)

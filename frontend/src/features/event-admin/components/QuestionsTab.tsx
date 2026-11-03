@@ -49,7 +49,7 @@ export function QuestionsTab({ slug, previewTheme }: QuestionsTabProps) {
         </div>
         {quizEnabled ? (
           hasQuestions && (
-            <Link to={`/admin/${slug}/questions`}>
+            <Link to={`/e/${slug}/admin/questions`}>
               <Button
                 variant="outline"
                 size="sm"
@@ -141,7 +141,7 @@ export function QuestionsTab({ slug, previewTheme }: QuestionsTabProps) {
         </div>
       )}
 
-      <Link to={`/admin/${slug}/questions`} className="block">
+      <Link to={`/e/${slug}/admin/questions`} className="block">
         <Button 
           variant="primary" 
           fullWidth 

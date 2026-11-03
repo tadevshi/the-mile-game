@@ -1,12 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const TEST_EVENT_SLUG = 'mile-2026';
-const TEST_ADMIN_KEY = 'test-admin-key';
 
 test.describe('Question Editor E2E Tests', () => {
   // Helper to navigate to the question editor
   async function navigateToQuestionEditor(page: Page) {
-    await page.goto(`/admin/questions/${TEST_EVENT_SLUG}?key=${TEST_ADMIN_KEY}`);
+    await page.goto(`/e/${TEST_EVENT_SLUG}/admin/questions`);
   }
 
   // Helper to fill in the question form
@@ -61,14 +60,14 @@ test.describe('Question Editor E2E Tests', () => {
   }
 
   test.describe('Navigation & Authentication', () => {
-    test('should redirect to login if key is missing', async ({ page }) => {
-      await page.goto(`/admin/questions/${TEST_EVENT_SLUG}`);
-      await expect(page.getByText('Faltan parámetros')).toBeVisible();
+    test('should redirect to login without authentication', async ({ page }) => {
+      await page.goto(`/e/${TEST_EVENT_SLUG}/admin/questions`);
+      await expect(page).toHaveURL(/\/login$/);
     });
 
-    test('should redirect to login if event is missing', async ({ page }) => {
-      await page.goto(`/admin/questions/?key=${TEST_ADMIN_KEY}`);
-      await expect(page.getByText('Faltan parámetros')).toBeVisible();
+    test('should redirect the legacy root through the protected dashboard', async ({ page }) => {
+      await page.goto('/admin');
+      await expect(page).toHaveURL(/\/login$/);
     });
 
     test('should show question editor when authenticated', async ({ page }) => {
