@@ -19,8 +19,8 @@ import type { ReactNode } from 'react';
 import { EventWizardPage } from '@/features/event-wizard';
 import { EventAdminPage } from '@/features/event-admin';
 import { EventLandingPage } from '@/features/event-public';
-import { QuestionEditorPage } from '@/features/admin/pages/QuestionEditorPage';
-import { ThemeEditorPage } from '@/features/admin/pages/ThemeEditorPage';
+import { QuestionEditorPage } from '@/features/event-admin/pages/QuestionEditorPage';
+import { ThemeEditorPage } from '@/features/event-admin/pages/ThemeEditorPage';
 import { AcceptInvitationPage } from '@/features/collaborators/pages/AcceptInvitationPage';
 
 // === VARIANTES DE TRANSICIÓN ESPECÍFICAS ===
