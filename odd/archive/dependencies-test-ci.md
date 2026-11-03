@@ -1,6 +1,19 @@
-# Dependency updates and test CI
+# Dependency updates and test CI — Archived
 Issue: https://github.com/tadevshi/the-mile-game/issues/96
-Branch: chore/issue-96-dependencies-test-ci. Preserve unrelated dirty files.
+Status: completed and merged; session tracking archived at the user's request.
+
+## Closure
+
+- PRs #100, #99, #98 and #97 were merged bottom-up after explicit user authorization and successful intermediate checks.
+- Final `main` commit: `51012d147975ec5f1cac8be724c3fedb3bc10d8a`.
+- Post-merge CI: [run 40238841446](https://github.com/tadevshi/the-mile-game/actions/runs/40238841446), successful frontend unit/build and full Go/PostgreSQL jobs.
+- Local checkout returned to `main`, synchronized with `origin/main`; unrelated dirty files were preserved.
+- The separate event-slug defect is tracked in [issue #101](https://github.com/tadevshi/the-mile-game/issues/101); it is not unfinished work in this session.
+- Disclosed limitations remain: Playwright manual-only with known failures, lint outside CI and still failing, Docker image build unexecuted, native assessment unavailable with no native approval claimed.
+- All implementation and delivery tasks are closed. The task/log entries below retain their historical wording; earlier draft/no-merge and pending statements are superseded by this closure.
+- Archive request: "archivar el seguimiento". Original path: `odd/tasks/dependencies-test-ci.md`.
+
+Historical feature branch: chore/issue-96-dependencies-test-ci.
 
 ## Specs
 S1. "ayuamea  actualizar las dependencias del proyecto a la version mas actualizada, y crear un pipeline que corra los test en github. Comienza creando en github una issue para estos cambios"
@@ -21,6 +34,7 @@ T5 | S6 | done: remove automatic Playwright job; manual suite preserved; structu
 T6 | S1-S2 | done: tests-only multipart mocks/cleanup correction; DB-free/compile/preservation and actual PostgreSQL GREEN; no closed-DB warnings | worker | commit: 642802c; run40235540978
 
 ## Log
+L30. User authorized merging: "puedes mergear las pr's". PR100->99->98->97 merged with exact head matching and successful intermediate checks. Main commit51012d147975ec5f1cac8be724c3fedb3bc10d8a passed push run40238841446. Issue101 remains open. User requested return to main/session close, completed without discarding unrelated changes, then requested "archivar el seguimiento". Moved this complete document from odd/tasks to odd/archive and added closure; no commit/push authorized for archival.
 L29. Actual run40235540978 on642802c completed success (watch exit0): frontend unit/build and backend PostgreSQL jobs both success. Full log fetch exit0 shows internal/worker ok10.456s and no "database is closed" warning. Confirms integration GREEN after two reproduced failing runs. Tests-only fix; productionSlug defect remains outside scope. Native committed-rangeASSESS also unavailable due untracked declaration; no reviewDue continuation/nativeapproval, no further retries. Independent reviews already completed. Docker image build unexecuted; lint remains red/outside gate; E2E intentionally manual. AllPRs remain draft/no merge. Final documentation-only commit records exact tested SHA/run, not a claim that the unexecuted checks passed.
 L28. T6worker returned partial: only backup_worker_test.go changed, all5processingtests use UploadFileMultipartFunc, shared fixture dbClose moved into t.Cleanup (after deferreddata cleanup); all11originaltests and assertions/skips preserved. Added MIME/content/filename/idempotency/token/parent-routing and persistedstatus/retry/refresh-token checks without asserting event-folder name. Compile-only and4DB-free tests exit0 using cachedGo1.26.10; no liveDB proof. Initial offline toolchain/checksum and GOROOT commands exited1, then explicitly selected cachedtoolchain checks passed (not testRED). gofmt/diffcheck/preservationcheck exit0. Parent reviewed exact diff; no production/helper contracts changed. NativeASSESS unassessable due unrelateduntracked; returned writerSelfVerification and no independentVerifier; no native approval claimed. Publishing for actual PostgreSQLActionsGREEN; missingSlug separate and documented.
 L27. T6worker stopped interaction_required before edits: GetEventByPostcardID selects e.id,e.owner_id only (drive_repository.go345-357), but worker passes event.Slug to EnsureFolder (backup_worker.go349). Parent spot-check confirmed missing slug. Scope resolution: proceed tests-only, preserve all original assertions, add base-folder name/parent ordering/upload destination assertions without asserting empty folder name as intended or claiming event folder naming correct. New event-name assertion was not an original requirement; do not change production or weaken existing assertion to force green. Report slug defect separately as unresolved. Runtime integration GREEN still pending. No production changes authorized by this routing decision.
