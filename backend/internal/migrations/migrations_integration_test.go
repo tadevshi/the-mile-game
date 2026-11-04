@@ -74,6 +74,8 @@ func TestRunAppliesMigrationsOnEmptyDatabase(t *testing.T) {
 		"quiz_events",
 		"postcard_events",
 		"schema_migrations",
+		"event_guests",
+		"event_guest_invites",
 	} {
 		var exists bool
 		if err := targetDB.QueryRow(`SELECT to_regclass('public.' || $1) IS NOT NULL`, tableName).Scan(&exists); err != nil {
@@ -90,8 +92,8 @@ func TestRunAppliesMigrationsOnEmptyDatabase(t *testing.T) {
 		t.Fatalf("schema_migrations query error = %v", err)
 	}
 
-	if version != 13 {
-		t.Fatalf("schema_migrations version = %d, want 13", version)
+	if version != 14 {
+		t.Fatalf("schema_migrations version = %d, want 14", version)
 	}
 
 	if dirty {
