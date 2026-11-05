@@ -1,4 +1,4 @@
-# Event guest invitations
+# Event visibility and guest invitations
 
 Guest membership links an EventHub account to an event without granting any
 administrative permissions. It is independent of collaborators and quiz players.
@@ -43,7 +43,28 @@ Non-owner invite management returns 403, including for collaborators and guests.
 Repository failures return 500. Guests remain forbidden from admin endpoints;
 existing owners/collaborators keep their administrative access.
 
-## Persistence and subsequent access checks
+## Visibility persistence (not access enforcement)
+
+Migration `015_event_visibility` adds the first-class `events.visibility` column:
+non-null, exactly `public` or `private`, with a database default of `public`.
+All existing events remain public. Apply project migrations before running the
+updated backend; rolling back 015 removes the column and its visibility values.
+
+`Event.Visibility` serializes as `visibility`. `EventRepository.Create` keeps its
+existing signature and creates public events. All event lookup/list methods
+return the stored visibility. `Update` accepts explicit `public`/`private`;
+an empty field means preserve the stored value, so existing callers that omit
+the field cannot reset private events when updating unrelated fields. Other
+values return `invalid event visibility` before any stored event fields change.
+Database constraints also reject invalid or null stored values.
+
+**This persistence slice does not protect private content.** It adds neither a
+usable HTTP/UI privacy setting nor API, media or WebSocket access enforcement.
+Those checks and controls are subsequent work; do not rely on a stored `private`
+value as an access restriction yet. Membership, administrative privileges,
+settings and invitation-token lifecycles are unchanged.
+
+## Guest persistence and subsequent access checks
 
 Migration `014_event_guests` adds `event_guests` (unique event/account pairs)
 and `event_guest_invites` (one independent token per event). Event/account deletion

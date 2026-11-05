@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/lib/pq"
 )
 
-func TestRunAppliesMigrationsOnEmptyDatabase(t *testing.T) {
+func TestRunAppliesMigrationsOnEmptyDatabaseVisibility(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping live PostgreSQL integration test in short mode")
 	}
@@ -47,6 +48,17 @@ func TestRunAppliesMigrationsOnEmptyDatabase(t *testing.T) {
 	t.Setenv("DB_WAIT_RETRY_DELAY", "100ms")
 
 	targetURL := testDatabaseURL(databaseName)
+	// Stop at the previous schema to verify the seeded legacy event is backfilled.
+	previous, err := migrate.New("file://"+filepath.ToSlash(migrationsPath), targetURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := previous.Migrate(14); err != nil {
+		t.Fatal(err)
+	}
+	if sourceErr, dbErr := previous.Close(); sourceErr != nil || dbErr != nil {
+		t.Fatalf("close previous migration: %v, %v", sourceErr, dbErr)
+	}
 	if err := Run(context.Background(), targetURL); err != nil {
 		t.Fatalf("Run() first pass error = %v", err)
 	}
@@ -92,8 +104,24 @@ func TestRunAppliesMigrationsOnEmptyDatabase(t *testing.T) {
 		t.Fatalf("schema_migrations query error = %v", err)
 	}
 
-	if version != 14 {
-		t.Fatalf("schema_migrations version = %d, want 14", version)
+	if version != 15 {
+		t.Fatalf("schema_migrations version = %d, want 15", version)
+	}
+
+	var visibility string
+	if err := targetDB.QueryRow(`SELECT visibility FROM events WHERE slug = 'mile-2026'`).Scan(&visibility); err != nil {
+		t.Fatal(err)
+	}
+	if visibility != "public" {
+		t.Fatalf("legacy visibility = %q, want public", visibility)
+	}
+	for _, value := range []any{"friends", "", "PUBLIC", nil} {
+		if _, err := targetDB.Exec(`UPDATE events SET visibility = $1 WHERE slug = 'mile-2026'`, value); err == nil {
+			t.Errorf("storage accepted invalid visibility %v", value)
+		}
+	}
+	if err := targetDB.QueryRow(`SELECT visibility FROM events WHERE slug = 'mile-2026'`).Scan(&visibility); err != nil || visibility != "public" {
+		t.Fatalf("rejected storage write mutated visibility: %q, %v", visibility, err)
 	}
 
 	if dirty {

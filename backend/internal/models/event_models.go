@@ -15,6 +15,11 @@ type User struct {
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 }
 
+const (
+	EventVisibilityPublic  = "public"
+	EventVisibilityPrivate = "private"
+)
+
 // Event representa un evento (cumpleaños, casamiento, etc.)
 type Event struct {
 	ID             uuid.UUID     `json:"id" db:"id"`
@@ -22,6 +27,7 @@ type Event struct {
 	OwnerID        uuid.UUID     `json:"owner_id" db:"owner_id"`
 	Name           string        `json:"name" db:"name"`
 	Description    string        `json:"description" db:"description"`
+	Visibility     string        `json:"visibility" db:"visibility"`
 	Features       EventFeatures `json:"features" db:"features"`                           // JSONB
 	Settings       EventSettings `json:"settings" db:"settings"`                           // JSONB
 	SecretBoxToken *string       `json:"secret_box_token,omitempty" db:"secret_box_token"` // UUID para acceso a Secret Box

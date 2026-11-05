@@ -1,12 +1,16 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/the-mile-game/backend/internal/migrations"
 	"github.com/the-mile-game/backend/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -20,7 +24,15 @@ func setupTestDB(t *testing.T) *sql.DB {
 	dbPass := getEnv("TEST_DB_PASSWORD", "password")
 	dbName := getEnv("TEST_DB_NAME", "milegame_test")
 
-	connStr := "host=" + dbHost + " port=" + dbPort + " user=" + dbUser + " password=" + dbPass + " dbname=" + dbName + " sslmode=disable"
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPass, dbHost, dbPort, dbName)
+	migrationsPath, err := filepath.Abs(filepath.Join("..", "..", "migrations"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("MIGRATIONS_PATH", migrationsPath)
+	if err := migrations.Run(context.Background(), connStr); err != nil {
+		t.Fatalf("Failed to prepare test schema: %v", err)
+	}
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
