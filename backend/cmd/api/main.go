@@ -200,6 +200,8 @@ func main() {
 	eventMiddleware := middleware.EventMiddleware(eventRepo)
 	authMiddleware := middleware.AuthMiddleware(authService)
 	adminMiddleware := middleware.AdminMiddleware(collaboratorRepo)
+	optionalAuthMiddleware := middleware.OptionalAuthMiddleware(authService)
+	visibilityMiddleware := middleware.EventVisibilityMiddleware(collaboratorRepo, guestRepo)
 
 	// Rutas API
 	api := r.Group("/api")
@@ -238,13 +240,10 @@ func main() {
 
 		// Event-scoped routes (nuevas - multi-event)
 		events := api.Group("/events/:slug")
-		events.Use(eventMiddleware)
+		events.Use(eventMiddleware, optionalAuthMiddleware, visibilityMiddleware)
 		{
 			// Event info
-			events.GET("", func(c *gin.Context) {
-				event, _ := c.Get("event")
-				c.JSON(200, event)
-			})
+			events.GET("", handlers.EventInfoHandler(collaboratorRepo))
 
 			// Theme
 			events.GET("/theme", themeHandler.GetTheme)
@@ -275,7 +274,9 @@ func main() {
 			}
 
 			// Secret Box
-			secretBox := events.Group("/secret-box")
+			// Upload-only capability: intentionally outside the content visibility guard.
+			secretBox := api.Group("/events/:slug/secret-box")
+			secretBox.Use(eventMiddleware)
 			secretBox.Use(middleware.SecretBoxFeatureMiddleware())
 			{
 				secretBox.POST("", handler.CreateSecretPostcard)
@@ -306,7 +307,7 @@ func main() {
 
 		// Analytics (event-scoped, público para page view tracking)
 		eventsAnalytics := api.Group("/events/:slug")
-		eventsAnalytics.Use(eventMiddleware)
+		eventsAnalytics.Use(eventMiddleware, optionalAuthMiddleware, visibilityMiddleware)
 		{
 			eventsAnalytics.POST("/page-view", analyticsHandler.LogPageView)
 		}

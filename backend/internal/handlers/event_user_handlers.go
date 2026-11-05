@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/the-mile-game/backend/internal/middleware"
 	"github.com/the-mile-game/backend/internal/models"
 	"github.com/the-mile-game/backend/internal/repository"
 )
@@ -37,6 +38,33 @@ func NewEventHandler(eventRepo EventRepo, collabRepo CollaboratorEventIDsGetter)
 	return &EventHandler{
 		eventRepo:  eventRepo,
 		collabRepo: collabRepo,
+	}
+}
+
+// EventInfoHandler preserves the event payload but only administrators receive tokens.
+// The visibility guard must authorize content access before this handler runs.
+func EventInfoHandler(collaborators middleware.CollaboratorChecker) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		event := c.MustGet("event").(*models.Event)
+		privileged := false
+		if value, exists := c.Get("user_id"); exists {
+			userID := value.(uuid.UUID)
+			privileged = userID == event.OwnerID
+			if !privileged {
+				var err error
+				privileged, err = collaborators.Exists(event.ID, userID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify permissions"})
+					return
+				}
+			}
+		}
+		response := *event
+		if !privileged {
+			response.SecretBoxToken = nil
+			response.InviteToken = nil
+		}
+		c.JSON(http.StatusOK, response)
 	}
 }
 

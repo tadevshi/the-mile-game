@@ -2,8 +2,8 @@
 
 Guest membership links an EventHub account to an event without granting any
 administrative permissions. It is independent of collaborators and quiz players.
-This backend slice does **not** restrict event visibility; private-event access
-checks, media/WebSocket protection and the guest-join UI are subsequent work.
+Event-scoped HTTP content now enforces visibility. Legacy endpoints,
+media/WebSocket protection and the guest-join UI remain subsequent work.
 
 ## API
 
@@ -43,7 +43,7 @@ Non-owner invite management returns 403, including for collaborators and guests.
 Repository failures return 500. Guests remain forbidden from admin endpoints;
 existing owners/collaborators keep their administrative access.
 
-## Visibility persistence (not access enforcement)
+## Visibility persistence
 
 Migration `015_event_visibility` adds the first-class `events.visibility` column:
 non-null, exactly `public` or `private`, with a database default of `public`.
@@ -58,11 +58,31 @@ the field cannot reset private events when updating unrelated fields. Other
 values return `invalid event visibility` before any stored event fields change.
 Database constraints also reject invalid or null stored values.
 
-**This persistence slice does not protect private content.** It adds neither a
-usable HTTP/UI privacy setting nor API, media or WebSocket access enforcement.
-Those checks and controls are subsequent work; do not rely on a stored `private`
-value as an access restriction yet. Membership, administrative privileges,
-settings and invitation-token lifecycles are unchanged.
+## Event-scoped HTTP access
+
+The content routes under `/api/events/:slug` (metadata, theme, players, quiz,
+ranking, postcards and POST page-view analytics) share the visibility policy.
+Public events accept anonymous requests, including absent/malformed/invalid
+Authorization headers under existing optional-auth semantics. Private events
+require a valid JWT and owner, collaborator or invited-guest membership:
+
+- 401: `{"error":"Authentication required"}` for unauthenticated requests.
+- 403: `{"error":"Not authorized to access this event"}` for nonmembers.
+- 500: `{"error":"Failed to verify permissions"}` for membership lookup failures.
+
+Rejected requests do not reach content handlers. Event lookup retains its
+existing 404/410/500 responses. Guests do not gain administrative permissions.
+GET event metadata preserves its payload shape except that `secret_box_token`
+and `invite_token` are omitted for anonymous users, guests and unrelated users
+(including logged-in users on public events). Owners/collaborators retain those
+fields; privileged dashboard responses and admin paths remain unchanged.
+
+POST `/api/events/:slug/secret-box` remains token-only upload access, without
+login/membership. `X-Secret-Token` never grants content-read access.
+No usable HTTP/UI privacy setting is exposed yet. Legacy HTTP protection,
+cross-event quiz-answer association, media/WebSocket/cache enforcement and UI
+are separate pending units: **this is not complete private-event protection**.
+Membership and invitation-token lifecycles are unchanged.
 
 ## Guest persistence and subsequent access checks
 
