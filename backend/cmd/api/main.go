@@ -287,7 +287,7 @@ func main() {
 		// Players
 		api.POST("/players", handler.CreatePlayer)
 		api.GET("/players/:id", handler.GetPlayer)
-		api.GET("/players", handler.ListPlayers)
+		api.GET("/players", optionalAuthMiddleware, handler.ListPlayers)
 
 		// Quiz
 		api.GET("/quiz/questions", handler.GetQuizQuestions)
@@ -296,7 +296,7 @@ func main() {
 		api.GET("/quiz/descriptions", handler.GetDescriptions)
 
 		// Ranking
-		api.GET("/ranking", handler.GetRanking)
+		api.GET("/ranking", optionalAuthMiddleware, handler.GetRanking)
 
 		// Postcards (Cartelera de Corcho)
 		api.POST("/postcards", handler.CreatePostcard)

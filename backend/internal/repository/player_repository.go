@@ -97,6 +97,32 @@ func (r *PlayerRepository) List() ([]models.Player, error) {
 	return players, nil
 }
 
+// ListVisible preserves List's fields/order, restricting private-event rows at read time.
+func (r *PlayerRepository) ListVisible(viewerID *uuid.UUID) ([]models.Player, error) {
+	query := `
+		SELECT p.id, p.event_id, p.name, p.avatar, p.score, p.created_at
+		FROM players p
+		LEFT JOIN events e ON e.id = p.event_id
+		WHERE p.event_id IS NULL OR (` + eventVisibleToViewerSQL + `)
+		ORDER BY p.score DESC
+	`
+	rows, err := r.db.Query(query, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var players []models.Player
+	for rows.Next() {
+		var player models.Player
+		if err := rows.Scan(&player.ID, &player.EventID, &player.Name, &player.Avatar, &player.Score, &player.CreatedAt); err != nil {
+			return nil, err
+		}
+		players = append(players, player)
+	}
+	return players, rows.Err()
+}
+
 // CreateWithEvent crea un jugador scopado a un evento
 func (r *PlayerRepository) CreateWithEvent(eventID uuid.UUID, name, avatar string) (*models.Player, error) {
 	player := &models.Player{

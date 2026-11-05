@@ -2,8 +2,9 @@
 
 Guest membership links an EventHub account to an event without granting any
 administrative permissions. It is independent of collaborators and quiz players.
-Event-scoped HTTP content now enforces visibility. Legacy endpoints,
-media/WebSocket protection and the guest-join UI remain subsequent work.
+Event-scoped HTTP content and the two legacy player/ranking aggregates now
+enforce visibility. Other legacy endpoints, media/WebSocket protection and the
+guest-join UI remain subsequent work.
 
 ## API
 
@@ -98,10 +99,24 @@ values (including empty strings, null and nonstrings) return 400
 preserves stored visibility while existing feature/settings updates continue
 unchanged. The existing `features` object remains required, and the response
 remains the updated event. Guests remain forbidden from this administrative API.
-No usable privacy-settings UI exists yet. Legacy HTTP protection,
+No usable privacy-settings UI exists yet. Other legacy HTTP protection,
 media/WebSocket/cache enforcement and UI are separate pending units:
 **this is not complete private-event protection**.
 Membership and invitation-token lifecycles are unchanged.
+
+## Legacy player and ranking aggregates
+
+GET `/api/players` and GET `/api/ranking` now return only public-event players,
+truly event-unassociated (`NULL event_id`) legacy players, and private-event
+players whose event the authenticated account owns or belongs to as a
+collaborator or invited guest. Membership in one event grants no access to
+another. Visibility/membership is evaluated on each read. Optional authentication
+retains existing absent/invalid-token semantics (anonymous visibility).
+No slug or default event is required. Fields, score-descending ordering, ranking
+positions, and empty responses (`null` players, `[]` ranking) are unchanged.
+Scoped routes retain their existing event-filtered behavior. Other legacy
+reads/writes and administration, media, WebSocket and cache enforcement remain
+pending; these two aggregate protections do not establish complete privacy.
 
 ## Guest persistence and subsequent access checks
 

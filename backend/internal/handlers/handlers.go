@@ -183,9 +183,18 @@ func (h *Handler) GetPlayer(c *gin.Context) {
 	c.JSON(http.StatusOK, player)
 }
 
-// ListPlayers lista todos los jugadores (legacy - sin filtro de evento)
+// legacyViewerID reads only the optional JWT identity installed by middleware.
+func legacyViewerID(c *gin.Context) *uuid.UUID {
+	id, ok := c.Get("user_id")
+	if viewer, valid := id.(uuid.UUID); ok && valid {
+		return &viewer
+	}
+	return nil
+}
+
+// ListPlayers lista los jugadores visibles (legacy - sin slug requerido).
 func (h *Handler) ListPlayers(c *gin.Context) {
-	players, err := h.playerRepo.List()
+	players, err := h.playerRepo.ListVisible(legacyViewerID(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list players"})
 		return
@@ -428,13 +437,13 @@ func (h *Handler) returnQuestionsResponse(questions []models.QuizQuestion, c *gi
 
 // GetRanking obtiene el ranking de jugadores
 func (h *Handler) GetRanking(c *gin.Context) {
-	// Si hay event_id en el contexto, usar ListByEvent, sino List
+	// Scoped reads retain ListByEvent; legacy reads apply viewer visibility.
 	var players []models.Player
 	var err error
 	if eventID, exists := c.Get("event_id"); exists {
 		players, err = h.playerRepo.ListByEvent(eventID.(uuid.UUID))
 	} else {
-		players, err = h.playerRepo.List()
+		players, err = h.playerRepo.ListVisible(legacyViewerID(c))
 	}
 
 	if err != nil {
