@@ -15,11 +15,12 @@ npm lockfile and Go module checksums.
 The frontend build still runs after a unit test failure to expose independent build
 errors. The job remains failed; there is no `continue-on-error` or failure suppression.
 
-The backend job waits for PostgreSQL health, checks a real connection, and applies all
-`backend/migrations/*.up.sql` files in filename order with `ON_ERROR_STOP`. This prepares
-the disposable repository test database. The migration integration test separately
-creates a database and exercises the application's migration runner. Packages run
-serially because repository tests clean shared tables. Nothing connects to production.
+The backend job waits for PostgreSQL health and checks a real connection. Repository
+test setup applies migrations through the application's migration runner, which records
+the schema version. Do not pre-apply SQL files separately: that leaves the version
+history missing and can make the runner repeat non-idempotent migrations. The migration
+integration test separately creates a database and exercises the same runner. Packages
+run serially because repository tests clean shared tables. Nothing connects to production.
 
 There is **no automatic browser/E2E coverage**: the workflow no longer installs
 Chromium, runs Playwright or uploads browser diagnostic artifacts. Only the automatic
@@ -62,8 +63,8 @@ For backend integration tests, supply a **disposable** PostgreSQL instance, not 
 shared development or production database. Repository tests delete fixture tables;
 the migration test also requires permission to create and drop its own database.
 Set `TEST_DB_HOST`, `TEST_DB_PORT`, `TEST_DB_USER`, `TEST_DB_PASSWORD` and
-`TEST_DB_NAME` to the disposable instance. Initialize it with the same migration
-loop used by the workflow, then run:
+`TEST_DB_NAME` to a fresh, empty disposable database. Repository test setup initializes
+its schema and version history; do not run a separate SQL migration loop. Then run:
 
 ```bash
 cd backend

@@ -77,14 +77,11 @@ jobs:
           cache-dependency-path: backend/go.sum
       - run: go mod download
       - run: go mod verify
-      - name: Initialize isolated repository test schema
+      - name: Verify isolated database connection
         shell: bash
-        run: |
-          set -euo pipefail
-          psql -v ON_ERROR_STOP=1 -c 'SELECT 1'
-          for migration in migrations/*.up.sql; do
-            psql -v ON_ERROR_STOP=1 -f "$migration"
-          done
+        run: psql -v ON_ERROR_STOP=1 -c 'SELECT 1'
+        # Repository setup applies migrations through the application runner,
+        # including its version history. Do not pre-apply SQL without that history.
       - name: Build
         run: go build ./...
       - name: Unit and database integration tests
