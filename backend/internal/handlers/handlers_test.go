@@ -243,6 +243,18 @@ func (r *mockPostcardRepo) ListVisible(*uuid.UUID) ([]models.Postcard, error) {
 func (r *mockPostcardRepo) ListByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
 	return nil, nil
 }
+func (r *mockPostcardRepo) HasAdministrativeEvents(uuid.UUID) (bool, error) {
+	return true, nil
+}
+func (r *mockPostcardRepo) ListSecretForAdmin(uuid.UUID) ([]models.Postcard, error) {
+	return nil, nil
+}
+func (r *mockPostcardRepo) GetSecretBoxStatusForAdmin(uuid.UUID) (*models.SecretBoxStatus, error) {
+	return r.GetSecretBoxStatus()
+}
+func (r *mockPostcardRepo) RevealSecretBoxForAdmin(uuid.UUID) ([]models.Postcard, error) {
+	return nil, nil
+}
 func (r *mockPostcardRepo) ListSecret() ([]models.Postcard, error) { return nil, nil }
 func (r *mockPostcardRepo) ListSecretByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
 	return nil, nil
@@ -279,7 +291,7 @@ type mockHub struct {
 
 func (h *mockHub) BroadcastRanking(ranking []models.RankingEntry)    {}
 func (h *mockHub) BroadcastPostcard(postcard models.Postcard)        { h.state.broadcastCalled = true }
-func (h *mockHub) BroadcastSecretReveal(postcards []models.Postcard) {}
+func (h *mockHub) BroadcastSecretReveal(postcards []models.Postcard) { h.state.broadcastCalled = true }
 
 // Room-specific broadcast mocks
 func (h *mockHub) BroadcastRankingToRoom(eventSlug string, ranking []models.RankingEntry) {}

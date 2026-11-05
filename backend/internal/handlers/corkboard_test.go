@@ -86,6 +86,19 @@ func (m *MockPostcardRepo) ListByEvent(eventID uuid.UUID) ([]models.Postcard, er
 	return nil, errors.New("not implemented")
 }
 
+func (m *MockPostcardRepo) HasAdministrativeEvents(uuid.UUID) (bool, error) {
+	return false, errors.New("not implemented")
+}
+func (m *MockPostcardRepo) ListSecretForAdmin(uuid.UUID) ([]models.Postcard, error) {
+	return nil, errors.New("not implemented")
+}
+func (m *MockPostcardRepo) GetSecretBoxStatusForAdmin(uuid.UUID) (*models.SecretBoxStatus, error) {
+	return nil, errors.New("not implemented")
+}
+func (m *MockPostcardRepo) RevealSecretBoxForAdmin(uuid.UUID) ([]models.Postcard, error) {
+	return nil, errors.New("not implemented")
+}
+
 func (m *MockPostcardRepo) ListSecret() ([]models.Postcard, error) {
 	return nil, errors.New("not implemented")
 }

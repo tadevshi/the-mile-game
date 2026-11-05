@@ -32,6 +32,10 @@ type PostcardRepo interface {
 	List() ([]models.Postcard, error)
 	ListVisible(viewerID *uuid.UUID) ([]models.Postcard, error)
 	ListByEvent(eventID uuid.UUID) ([]models.Postcard, error)
+	HasAdministrativeEvents(userID uuid.UUID) (bool, error)
+	ListSecretForAdmin(userID uuid.UUID) ([]models.Postcard, error)
+	GetSecretBoxStatusForAdmin(userID uuid.UUID) (*models.SecretBoxStatus, error)
+	RevealSecretBoxForAdmin(userID uuid.UUID) ([]models.Postcard, error)
 	ListSecret() ([]models.Postcard, error)
 	ListSecretByEvent(eventID uuid.UUID) ([]models.Postcard, error)
 	RevealSecretBox() ([]models.Postcard, error)
@@ -1001,6 +1005,25 @@ func (h *Handler) CreateSecretPostcard(c *gin.Context) {
 	c.JSON(http.StatusCreated, postcard)
 }
 
+// legacyAdministrator gates legacy administration only; queries still enforce event scope.
+func (h *Handler) legacyAdministrator(c *gin.Context) *uuid.UUID {
+	viewer := legacyViewerID(c)
+	if viewer == nil || *viewer == uuid.Nil || h.postcardRepo == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify permissions"})
+		return nil
+	}
+	allowed, err := h.postcardRepo.HasAdministrativeEvents(*viewer)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify permissions"})
+		return nil
+	}
+	if !allowed {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to administer events"})
+		return nil
+	}
+	return viewer
+}
+
 // GetSecretBoxStatus devuelve el estado de la Secret Box (total de secretas, si fue revelada)
 func (h *Handler) GetSecretBoxStatus(c *gin.Context) {
 	// Si hay event_id en el contexto, usar versión scoped
@@ -1014,8 +1037,11 @@ func (h *Handler) GetSecretBoxStatus(c *gin.Context) {
 		return
 	}
 
-	// Fallback: versión global (backward compatibility)
-	status, err := h.postcardRepo.GetSecretBoxStatus()
+	viewer := h.legacyAdministrator(c)
+	if viewer == nil {
+		return
+	}
+	status, err := h.postcardRepo.GetSecretBoxStatusForAdmin(*viewer)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get secret box status"})
 		return
@@ -1033,8 +1059,11 @@ func (h *Handler) ListSecretPostcards(c *gin.Context) {
 	if eventID, exists := c.Get("event_id"); exists {
 		postcards, err = h.postcardRepo.ListSecretByEvent(eventID.(uuid.UUID))
 	} else {
-		// Fallback: versión global (backward compatibility)
-		postcards, err = h.postcardRepo.ListSecret()
+		viewer := h.legacyAdministrator(c)
+		if viewer == nil {
+			return
+		}
+		postcards, err = h.postcardRepo.ListSecretForAdmin(*viewer)
 	}
 
 	if err != nil {
@@ -1072,8 +1101,11 @@ func (h *Handler) RevealSecretBox(c *gin.Context) {
 	if eventID, exists := c.Get("event_id"); exists {
 		postcards, err = h.postcardRepo.RevealSecretBoxByEvent(eventID.(uuid.UUID))
 	} else {
-		// Fallback: versión global (backward compatibility)
-		postcards, err = h.postcardRepo.RevealSecretBox()
+		viewer := h.legacyAdministrator(c)
+		if viewer == nil {
+			return
+		}
+		postcards, err = h.postcardRepo.RevealSecretBoxForAdmin(*viewer)
 	}
 
 	if err != nil {

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -192,6 +193,86 @@ func (r *PostcardRepository) ListVisible(viewerID *uuid.UUID) ([]models.Postcard
 		postcards = append(postcards, *postcard)
 	}
 	return postcards, rows.Err()
+}
+
+// administrativeEventSQL is static and shared by the discriminator and every
+// legacy administrative query. $1 is always the authenticated account, never input SQL.
+const administrativeEventSQL = `(e.owner_id = $1 OR EXISTS (
+ SELECT 1 FROM event_collaborators ec WHERE ec.event_id = e.id AND ec.user_id = $1))`
+const administeredPostcardSQL = `p.event_id IN (SELECT e.id FROM events e WHERE ` + administrativeEventSQL + `)`
+const adminSecretListSQL = `SELECT` + publicPostcardCols + `
+ WHERE p.is_secret = TRUE AND ` + administeredPostcardSQL + ` ORDER BY p.created_at DESC`
+
+func (r *PostcardRepository) HasAdministrativeEvents(userID uuid.UUID) (bool, error) {
+	if r == nil || r.db == nil {
+		return false, errors.New("postcard repository unavailable")
+	}
+	var allowed bool
+	err := r.db.QueryRow(`SELECT EXISTS (SELECT 1 FROM events e WHERE `+administrativeEventSQL+`)`, userID).Scan(&allowed)
+	return allowed, err
+}
+
+// readAdminSecrets preserves the original secret projection and order, including
+// already revealed rows; both the DB and transaction use the same constrained SQL.
+func readAdminSecrets(q interface {
+	Query(string, ...any) (*sql.Rows, error)
+}, userID uuid.UUID) ([]models.Postcard, error) {
+	rows, err := q.Query(adminSecretListSQL, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var postcards []models.Postcard
+	for rows.Next() {
+		postcard, err := scanPostcard(rows)
+		if err != nil {
+			return nil, err
+		}
+		postcards = append(postcards, *postcard)
+	}
+	return postcards, rows.Err()
+}
+
+func (r *PostcardRepository) ListSecretForAdmin(userID uuid.UUID) ([]models.Postcard, error) {
+	return readAdminSecrets(r.db, userID)
+}
+
+func (r *PostcardRepository) GetSecretBoxStatusForAdmin(userID uuid.UUID) (*models.SecretBoxStatus, error) {
+	var status models.SecretBoxStatus
+	var revealedAt sql.NullTime
+	err := r.db.QueryRow(`SELECT COUNT(*), COUNT(*) FILTER (WHERE p.revealed_at IS NOT NULL) > 0,
+ MAX(p.revealed_at) FROM postcards p WHERE p.is_secret = TRUE AND `+administeredPostcardSQL, userID).
+		Scan(&status.Total, &status.Revealed, &revealedAt)
+	if err != nil {
+		return nil, err
+	}
+	if revealedAt.Valid {
+		status.RevealedAt = &revealedAt.Time
+	}
+	return &status, nil
+}
+
+// RevealSecretBoxForAdmin updates and reads back one administered set atomically.
+// A commit error is returned without publishing; its durable outcome may be ambiguous.
+func (r *PostcardRepository) RevealSecretBoxForAdmin(userID uuid.UUID) ([]models.Postcard, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	_, err = tx.Exec(`UPDATE postcards p SET revealed_at = NOW()
+ WHERE p.is_secret = TRUE AND p.revealed_at IS NULL AND `+administeredPostcardSQL, userID)
+	if err != nil {
+		return nil, err
+	}
+	postcards, err := readAdminSecrets(tx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return postcards, nil
 }
 
 // ListSecret devuelve TODAS las postales secretas (para admin, independientemente del reveal)

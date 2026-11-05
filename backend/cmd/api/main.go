@@ -315,9 +315,9 @@ func main() {
 		}
 
 		// Admin routes (legacy - backward compatibility)
-		api.GET("/admin/status", handler.GetSecretBoxStatus)
-		api.GET("/admin/secret-box", handler.ListSecretPostcards)
-		api.POST("/admin/reveal", handler.RevealSecretBox)
+		api.GET("/admin/status", authMiddleware, handler.GetSecretBoxStatus)
+		api.GET("/admin/secret-box", authMiddleware, handler.ListSecretPostcards)
+		api.POST("/admin/reveal", authMiddleware, handler.RevealSecretBox)
 
 		// Drive admin routes (user-level, not event-scoped)
 		// These routes handle Google Drive OAuth connection and backup job management

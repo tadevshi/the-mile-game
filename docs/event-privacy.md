@@ -114,9 +114,8 @@ another. Visibility/membership is evaluated on each read. Optional authenticatio
 retains existing absent/invalid-token semantics (anonymous visibility).
 No slug or default event is required. Fields, score-descending ordering, ranking
 positions, and empty responses (`null` players, `[]` ranking) are unchanged.
-Scoped routes retain their existing event-filtered behavior. Other legacy
-reads/writes and administration, media, WebSocket and cache enforcement remain
-pending; these two aggregate protections do not establish complete privacy.
+Scoped routes retain their existing event-filtered behavior. Media, WebSocket and cache enforcement remain pending; these aggregate
+protections do not establish complete privacy.
 
 ## Legacy postcard and description aggregates
 
@@ -131,8 +130,8 @@ secret-box tokens do not grant reads. Unrevealed secrets remain excluded even
 for members. Existing fields, ordering (revealed secrets first then newest
 postcards; oldest descriptions first), whitespace, and empty responses (`[]`
 postcards, `{"descriptions":[]}`) are preserved. Scoped postcard reads are unchanged.
-Legacy administration, media/WebSocket/cache and frontend enforcement remain
-incomplete: **not deploy-ready privacy**.
+Media/WebSocket/cache and frontend enforcement remain incomplete:
+**not deploy-ready privacy**.
 
 ## Legacy record access and upload anchoring
 
@@ -153,8 +152,29 @@ and zero UUID wire value. No scoped context, feature or scoring path is injected
 Legacy secret upload retains its existing missing-event-context 500 behavior.
 **Remaining security risk:** legacy quiz ranking and postcard broadcasts are
 still global; anchoring does not protect WebSocket delivery. T3 must address
-these broadcasts and media/cache access; T2c4 owns legacy administration.
+these broadcasts and media/cache access; legacy administration is described below.
 These HTTP protections alone are not deploy-ready privacy.
+
+## Legacy secret-box administration
+
+GET `/api/admin/status`, GET `/api/admin/secret-box` and POST `/api/admin/reveal`
+require valid Bearer authentication (401 for absent/invalid JWT). Each request
+checks current owner/collaborator membership; accounts administering no events,
+including guest-only accounts, receive 403 `Not authorized to administer events`.
+Lookup failures or missing dependencies return 500 `Failed to verify permissions`
+without content queries, mutations or broadcasts. Admins of empty events get 200.
+Each content/count/update query independently restricts secrets to the viewer's
+currently owned or collaborated events, public and private. Being a guest of A
+and owner of B grants administration of B only. Unknown NULL secret ownership is
+excluded, not assigned an invented event. CreateSecret supplies a non-NULL event
+and NULL player; the broken legacy secret upload still requires event context.
+Reveal performs one constrained UPDATE and constrained readback in one transaction;
+update/readback/scan/iteration failures roll back, and no error broadcasts. Commit
+errors return 500 but may have an ambiguous durable outcome, not guaranteed undo.
+Repeat reveal retains the already-revealed rows and their timestamps with 200.
+Scoped branches and response projections/order/count/revealed semantics remain.
+**Pending T3:** successful legacy reveal still broadcasts globally. Media/WS/cache,
+T4 UI and T5 integration remain incomplete: **not deploy-ready privacy**.
 
 ## Guest persistence and subsequent access checks
 
