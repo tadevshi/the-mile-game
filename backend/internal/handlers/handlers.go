@@ -346,6 +346,16 @@ func (h *Handler) GetQuizAnswers(c *gin.Context) {
 		return
 	}
 
+	// Follow SubmitQuiz's scoped player lookup before accessing answers.
+	// Hide missing and cross-event players behind the same response.
+	if eventID, exists := c.Get("event_id"); exists {
+		player, playerErr := h.playerRepo.GetByID(playerID)
+		if playerErr != nil || player.EventID != eventID.(uuid.UUID) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
+			return
+		}
+	}
+
 	answers, err := h.quizRepo.GetAnswersByPlayerID(playerID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Answers not found"})

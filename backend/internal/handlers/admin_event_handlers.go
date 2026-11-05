@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/the-mile-game/backend/internal/models"
+	"github.com/the-mile-game/backend/internal/repository"
 )
 
 // EventUpdater define la operación para actualizar un evento.
@@ -21,7 +22,8 @@ type EventUpdater interface {
 
 // UpdateFeaturesRequest body para actualizar features del evento
 type UpdateFeaturesRequest struct {
-	Features struct {
+	Visibility *string `json:"visibility,omitempty"`
+	Features   struct {
 		Quiz      bool `json:"quiz"`
 		Corkboard bool `json:"corkboard"`
 		SecretBox bool `json:"secret_box"` // Accept snake_case from frontend
@@ -108,6 +110,14 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 		}
 	}
 
+	if value, provided := rawRequest["visibility"]; provided {
+		visibility, validString := value.(string)
+		if !validString || (visibility != models.EventVisibilityPublic && visibility != models.EventVisibilityPrivate) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": repository.ErrInvalidEventVisibility.Error()})
+			return
+		}
+	}
+
 	// Ahora parsear correctamente al struct
 	var req UpdateFeaturesRequest
 	if err := json.Unmarshal(bodyBytes, &req); err != nil {
@@ -130,8 +140,16 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 		eventModel.Settings.PostcardStyle = req.Settings.PostcardStyle
 	}
 
+	// Preserve the repository's atomic omitted-visibility semantics.
+	update := *eventModel
+	update.Visibility = ""
+	if req.Visibility != nil {
+		update.Visibility = *req.Visibility
+		eventModel.Visibility = *req.Visibility
+	}
+
 	// Actualizar en DB
-	if err := h.eventUpdater.Update(eventModel); err != nil {
+	if err := h.eventUpdater.Update(&update); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update event features"})
 		return
 	}

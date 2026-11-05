@@ -79,9 +79,28 @@ fields; privileged dashboard responses and admin paths remain unchanged.
 
 POST `/api/events/:slug/secret-box` remains token-only upload access, without
 login/membership. `X-Secret-Token` never grants content-read access.
-No usable HTTP/UI privacy setting is exposed yet. Legacy HTTP protection,
-cross-event quiz-answer association, media/WebSocket/cache enforcement and UI
-are separate pending units: **this is not complete private-event protection**.
+Scoped quiz-answer reads resolve the player before fetching answers and require
+that player's event to match the requested slug's event. Missing players,
+lookup failures and cross-event IDs return 404 `{"error":"Player not found"}`;
+malformed IDs retain 400 `{"error":"Invalid player ID"}`. Same-event answers
+retain their existing payload. Legacy/no-event-context reads are unchanged.
+
+Owners and collaborators can now set visibility through the existing
+PUT `/api/admin/events/:slug/features` API, for example:
+
+```json
+{"features":{},"visibility":"private"}
+```
+
+`visibility` is optional; exactly `public` and `private` are accepted. Other
+values (including empty strings, null and nonstrings) return 400
+`{"error":"invalid event visibility"}` before any event update. Omitting it
+preserves stored visibility while existing feature/settings updates continue
+unchanged. The existing `features` object remains required, and the response
+remains the updated event. Guests remain forbidden from this administrative API.
+No usable privacy-settings UI exists yet. Legacy HTTP protection,
+media/WebSocket/cache enforcement and UI are separate pending units:
+**this is not complete private-event protection**.
 Membership and invitation-token lifecycles are unchanged.
 
 ## Guest persistence and subsequent access checks
