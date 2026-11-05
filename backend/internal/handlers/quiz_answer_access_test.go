@@ -91,7 +91,7 @@ func TestQuizAnswersEventIsolation(t *testing.T) {
 		{name: "missing player", scoped: true, missing: true, code: 404, lookups: 1, message: "Player not found"},
 		{name: "lookup failure fails closed", scoped: true, failure: true, code: 404, lookups: 1, message: "Player not found"},
 		{name: "malformed scoped ID", scoped: true, malformed: true, code: 400, message: "Invalid player ID"},
-		{name: "legacy unchanged without player lookup", code: 200, reads: 1},
+		{name: "legacy unchanged with public player lookup", code: 200, lookups: 1, reads: 1},
 		{name: "legacy malformed unchanged", malformed: true, code: 400, message: "Invalid player ID"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -103,6 +103,9 @@ func TestQuizAnswersEventIsolation(t *testing.T) {
 			db := sql.OpenDB(s)
 			t.Cleanup(func() { require.NoError(t, db.Close()) })
 			h := &Handler{playerRepo: repository.NewPlayerRepository(db), quizRepo: repository.NewQuizRepository(db)}
+			h.SetLegacyAccess(func(uuid.UUID) (*models.Event, error) {
+				return &models.Event{ID: s.event, Visibility: "public"}, nil
+			}, accessMembership{}, accessMembership{})
 			r := gin.New()
 			r.Use(func(c *gin.Context) {
 				if tc.scoped {

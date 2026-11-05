@@ -165,6 +165,8 @@ func main() {
 		handler = handlers.NewHandler(playerRepo, quizRepo, quizQuestionRepo, postcardRepo, hub, uploadsDir)
 	}
 
+	handler.SetLegacyAccess(eventRepo.GetByID, collaboratorRepo, guestRepo)
+
 	authHandler := handlers.NewAuthHandler(authServiceWithReset)
 	themeHandler := handlers.NewThemeHandler(themeService)
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
@@ -286,20 +288,20 @@ func main() {
 		// Legacy routes (backward compatibility - usan evento default)
 		// Players
 		api.POST("/players", handler.CreatePlayer)
-		api.GET("/players/:id", handler.GetPlayer)
+		api.GET("/players/:id", optionalAuthMiddleware, handler.GetPlayer)
 		api.GET("/players", optionalAuthMiddleware, handler.ListPlayers)
 
 		// Quiz
 		api.GET("/quiz/questions", handler.GetQuizQuestions)
-		api.POST("/quiz/submit", handler.SubmitQuiz)
-		api.GET("/quiz/answers/:playerId", handler.GetQuizAnswers)
+		api.POST("/quiz/submit", optionalAuthMiddleware, handler.SubmitQuiz)
+		api.GET("/quiz/answers/:playerId", optionalAuthMiddleware, handler.GetQuizAnswers)
 		api.GET("/quiz/descriptions", optionalAuthMiddleware, handler.GetDescriptions)
 
 		// Ranking
 		api.GET("/ranking", optionalAuthMiddleware, handler.GetRanking)
 
 		// Postcards (Cartelera de Corcho)
-		api.POST("/postcards", handler.CreatePostcard)
+		api.POST("/postcards", optionalAuthMiddleware, handler.CreatePostcard)
 		api.GET("/postcards", optionalAuthMiddleware, handler.ListPostcards)
 
 		// Secret Box

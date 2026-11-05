@@ -84,7 +84,7 @@ Scoped quiz-answer reads resolve the player before fetching answers and require
 that player's event to match the requested slug's event. Missing players,
 lookup failures and cross-event IDs return 404 `{"error":"Player not found"}`;
 malformed IDs retain 400 `{"error":"Invalid player ID"}`. Same-event answers
-retain their existing payload. Legacy/no-event-context reads are unchanged.
+retain their existing payload. Legacy record reads use the checks described below.
 
 Owners and collaborators can now set visibility through the existing
 PUT `/api/admin/events/:slug/features` API, for example:
@@ -131,8 +131,30 @@ secret-box tokens do not grant reads. Unrevealed secrets remain excluded even
 for members. Existing fields, ordering (revealed secrets first then newest
 postcards; oldest descriptions first), whitespace, and empty responses (`[]`
 postcards, `{"descriptions":[]}`) are preserved. Scoped postcard reads are unchanged.
-Record-anchored legacy reads/writes, legacy administration, media/WebSocket/cache
-and frontend enforcement remain incomplete: **not deploy-ready privacy**.
+Legacy administration, media/WebSocket/cache and frontend enforcement remain
+incomplete: **not deploy-ready privacy**.
+
+## Legacy record access and upload anchoring
+
+GET `/api/players/:id`, GET `/api/quiz/answers/:playerId`, POST
+`/api/quiz/submit` and POST `/api/postcards` with `X-Player-ID` resolve the
+actual player's event and apply the same optional-JWT visibility policy.
+Private records require owner/collaborator/invited-guest membership; another
+player's UUID or a secret token is not authentication. No per-player ownership
+restriction is added. Public and truly unassociated players retain legacy
+behavior. Non-null associations with missing/failed event lookups, missing
+configuration or membership failures return 500 `Failed to verify permissions`.
+Rejected requests stop before answer reads or quiz/media/postcard writes.
+Scoped GET player now returns 404 `Player not found` for cross-event IDs.
+
+Allowed private legacy uploads persist the resolved event ID on the postcard.
+Public legacy and inline/no-header uploads retain their NULL event association
+and zero UUID wire value. No scoped context, feature or scoring path is injected.
+Legacy secret upload retains its existing missing-event-context 500 behavior.
+**Remaining security risk:** legacy quiz ranking and postcard broadcasts are
+still global; anchoring does not protect WebSocket delivery. T3 must address
+these broadcasts and media/cache access; T2c4 owns legacy administration.
+These HTTP protections alone are not deploy-ready privacy.
 
 ## Guest persistence and subsequent access checks
 

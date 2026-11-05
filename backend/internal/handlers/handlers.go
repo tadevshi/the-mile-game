@@ -66,6 +66,7 @@ type BackupWorkerEnqueuer interface {
 
 // Handler maneja las peticiones HTTP
 type Handler struct {
+	legacyAccess     legacyAccess
 	playerRepo       *repository.PlayerRepository
 	quizRepo         *repository.QuizRepository
 	quizQuestionRepo *repository.QuizQuestionRepository
@@ -181,6 +182,14 @@ func (h *Handler) GetPlayer(c *gin.Context) {
 		return
 	}
 
+	if eventID, scoped := c.Get("event_id"); scoped {
+		if player.EventID != eventID.(uuid.UUID) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
+			return
+		}
+	} else if _, allowed := h.authorizeLegacyPlayer(c, player); !allowed {
+		return
+	}
 	c.JSON(http.StatusOK, player)
 }
 
@@ -289,6 +298,10 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 	// Sanitizar la descripción (no eliminar artículos, solo limpiar)
 	sanitizedDescription := normalizer.SanitizeDescription(req.Description)
 
+	if _, scoped := c.Get("event_id"); !scoped && !h.checkLegacyPlayerID(c, playerID) {
+		return
+	}
+
 	// Guardar respuestas NORMALIZADAS
 	if err := h.quizRepo.SaveAnswers(playerID, normalizedFavorites, normalizedPreferences, sanitizedDescription); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save answers"})
@@ -364,6 +377,8 @@ func (h *Handler) GetQuizAnswers(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
 			return
 		}
+	} else if !h.checkLegacyPlayerID(c, playerID) {
+		return
 	}
 
 	answers, err := h.quizRepo.GetAnswersByPlayerID(playerID)
@@ -805,6 +820,7 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	playerIDStr := c.GetHeader("X-Player-ID")
 
 	var playerID *uuid.UUID
+	var privateAnchor uuid.UUID
 	var err error
 
 	if playerIDStr != "" {
@@ -827,6 +843,12 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 		if eventID, exists := c.Get("event_id"); exists {
 			if player.EventID != eventID.(uuid.UUID) {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Player does not belong to this event"})
+				return
+			}
+		} else {
+			var allowed bool
+			privateAnchor, allowed = h.authorizeLegacyPlayer(c, player)
+			if !allowed {
 				return
 			}
 		}
@@ -883,6 +905,8 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	var postcard *models.Postcard
 	if eventID, exists := c.Get("event_id"); exists {
 		postcard, err = h.postcardRepo.CreateWithEvent(eventID.(uuid.UUID), playerID, mediaResult.PublicPath, message, rotation, senderName, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
+	} else if privateAnchor != uuid.Nil {
+		postcard, err = h.postcardRepo.CreateWithEvent(privateAnchor, playerID, mediaResult.PublicPath, message, rotation, senderName, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
 	} else {
 		postcard, err = h.postcardRepo.Create(*playerID, mediaResult.PublicPath, message, rotation, senderName, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
 	}
