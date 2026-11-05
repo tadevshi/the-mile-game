@@ -30,6 +30,7 @@ type PostcardRepo interface {
 	CreateSecret(eventID uuid.UUID, senderName, imagePath, message string, rotation float64, mediaType string, thumbnailPath *string, mediaDurationMs *int) (*models.Postcard, error)
 	GetByID(id uuid.UUID) (*models.Postcard, error)
 	List() ([]models.Postcard, error)
+	ListVisible(viewerID *uuid.UUID) ([]models.Postcard, error)
 	ListByEvent(eventID uuid.UUID) ([]models.Postcard, error)
 	ListSecret() ([]models.Postcard, error)
 	ListSecretByEvent(eventID uuid.UUID) ([]models.Postcard, error)
@@ -1154,13 +1155,13 @@ func (h *Handler) ClearCorkboard(c *gin.Context) {
 
 // ListPostcards obtiene todas las postales
 func (h *Handler) ListPostcards(c *gin.Context) {
-	// Si hay event_id en el contexto, usar ListByEvent, sino List
+	// Scoped reads retain ListByEvent; legacy reads apply viewer visibility.
 	var postcards []models.Postcard
 	var err error
 	if eventID, exists := c.Get("event_id"); exists {
 		postcards, err = h.postcardRepo.ListByEvent(eventID.(uuid.UUID))
 	} else {
-		postcards, err = h.postcardRepo.List()
+		postcards, err = h.postcardRepo.ListVisible(legacyViewerID(c))
 	}
 
 	if err != nil {
@@ -1182,7 +1183,7 @@ func (h *Handler) ListPostcards(c *gin.Context) {
 
 // GetDescriptions devuelve todas las descripciones de Mile de forma anónima
 func (h *Handler) GetDescriptions(c *gin.Context) {
-	descriptions, err := h.quizRepo.ListDescriptions()
+	descriptions, err := h.quizRepo.ListDescriptionsVisible(legacyViewerID(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get descriptions"})
 		return

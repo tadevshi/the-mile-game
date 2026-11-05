@@ -2,8 +2,8 @@
 
 Guest membership links an EventHub account to an event without granting any
 administrative permissions. It is independent of collaborators and quiz players.
-Event-scoped HTTP content and the two legacy player/ranking aggregates now
-enforce visibility. Other legacy endpoints, media/WebSocket protection and the
+Event-scoped HTTP content and legacy player/ranking/postcard/description aggregates
+now enforce visibility. Other legacy endpoints, media/WebSocket protection and the
 guest-join UI remain subsequent work.
 
 ## API
@@ -117,6 +117,22 @@ positions, and empty responses (`null` players, `[]` ranking) are unchanged.
 Scoped routes retain their existing event-filtered behavior. Other legacy
 reads/writes and administration, media, WebSocket and cache enforcement remain
 pending; these two aggregate protections do not establish complete privacy.
+
+## Legacy postcard and description aggregates
+
+GET `/api/postcards` and GET `/api/quiz/descriptions` use optional JWT identity
+and the same public/owner/collaborator/invited-guest visible-event policy.
+Postcards use their own event association, falling back to the player's event
+when absent; only NULL on both associations belongs to the public legacy
+namespace. Descriptions follow their player's event, preserving truly
+unassociated players. Membership in one event grants no access to another.
+Query parameters such as `event_id` and `slug` remain ignored, not access grants;
+secret-box tokens do not grant reads. Unrevealed secrets remain excluded even
+for members. Existing fields, ordering (revealed secrets first then newest
+postcards; oldest descriptions first), whitespace, and empty responses (`[]`
+postcards, `{"descriptions":[]}`) are preserved. Scoped postcard reads are unchanged.
+Record-anchored legacy reads/writes, legacy administration, media/WebSocket/cache
+and frontend enforcement remain incomplete: **not deploy-ready privacy**.
 
 ## Guest persistence and subsequent access checks
 

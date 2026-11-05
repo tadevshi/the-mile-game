@@ -237,6 +237,9 @@ func (r *mockPostcardRepo) CreateWithEvent(eventID uuid.UUID, playerID *uuid.UUI
 }
 func (r *mockPostcardRepo) GetByID(id uuid.UUID) (*models.Postcard, error) { return nil, nil }
 func (r *mockPostcardRepo) List() ([]models.Postcard, error)               { return nil, nil }
+func (r *mockPostcardRepo) ListVisible(*uuid.UUID) ([]models.Postcard, error) {
+	return nil, nil
+}
 func (r *mockPostcardRepo) ListByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
 	return nil, nil
 }

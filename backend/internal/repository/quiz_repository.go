@@ -79,6 +79,31 @@ func (r *QuizRepository) ListDescriptions() ([]string, error) {
 	return descriptions, nil
 }
 
+// ListDescriptionsVisible preserves legacy descriptions within the viewer's visible events.
+func (r *QuizRepository) ListDescriptionsVisible(viewerID *uuid.UUID) ([]string, error) {
+	query := `
+		SELECT qa.description FROM quiz_answers qa
+		JOIN players pl ON pl.id = qa.player_id
+		LEFT JOIN events e ON e.id = pl.event_id
+		WHERE TRIM(qa.description) != ''
+		AND (pl.event_id IS NULL OR (` + eventVisibleToViewerSQL + `))
+		ORDER BY qa.created_at ASC`
+	rows, err := r.db.Query(query, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	descriptions := []string{}
+	for rows.Next() {
+		var description string
+		if err := rows.Scan(&description); err != nil {
+			return nil, err
+		}
+		descriptions = append(descriptions, description)
+	}
+	return descriptions, rows.Err()
+}
+
 // GetAnswersByPlayerID obtiene las respuestas de un jugador
 func (r *QuizRepository) GetAnswersByPlayerID(playerID uuid.UUID) (*models.QuizAnswers, error) {
 	query := `

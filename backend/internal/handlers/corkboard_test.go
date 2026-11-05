@@ -78,6 +78,10 @@ func (m *MockPostcardRepo) List() ([]models.Postcard, error) {
 	return nil, errors.New("not implemented")
 }
 
+func (m *MockPostcardRepo) ListVisible(*uuid.UUID) ([]models.Postcard, error) {
+	return nil, errors.New("not implemented")
+}
+
 func (m *MockPostcardRepo) ListByEvent(eventID uuid.UUID) ([]models.Postcard, error) {
 	return nil, errors.New("not implemented")
 }

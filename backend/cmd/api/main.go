@@ -293,14 +293,14 @@ func main() {
 		api.GET("/quiz/questions", handler.GetQuizQuestions)
 		api.POST("/quiz/submit", handler.SubmitQuiz)
 		api.GET("/quiz/answers/:playerId", handler.GetQuizAnswers)
-		api.GET("/quiz/descriptions", handler.GetDescriptions)
+		api.GET("/quiz/descriptions", optionalAuthMiddleware, handler.GetDescriptions)
 
 		// Ranking
 		api.GET("/ranking", optionalAuthMiddleware, handler.GetRanking)
 
 		// Postcards (Cartelera de Corcho)
 		api.POST("/postcards", handler.CreatePostcard)
-		api.GET("/postcards", handler.ListPostcards)
+		api.GET("/postcards", optionalAuthMiddleware, handler.ListPostcards)
 
 		// Secret Box
 		api.POST("/postcards/secret", handler.CreateSecretPostcard)

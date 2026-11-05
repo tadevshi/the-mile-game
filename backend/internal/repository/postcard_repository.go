@@ -169,6 +169,31 @@ func (r *PostcardRepository) List() ([]models.Postcard, error) {
 	return postcards, nil
 }
 
+// ListVisible applies legacy read visibility using the postcard or fallback player event.
+func (r *PostcardRepository) ListVisible(viewerID *uuid.UUID) ([]models.Postcard, error) {
+	query := `SELECT` + publicPostcardCols + `
+		LEFT JOIN events e ON e.id = COALESCE(p.event_id, pl.event_id)
+		WHERE (p.is_secret = FALSE OR p.revealed_at IS NOT NULL)
+		AND (COALESCE(p.event_id, pl.event_id) IS NULL OR (` + eventVisibleToViewerSQL + `))
+		ORDER BY
+			CASE WHEN p.is_secret = TRUE AND p.revealed_at IS NOT NULL THEN 0 ELSE 1 END ASC,
+			p.created_at DESC`
+	rows, err := r.db.Query(query, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var postcards []models.Postcard
+	for rows.Next() {
+		postcard, err := scanPostcard(rows)
+		if err != nil {
+			return nil, err
+		}
+		postcards = append(postcards, *postcard)
+	}
+	return postcards, rows.Err()
+}
+
 // ListSecret devuelve TODAS las postales secretas (para admin, independientemente del reveal)
 func (r *PostcardRepository) ListSecret() ([]models.Postcard, error) {
 	query := `SELECT` + publicPostcardCols + `
