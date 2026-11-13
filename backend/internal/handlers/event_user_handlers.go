@@ -68,7 +68,38 @@ func (h *EventHandler) GetUserEvents(c *gin.Context) {
 		events = []models.Event{}
 	}
 
-	c.JSON(http.StatusOK, events)
+	// Allowlist explícito: los tokens de invitación y de Secret Box no se
+	// exponen en el listado, ni siquiera para colaboradores del evento.
+	c.JSON(http.StatusOK, models.NewPublicEventResponses(events))
+}
+
+// GetPublicEvent GET /api/events/:slug
+// Devuelve el detalle público del evento.
+//
+// El evento es cargado por el EventMiddleware y queda en el contexto.
+// La respuesta usa el DTO models.PublicEventResponse (allowlist explícito),
+// de modo que los tokens de invitación y de Secret Box no se exponen en el
+// payload del evento.
+func (h *EventHandler) GetPublicEvent(c *gin.Context) {
+	event, exists := c.Get("event")
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		return
+	}
+
+	eventModel, ok := event.(*models.Event)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid event data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.NewPublicEventResponse(eventModel))
+}
+
+// RegisterPublicEventRoutes registra las rutas públicas de detalle de evento.
+// La respuesta nunca incluye credenciales (invite_token / secret_box_token).
+func RegisterPublicEventRoutes(group *gin.RouterGroup, h *EventHandler) {
+	group.GET("", h.GetPublicEvent)
 }
 
 // generateSlug creates a URL-friendly slug from a name

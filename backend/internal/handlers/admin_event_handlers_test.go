@@ -166,6 +166,37 @@ func TestUpdateEventFeatures_Success(t *testing.T) {
 	})
 }
 
+func TestUpdateEventFeatures_ResponseOmitsSensitiveTokens(t *testing.T) {
+	ownerID := uuid.New()
+	event := createTestEventForFeatures("private-event", "Private Event", ownerID, models.EventFeatures{})
+	inviteToken, secretBoxToken := "invite-token-protected", "secret-box-token-protected"
+	event.InviteToken = &inviteToken
+	event.SecretBoxToken = &secretBoxToken
+	updater := newMockEventUpdater()
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, "")
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		copy := *event
+		c.Set("event", &copy)
+		c.Set("user_id", ownerID)
+		c.Next()
+	})
+	r.PUT("/api/admin/events/:slug/features", handler.UpdateEventFeatures)
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/events/private-event/features", bytes.NewBufferString(`{"features":{"quiz":true}}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	r.ServeHTTP(response, request)
+
+	require.Equal(t, http.StatusOK, response.Code)
+	assert.NotContains(t, response.Body.String(), `"invite_token"`)
+	assert.NotContains(t, response.Body.String(), `"secret_box_token"`)
+	assert.NotContains(t, response.Body.String(), inviteToken)
+	assert.NotContains(t, response.Body.String(), secretBoxToken)
+	assert.Contains(t, response.Body.String(), `"name":"Private Event"`)
+}
+
 func TestUpdateEventFeatures_InvalidKey(t *testing.T) {
 	mockUpdater := newMockEventUpdater()
 
@@ -402,6 +433,44 @@ func TestUpdateEventFeatures_PostcardStyle(t *testing.T) {
 	}
 }
 
+func TestUploadMedia_ResponseOmitsSensitiveTokens(t *testing.T) {
+	ownerID := uuid.New()
+	event := createTestEventForFeatures("private-event", "Private Event", ownerID, models.EventFeatures{})
+	inviteToken, secretBoxToken := "invite-token-protected", "secret-box-token-protected"
+	event.InviteToken = &inviteToken
+	event.SecretBoxToken = &secretBoxToken
+	updater := newMockEventUpdater()
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, t.TempDir())
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	require.NoError(t, writer.WriteField("type", "logo"))
+	file, err := writer.CreateFormFile("file", "logo.png")
+	require.NoError(t, err)
+	_, err = file.Write([]byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'})
+	require.NoError(t, err)
+	require.NoError(t, writer.Close())
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("event", event)
+		c.Next()
+	})
+	r.POST("/api/admin/events/:slug/media", handler.UploadMedia)
+	request := httptest.NewRequest(http.MethodPost, "/api/admin/events/private-event/media", &body)
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	response := httptest.NewRecorder()
+	r.ServeHTTP(response, request)
+
+	require.Equal(t, http.StatusOK, response.Code)
+	assert.NotContains(t, response.Body.String(), `"invite_token"`)
+	assert.NotContains(t, response.Body.String(), `"secret_box_token"`)
+	assert.NotContains(t, response.Body.String(), inviteToken)
+	assert.NotContains(t, response.Body.String(), secretBoxToken)
+	assert.Contains(t, response.Body.String(), `"name":"Private Event"`)
+}
+
 // ============== UploadMedia TESTS ==============
 
 func TestUploadMedia_InvalidType(t *testing.T) {
@@ -503,6 +572,33 @@ func TestUploadMedia_EventNotFound(t *testing.T) {
 }
 
 // ============== DeleteMedia TESTS ==============
+
+func TestDeleteMedia_ResponseOmitsSensitiveTokens(t *testing.T) {
+	ownerID := uuid.New()
+	event := createTestEventForFeatures("private-event", "Private Event", ownerID, models.EventFeatures{})
+	inviteToken, secretBoxToken := "invite-token-protected", "secret-box-token-protected"
+	event.InviteToken = &inviteToken
+	event.SecretBoxToken = &secretBoxToken
+	updater := newMockEventUpdater()
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, t.TempDir())
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("event", event)
+		c.Next()
+	})
+	r.DELETE("/api/admin/events/:slug/media", handler.DeleteMedia)
+	response := httptest.NewRecorder()
+	r.ServeHTTP(response, httptest.NewRequest(http.MethodDelete, "/api/admin/events/private-event/media?type=logo", nil))
+
+	require.Equal(t, http.StatusOK, response.Code)
+	assert.NotContains(t, response.Body.String(), `"invite_token"`)
+	assert.NotContains(t, response.Body.String(), `"secret_box_token"`)
+	assert.NotContains(t, response.Body.String(), inviteToken)
+	assert.NotContains(t, response.Body.String(), secretBoxToken)
+	assert.Contains(t, response.Body.String(), `"name":"Private Event"`)
+}
 
 func TestDeleteMedia_InvalidType(t *testing.T) {
 	mockUpdater := newMockEventUpdater()
