@@ -84,6 +84,7 @@ func main() {
 	themeRepo := repository.NewThemeRepository(db)
 	driveRepo := repository.NewDriveRepository(db)
 	collaboratorRepo := repository.NewCollaboratorRepository(db)
+	guestRepo := repository.NewGuestRepository(db)
 
 	// JWT secret — siempre requerido
 	jwtSecret := os.Getenv("JWT_SECRET")
@@ -172,6 +173,7 @@ func main() {
 	eventHandler := handlers.NewEventHandler(eventRepo, collaboratorRepo)
 	analyticsHandler := handlers.NewAnalyticsHandler(db, eventRepo)
 	collaboratorHandler := handlers.NewCollaboratorHandler(collaboratorRepo, eventRepo)
+	guestHandler := handlers.NewGuestHandler(guestRepo)
 
 	// Configurar router
 	r := gin.Default()
@@ -331,6 +333,8 @@ func main() {
 
 		// Collaborator invitation accept (autenticado, no requiere ser owner)
 		api.POST("/collaborators/accept", authMiddleware, collaboratorHandler.AcceptInvitation)
+		// Guest invitation acceptance is separate from collaborator/admin invitations.
+		api.POST("/guests/accept", authMiddleware, guestHandler.AcceptInvitation)
 
 		// Admin routes (event-scoped - multi-event)
 		// Operaciones sensibles: solo el owner real puede gestionar colaboradores o eliminar evento
@@ -359,6 +363,13 @@ func main() {
 			adminEvents.GET("/secret-box", handler.ListSecretPostcards)
 			adminEvents.POST("/reveal", handler.RevealSecretBox)
 			adminEvents.POST("/secret-box/reset", handler.ResetSecretBox)
+
+			// Non-administrative guest membership and event-specific invitation link.
+			adminEvents.GET("/guests/invite", guestHandler.GetGuestInviteToken)
+			adminEvents.POST("/guests/invite", guestHandler.RotateGuestInviteToken)
+			adminEvents.GET("/guests", guestHandler.ListGuests)
+			adminEvents.DELETE("/guests/:user_id", guestHandler.RemoveGuest)
+
 			adminEvents.DELETE("/postcards", handler.ClearCorkboard)
 			adminEvents.PUT("/theme", themeHandler.UpdateTheme)
 			adminEvents.POST("/theme/preset", themeHandler.ApplyPreset)

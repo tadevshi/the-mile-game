@@ -42,6 +42,17 @@ See [Authentication](AUTH.md) for details on obtaining tokens.
 | GET | `/events/:slug` | Get event by slug | No |
 | POST | `/events/:slug/page-view` | Track page view | No |
 
+### Event Guests
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/admin/events/:slug/guests/invite` | Get or create the event's guest-only invitation link | Yes (Owner or collaborator) |
+| POST | `/admin/events/:slug/guests/invite` | Rotate the guest invitation link; existing memberships remain | Yes (Owner or collaborator) |
+| GET | `/admin/events/:slug/guests` | List account-linked guest memberships | Yes (Owner or collaborator) |
+| DELETE | `/admin/events/:slug/guests/:user_id` | Remove a guest membership without deleting the account | Yes (Owner or collaborator) |
+| POST | `/guests/accept?token=...` | Accept a guest invitation (separate from collaborator invitations) | Yes |
+
+The event guest link is separate from the collaborator invitation link. Guests may participate but do not receive event administration rights.
+
 ### Players
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
