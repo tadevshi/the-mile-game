@@ -239,10 +239,7 @@ func main() {
 		events.Use(eventMiddleware)
 		{
 			// Event info
-			events.GET("", func(c *gin.Context) {
-				event, _ := c.Get("event")
-				c.JSON(200, event)
-			})
+			handlers.RegisterPublicEventRoutes(events, eventHandler)
 
 			// Theme
 			events.GET("/theme", themeHandler.GetTheme)

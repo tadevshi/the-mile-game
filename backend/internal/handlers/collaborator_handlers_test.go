@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/the-mile-game/backend/internal/middleware"
 	"github.com/the-mile-game/backend/internal/models"
 )
 
@@ -145,6 +146,96 @@ func createTestEventForCollaborators(slug string, ownerID uuid.UUID) *models.Eve
 	}
 }
 
+// ========== OWNER-ONLY INVITE TOKEN ==========
+
+// setupInviteTokenRouter replica el wiring de producción del endpoint de
+// invitación: eventMiddleware + authMiddleware + OwnerOnlyMiddleware.
+func setupInviteTokenRouter(handler *CollaboratorHandler, event *models.Event, userID uuid.UUID, authenticated bool) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+
+	r := gin.New()
+	adminEvents := r.Group("/api/admin/events/:slug")
+	adminEvents.Use(func(c *gin.Context) {
+		c.Set("event", event)
+		c.Next()
+	})
+	adminEvents.Use(func(c *gin.Context) {
+		if authenticated {
+			c.Set("user_id", userID)
+		}
+		c.Next()
+	})
+	adminEvents.Use(middleware.OwnerOnlyMiddleware())
+	adminEvents.GET("/collaborators/invite", handler.GetInviteToken)
+
+	return r
+}
+
+func TestGetInviteToken_OwnerCanReadExistingToken(t *testing.T) {
+	handler, _, eventRepo := setupCollaboratorHandler()
+
+	ownerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	event := createTestEventForCollaborators("test-event", ownerID)
+	existingToken := "existing-invite-token"
+	event.InviteToken = &existingToken
+	eventRepo.AddEvent(event)
+
+	r := setupInviteTokenRouter(handler, event, ownerID, true)
+
+	req, _ := http.NewRequest("GET", "/api/admin/events/test-event/collaborators/invite", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var res struct {
+		Token    string `json:"token"`
+		ShareURL string `json:"share_url"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &res))
+	assert.Equal(t, existingToken, res.Token)
+	assert.Contains(t, res.ShareURL, "/join/test-event?token=")
+}
+
+func TestGetInviteToken_CollaboratorIsDenied(t *testing.T) {
+	handler, _, eventRepo := setupCollaboratorHandler()
+
+	ownerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	collaboratorID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	event := createTestEventForCollaborators("test-event", ownerID)
+	existingToken := "existing-invite-token"
+	event.InviteToken = &existingToken
+	eventRepo.AddEvent(event)
+
+	r := setupInviteTokenRouter(handler, event, collaboratorID, true)
+
+	req, _ := http.NewRequest("GET", "/api/admin/events/test-event/collaborators/invite", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.NotContains(t, w.Body.String(), existingToken)
+}
+
+func TestGetInviteToken_AnonymousIsDenied(t *testing.T) {
+	handler, _, eventRepo := setupCollaboratorHandler()
+
+	ownerID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	event := createTestEventForCollaborators("test-event", ownerID)
+	existingToken := "existing-invite-token"
+	event.InviteToken = &existingToken
+	eventRepo.AddEvent(event)
+
+	r := setupInviteTokenRouter(handler, event, uuid.Nil, false)
+
+	req, _ := http.NewRequest("GET", "/api/admin/events/test-event/collaborators/invite", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.NotContains(t, w.Body.String(), existingToken)
+}
+
 // ============== TESTS ==============
 
 func TestGetInviteToken_GeneratesNewToken(t *testing.T) {
@@ -268,6 +359,8 @@ func TestAcceptInvitation_Success(t *testing.T) {
 	event := createTestEventForCollaborators("test-event", ownerID)
 	token := "invite-token-123"
 	event.InviteToken = &token
+	secretBoxToken := "secret-box-token-123"
+	event.SecretBoxToken = &secretBoxToken
 	eventRepo.AddEvent(event)
 
 	userID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
@@ -290,6 +383,11 @@ func TestAcceptInvitation_Success(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &res)
 	require.NoError(t, err)
 	assert.Equal(t, "Successfully joined event", res["message"])
+	assert.NotContains(t, w.Body.String(), `"invite_token"`)
+	assert.NotContains(t, w.Body.String(), `"secret_box_token"`)
+	assert.NotContains(t, w.Body.String(), token)
+	assert.NotContains(t, w.Body.String(), secretBoxToken)
+	assert.Equal(t, event.Name, res["event"].(map[string]interface{})["name"])
 
 	// Verify collaborator was created
 	exists, _ := collabRepo.Exists(event.ID, userID)

@@ -136,8 +136,9 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 		return
 	}
 
-	// Devolver evento actualizado
-	c.JSON(http.StatusOK, eventModel)
+	// Devolver los campos del evento, sin credenciales que solo se sirven
+	// mediante sus endpoints administrativos dedicados.
+	c.JSON(http.StatusOK, models.NewPublicEventResponse(eventModel))
 }
 
 // UploadMedia POST /api/admin/events/:slug/media
@@ -257,7 +258,7 @@ func (h *AdminEventHandler) UploadMedia(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"type":  mediaType,
 		"url":   publicPath,
-		"event": eventModel,
+		"event": models.NewPublicEventResponse(eventModel),
 	})
 }
 
@@ -304,6 +305,6 @@ func (h *AdminEventHandler) DeleteMedia(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"type":  mediaType,
-		"event": eventModel,
+		"event": models.NewPublicEventResponse(eventModel),
 	})
 }

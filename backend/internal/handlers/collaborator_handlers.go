@@ -189,9 +189,9 @@ func (h *CollaboratorHandler) AcceptInvitation(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":    "Successfully joined event",
-		"event":      event,
-		"user_id":    collaborator.UserID,
+		"message": "Successfully joined event",
+		"event":   models.NewPublicEventResponse(event),
+		"user_id": collaborator.UserID,
 	})
 }
 
