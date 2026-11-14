@@ -1,16 +1,11 @@
 package repository
 
 import (
-	"context"
 	"database/sql"
 	"errors"
-	"net"
-	"net/url"
-	"path/filepath"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/the-mile-game/backend/internal/migrations"
 	"github.com/the-mile-game/backend/internal/models"
 )
 
@@ -18,14 +13,6 @@ func setupGuestRepository(t *testing.T) (*sql.DB, *GuestRepository, uuid.UUID, *
 	t.Helper()
 
 	db := setupTestDB(t)
-	migrationPath, err := filepath.Abs(filepath.Join("..", "..", "migrations"))
-	if err != nil {
-		t.Fatalf("resolve migrations path: %v", err)
-	}
-	t.Setenv("MIGRATIONS_PATH", migrationPath)
-	if err := migrations.Run(context.Background(), guestTestDatabaseURL()); err != nil {
-		t.Fatalf("run migrations: %v", err)
-	}
 
 	owner := createTestUser(t, db)
 	event, err := NewEventRepository(db).Create(
@@ -48,19 +35,6 @@ func setupGuestRepository(t *testing.T) (*sql.DB, *GuestRepository, uuid.UUID, *
 	})
 
 	return db, NewGuestRepository(db), event.ID, owner
-}
-
-func guestTestDatabaseURL() string {
-	databaseURL := url.URL{
-		Scheme: "postgres",
-		User:   url.UserPassword(getEnv("TEST_DB_USER", "user"), getEnv("TEST_DB_PASSWORD", "password")),
-		Host:   net.JoinHostPort(getEnv("TEST_DB_HOST", "localhost"), getEnv("TEST_DB_PORT", "5432")),
-		Path:   "/" + getEnv("TEST_DB_NAME", "milegame_test"),
-	}
-	query := databaseURL.Query()
-	query.Set("sslmode", getEnv("TEST_DB_SSLMODE", "disable"))
-	databaseURL.RawQuery = query.Encode()
-	return databaseURL.String()
 }
 
 func createGuestTestUser(t *testing.T, db *sql.DB) *models.User {
