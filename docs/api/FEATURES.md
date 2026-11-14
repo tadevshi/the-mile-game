@@ -121,7 +121,9 @@ responses that return those credentials.
 ### Fields never included
 
 `invite_token` and `secret_box_token` are **never** returned by the endpoints above,
-not even to the event owner or to collaborators.
+not even to the event owner or to collaborators. The separate guest invitation token is
+also omitted from generic event responses and is available only through its dedicated
+admin endpoint below.
 
 ### Where to obtain the tokens (authorized endpoints)
 
@@ -129,8 +131,12 @@ not even to the event owner or to collaborators.
 |----------|--------|---------|
 | `GET /api/admin/events/:slug/collaborators/invite` | Owner only | Invitation token (`token`, `share_url`) |
 | `POST /api/admin/events/:slug/collaborators/invite` | Owner only | New invitation token (`token`, `share_url`) |
+| `GET /api/admin/events/:slug/guests/invite` | Owner or collaborator | Guest invitation token (`token`, `share_url`) |
+| `POST /api/admin/events/:slug/guests/invite` | Owner or collaborator | Rotated guest invitation token (`token`, `share_url`); existing guest memberships remain |
 | `GET /api/admin/events/:slug/secret-box/token` | Owner or collaborator | Secret Box token (`token`, `share_url`) |
 | `POST /api/admin/events/:slug/secret-box/token/regenerate` | Owner or collaborator | Rotated Secret Box token (`token`, `share_url`) |
+
+`POST /api/guests/accept?token=...` requires JWT authentication and returns only a success message plus event/user IDs; it never returns a token. Guest acceptance is separate from collaborator acceptance.
 
 Anonymous users get `401`; authenticated users without permission get `403`.
 

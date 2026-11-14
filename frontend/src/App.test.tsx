@@ -36,7 +36,8 @@ vi.mock('@/features/event-admin', () => ({ EventAdminPage: () => <Page name="adm
 vi.mock('@/features/event-public', () => ({ EventLandingPage: () => <Page name="event" /> }));
 vi.mock('@/features/event-admin/pages/QuestionEditorPage', () => ({ QuestionEditorPage: () => <Page name="questions" /> }));
 vi.mock('@/features/event-admin/pages/ThemeEditorPage', () => ({ ThemeEditorPage: () => <Page name="theme" /> }));
-vi.mock('@/features/collaborators/pages/AcceptInvitationPage', () => ({ AcceptInvitationPage: Wrap }));
+vi.mock('@/features/collaborators/pages/AcceptInvitationPage', () => ({ AcceptInvitationPage: () => <Page name="collaborator-invitation" /> }));
+vi.mock('@/features/guests/pages/GuestInvitationPage', () => ({ GuestInvitationPage: () => <Page name="guest-invitation" /> }));
 vi.mock('@/shared/components/ThemeToggle', () => ({ ThemeToggle: () => <div data-testid="theme-toggle" /> }));
 vi.mock('@/shared/components/LanguageSwitcher', () => ({ LanguageSwitcher: () => null }));
 vi.mock('@/shared/components/MobileMenu', () => ({ MobileMenu: () => null }));
@@ -101,5 +102,19 @@ describe('existing route callers', () => {
     visit(path);
     await waitFor(() => expect(window.location.pathname).toBe('/login'));
     expect(screen.getByTestId('page')).toHaveTextContent(`login||/login|${path}`);
+  });
+
+  it('routes guest invitations separately from collaborator invitations', () => {
+    visit('/guest-join/party?token=guest-token');
+    expect(screen.getByTestId('page')).toHaveTextContent(
+      'guest-invitation|party|/guest-join/party?token=guest-token',
+    );
+  });
+
+  it('keeps collaborators on the existing /join route', () => {
+    visit('/join/party?token=collaborator-token');
+    expect(screen.getByTestId('page')).toHaveTextContent(
+      'collaborator-invitation|party|/join/party?token=collaborator-token',
+    );
   });
 });

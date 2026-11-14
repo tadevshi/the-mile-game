@@ -12,7 +12,11 @@ export function LoginPage() {
   const { login, isLoading, error, clearError, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const returnTo = searchParams.get('return_to') || '/dashboard';
+  const returnToParam = searchParams.get('return_to');
+  const returnTo = returnToParam || '/dashboard';
+  const registerHref = returnToParam?.startsWith('/guest-join/')
+    ? `/register?return_to=${encodeURIComponent(returnToParam)}`
+    : '/register';
 
   const [formData, setFormData] = useState({
     email: '',
@@ -202,7 +206,7 @@ export function LoginPage() {
           <div className="mt-6 text-center space-y-2">
             <p className="text-sm text-gray-600">
               {t('auth.noAccount')}{' '}
-              <Link to="/register" className="text-[var(--color-primary)] hover:text-[var(--color-accent)] font-medium">
+              <Link to={registerHref} className="text-[var(--color-primary)] hover:text-[var(--color-accent)] font-medium">
                 {t('auth.register')}
               </Link>
             </p>

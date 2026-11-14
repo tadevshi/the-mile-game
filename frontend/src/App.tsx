@@ -22,6 +22,7 @@ import { EventLandingPage } from '@/features/event-public';
 import { QuestionEditorPage } from '@/features/event-admin/pages/QuestionEditorPage';
 import { ThemeEditorPage } from '@/features/event-admin/pages/ThemeEditorPage';
 import { AcceptInvitationPage } from '@/features/collaborators/pages/AcceptInvitationPage';
+import { GuestInvitationPage } from '@/features/guests/pages/GuestInvitationPage';
 
 // === VARIANTES DE TRANSICIÓN ESPECÍFICAS ===
 
@@ -236,6 +237,16 @@ function LegacyRoutes() {
         element={
           <AnimatedPage variants={fadeVariants}>
             <AcceptInvitationPage />
+          </AnimatedPage>
+        }
+      />
+
+      {/* GUEST INVITATION ACCEPT is separate from collaborator administration. */}
+      <Route
+        path="/guest-join/:slug"
+        element={
+          <AnimatedPage variants={fadeVariants}>
+            <GuestInvitationPage />
           </AnimatedPage>
         }
       />

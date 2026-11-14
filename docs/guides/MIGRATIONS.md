@@ -33,8 +33,8 @@ Runtime migrations live in `backend/migrations` and use `golang-migrate` naming:
 Important:
 
 - The application only runs `up` migrations automatically.
-- `down` files are intentionally non-destructive placeholders today.
-- Production rollback should be handled with backup/restore or a forward fix migration.
+- `down` migrations are not executed automatically. Inspect each file before applying one; rollback safety varies by migration, and some `down` files delete data.
+- Production rollback should generally be handled with backup/restore or a forward fix migration.
 
 ## Environment Variables
 
@@ -112,6 +112,17 @@ ALTER TABLE events ADD COLUMN IF NOT EXISTS hero_title TEXT;
 -- 011_feature_name.down.sql
 SELECT 1;
 ```
+
+## Migration 014: Account-Linked Event Guests
+
+`014_event_guests.up.sql` adds two tables:
+
+- `event_guests` stores one membership per event and account, keyed by `(event_id, user_id)`. Both foreign keys cascade on deletion. `joined_at` records when the account joined, and an index on `user_id` supports listing an account's memberships.
+- `event_guest_invitations` stores one reusable invitation token per event. The event ID is the primary key, the token is unique, and creation/update timestamps are recorded.
+
+Guest memberships are separate from `event_collaborators`: accepting a guest invitation does not grant event-administration rights. Rotating the event invitation changes the link used for future acceptances; it does not remove existing guest memberships.
+
+**Rollback warning:** `014_event_guests.down.sql` drops both tables. Applying it deletes all guest memberships and event invitation tokens. Do not apply it if those records must be preserved. Restoring deleted records requires a backup; a forward migration can recreate schema, but cannot recover dropped data.
 
 ## Validation
 

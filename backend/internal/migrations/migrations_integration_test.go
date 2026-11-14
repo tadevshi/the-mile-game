@@ -73,6 +73,8 @@ func TestRunAppliesMigrationsOnEmptyDatabase(t *testing.T) {
 		"page_views",
 		"quiz_events",
 		"postcard_events",
+		"event_guests",
+		"event_guest_invitations",
 		"schema_migrations",
 	} {
 		var exists bool
@@ -90,8 +92,8 @@ func TestRunAppliesMigrationsOnEmptyDatabase(t *testing.T) {
 		t.Fatalf("schema_migrations query error = %v", err)
 	}
 
-	if version != 13 {
-		t.Fatalf("schema_migrations version = %d, want 13", version)
+	if version != 14 {
+		t.Fatalf("schema_migrations version = %d, want 14", version)
 	}
 
 	if dirty {

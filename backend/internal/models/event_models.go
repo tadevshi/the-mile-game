@@ -41,6 +41,23 @@ type Collaborator struct {
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
+// EventGuest is a non-administrative account membership for an event.
+type EventGuest struct {
+	EventID  uuid.UUID `json:"event_id" db:"event_id"`
+	UserID   uuid.UUID `json:"user_id" db:"user_id"`
+	JoinedAt time.Time `json:"joined_at" db:"joined_at"`
+	User     *User     `json:"user,omitempty" db:"-"`
+}
+
+// GuestInvitation stores the event's current guest-only invitation token.
+// Token fields are never serialized through generic event or model responses.
+type GuestInvitation struct {
+	EventID   uuid.UUID `json:"-" db:"event_id"`
+	Token     string    `json:"-" db:"token"`
+	CreatedAt time.Time `json:"-" db:"created_at"`
+	UpdatedAt time.Time `json:"-" db:"updated_at"`
+}
+
 // EventFeatures flags de features habilitadas para el evento
 type EventFeatures struct {
 	Quiz      bool `json:"quiz"`
