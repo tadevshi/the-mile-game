@@ -407,6 +407,16 @@ describe('ApiClient', () => {
     })
   })
 
+  describe('guest acceptance API', () => {
+    it('accepts a guest-only invitation using the encoded token query', async () => {
+      const accepted = { message: 'Guest invitation accepted', event_id: 'event-1', user_id: 'user-1' }
+      mockPost.mockResolvedValueOnce({ data: accepted })
+
+      await expect(api.acceptGuestInvitation('guest token/?')).resolves.toEqual(accepted)
+      expect(mockPost).toHaveBeenCalledWith('/guests/accept?token=guest%20token%2F%3F', {})
+    })
+  })
+
   // ─── revealSecretBox ─────────────────────────────────────────────────────────
 
   describe('revealSecretBox', () => {

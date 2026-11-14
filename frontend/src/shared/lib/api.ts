@@ -112,6 +112,12 @@ export interface EventGuest {
   };
 }
 
+export interface GuestAcceptanceResponse {
+  message: string;
+  event_id: string;
+  user_id: string;
+}
+
 export interface InviteTokenResponse {
   token: string;
   share_url: string;
@@ -819,6 +825,15 @@ class ApiClient {
 
   async removeGuest(eventSlug: string, userId: string): Promise<{ message: string }> {
     const response = await this.client.delete<{ message: string }>(`/admin/events/${eventSlug}/guests/${userId}`);
+    return response.data;
+  }
+
+  // Guest acceptance is authenticated but grants no administrative collaborator rights.
+  async acceptGuestInvitation(token: string): Promise<GuestAcceptanceResponse> {
+    const response = await this.client.post<GuestAcceptanceResponse>(
+      `/guests/accept?token=${encodeURIComponent(token)}`,
+      {},
+    );
     return response.data;
   }
 
