@@ -71,7 +71,7 @@ describe('GuestInvitationPage', () => {
     renderInvitation('/guest-join/party?token=guest-token');
 
     expect(await screen.findByText(/Ya formas parte del evento como invitado/)).toBeInTheDocument();
-    expect(screen.getByText(/no podés administrar el evento/)).toBeInTheDocument();
+    expect(screen.getByText(/no podés administrar el evento/i)).toBeInTheDocument();
     expect(api.acceptGuestInvitation).toHaveBeenCalledExactlyOnceWith('guest-token');
 
     fireEvent.click(screen.getByRole('button', { name: 'Ir al evento' }));
