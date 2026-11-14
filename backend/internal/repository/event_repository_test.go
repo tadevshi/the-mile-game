@@ -195,6 +195,75 @@ func TestCreateEvent(t *testing.T) {
 	}
 }
 
+func TestEventVisibilityDefaultsToPublic(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	defer cleanupTestData(t, db)
+
+	user := createTestUser(t, db)
+	repo := NewEventRepository(db)
+
+	created, err := repo.Create(user.ID, "public-by-default", "Public Event", "",
+		models.EventFeatures{}, models.EventSettings{}, nil, nil)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if !created.IsPublic {
+		t.Fatal("Create() IsPublic = false, want true for a new event")
+	}
+
+	// The generic event update API must not activate private visibility.
+	created.IsPublic = false
+	inviteToken := "public-visibility-test-token"
+	created.InviteToken = &inviteToken
+	if err := repo.Update(created); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	assertPublic := func(method string, event *models.Event) {
+		t.Helper()
+		if !event.IsPublic {
+			t.Errorf("%s IsPublic = false, want persisted public visibility", method)
+		}
+	}
+
+	bySlug, err := repo.GetBySlug("public-by-default")
+	if err != nil {
+		t.Fatalf("GetBySlug() error = %v", err)
+	}
+	assertPublic("GetBySlug()", bySlug)
+
+	byID, err := repo.GetByID(created.ID)
+	if err != nil {
+		t.Fatalf("GetByID() error = %v", err)
+	}
+	assertPublic("GetByID()", byID)
+
+	byOwner, err := repo.ListByOwner(user.ID)
+	if err != nil {
+		t.Fatalf("ListByOwner() error = %v", err)
+	}
+	if len(byOwner) != 1 {
+		t.Fatalf("ListByOwner() returned %d events, want 1", len(byOwner))
+	}
+	assertPublic("ListByOwner()", &byOwner[0])
+
+	accessible, err := repo.ListAccessibleByUser(user.ID, []uuid.UUID{created.ID})
+	if err != nil {
+		t.Fatalf("ListAccessibleByUser() error = %v", err)
+	}
+	if len(accessible) != 1 {
+		t.Fatalf("ListAccessibleByUser() returned %d events, want 1", len(accessible))
+	}
+	assertPublic("ListAccessibleByUser()", &accessible[0])
+
+	byInvite, err := repo.GetByInviteToken(inviteToken)
+	if err != nil {
+		t.Fatalf("GetByInviteToken() error = %v", err)
+	}
+	assertPublic("GetByInviteToken()", byInvite)
+}
+
 func TestCreateEventDuplicateSlug(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
