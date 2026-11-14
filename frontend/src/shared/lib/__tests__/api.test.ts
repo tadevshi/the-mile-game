@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // vi.hoisted ensures these are available inside vi.mock factories (before imports)
-const { mockPost, mockGet, mockInterceptorsUse, mockRequestInterceptorsUse } = vi.hoisted(() => ({
+const { mockPost, mockGet, mockDelete, mockInterceptorsUse, mockRequestInterceptorsUse } = vi.hoisted(() => ({
   mockPost: vi.fn(),
   mockGet: vi.fn(),
+  mockDelete: vi.fn(),
   mockInterceptorsUse: vi.fn(),
   mockRequestInterceptorsUse: vi.fn(),
 }))
@@ -13,6 +14,7 @@ vi.mock('axios', () => ({
     create: vi.fn(() => ({
       post: mockPost,
       get: mockGet,
+      delete: mockDelete,
       interceptors: {
         request: { use: mockRequestInterceptorsUse },
         response: { use: mockInterceptorsUse },
@@ -358,6 +360,50 @@ describe('ApiClient', () => {
       )
       expect(api.getPlayerEventSlug()).toBe('ale-roy')
       expect(result).toEqual(postcard)
+    })
+  })
+
+  // ─── guest administration ───────────────────────────────────────────────────
+
+  describe('guest management API', () => {
+    const slug = 'ale-roy'
+    const invite = { token: 'guest-token', share_url: 'https://example.test/guest-join/ale-roy?token=guest-token' }
+
+    it('gets the event-specific guest invitation link', async () => {
+      mockGet.mockResolvedValueOnce({ data: invite })
+
+      await expect(api.getGuestInviteToken(slug)).resolves.toEqual(invite)
+      expect(mockGet).toHaveBeenCalledWith(`/admin/events/${slug}/guests/invite`)
+    })
+
+    it('rotates the guest invitation link without changing the collaborator endpoint', async () => {
+      const rotated = { token: 'guest-token-2', share_url: 'https://example.test/guest-join/ale-roy?token=guest-token-2' }
+      mockPost.mockResolvedValueOnce({ data: rotated })
+
+      await expect(api.rotateGuestInviteToken(slug)).resolves.toEqual(rotated)
+      expect(mockPost).toHaveBeenCalledWith(`/admin/events/${slug}/guests/invite`, {})
+    })
+
+    it('lists account-linked guests for the event', async () => {
+      const guests = [{ event_id: 'event-1', user_id: 'user-1', joined_at: '2026-11-13T00:00:00Z' }]
+      mockGet.mockResolvedValueOnce({ data: guests })
+
+      await expect(api.listGuests(slug)).resolves.toEqual(guests)
+      expect(mockGet).toHaveBeenCalledWith(`/admin/events/${slug}/guests`)
+    })
+
+    it('removes a guest membership by account id', async () => {
+      mockDelete.mockResolvedValueOnce({ data: { message: 'Guest removed' } })
+
+      await expect(api.removeGuest(slug, 'user-1')).resolves.toEqual({ message: 'Guest removed' })
+      expect(mockDelete).toHaveBeenCalledWith(`/admin/events/${slug}/guests/user-1`)
+    })
+
+    it('keeps collaborator removal on its existing admin route', async () => {
+      mockDelete.mockResolvedValueOnce({ data: { message: 'Collaborator removed' } })
+
+      await expect(api.removeCollaborator(slug, 'user-2')).resolves.toEqual({ message: 'Collaborator removed' })
+      expect(mockDelete).toHaveBeenCalledWith(`/admin/events/${slug}/collaborators/user-2`)
     })
   })
 

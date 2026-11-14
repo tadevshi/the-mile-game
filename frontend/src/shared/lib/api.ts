@@ -100,6 +100,18 @@ export interface Collaborator {
   created_at: string;
 }
 
+export interface EventGuest {
+  event_id: string;
+  user_id: string;
+  joined_at: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    created_at: string;
+  };
+}
+
 export interface InviteTokenResponse {
   token: string;
   share_url: string;
@@ -783,6 +795,30 @@ class ApiClient {
 
   async removeCollaborator(eventSlug: string, userId: string): Promise<{ message: string }> {
     const response = await this.client.delete<{ message: string }>(`/admin/events/${eventSlug}/collaborators/${userId}`);
+    return response.data;
+  }
+
+  // ==========================================
+  // Admin — Event Guests (non-administrative)
+  // ==========================================
+
+  async getGuestInviteToken(eventSlug: string): Promise<InviteTokenResponse> {
+    const response = await this.client.get<InviteTokenResponse>(`/admin/events/${eventSlug}/guests/invite`);
+    return response.data;
+  }
+
+  async rotateGuestInviteToken(eventSlug: string): Promise<InviteTokenResponse> {
+    const response = await this.client.post<InviteTokenResponse>(`/admin/events/${eventSlug}/guests/invite`, {});
+    return response.data;
+  }
+
+  async listGuests(eventSlug: string): Promise<EventGuest[]> {
+    const response = await this.client.get<EventGuest[]>(`/admin/events/${eventSlug}/guests`);
+    return response.data;
+  }
+
+  async removeGuest(eventSlug: string, userId: string): Promise<{ message: string }> {
+    const response = await this.client.delete<{ message: string }>(`/admin/events/${eventSlug}/guests/${userId}`);
     return response.data;
   }
 

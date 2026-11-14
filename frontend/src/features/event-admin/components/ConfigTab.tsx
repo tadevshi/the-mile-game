@@ -12,6 +12,7 @@ import { useTheme } from '@/shared/theme/useTheme';
 import { DriveConnectionPanel } from './DriveConnectionPanel';
 import { BackupJobsList } from './BackupJobsList';
 import { CollaboratorsSection } from './CollaboratorsSection';
+import { GuestManagementSection } from './GuestManagementSection';
 import { PostcardStyleSelector } from './PostcardStyleSelector';
 
 interface ConfigTabProps {
@@ -363,6 +364,8 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
         ownerId={event?.owner_id || ''}
         theme={theme}
       />
+
+      <GuestManagementSection slug={slug} theme={theme} />
 
       {FEATURES.GOOGLE_DRIVE && event?.id && (
         <div className="space-y-3">
