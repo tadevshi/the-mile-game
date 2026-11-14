@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
@@ -9,10 +9,30 @@ import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
 
 type PasswordStrength = 'weak' | 'medium' | 'strong';
 
+function getGuestInvitationReturnTo(value: string | null): string {
+  if (!value) return '/dashboard';
+
+  try {
+    const target = new URL(value, window.location.origin);
+    const segments = target.pathname.split('/').filter(Boolean);
+    if (target.origin !== window.location.origin || segments.length !== 2 || segments[0] !== 'guest-join') {
+      return '/dashboard';
+    }
+    return `${target.pathname}${target.search}`;
+  } catch {
+    return '/dashboard';
+  }
+}
+
 export function RegisterPage() {
   const { t } = useTranslation();
   const { register, isLoading, error, clearError, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = getGuestInvitationReturnTo(searchParams.get('return_to'));
+  const loginHref = returnTo === '/dashboard'
+    ? '/login'
+    : `/login?return_to=${encodeURIComponent(returnTo)}`;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -23,12 +43,12 @@ export function RegisterPage() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>('weak');
 
-  // Navigate to dashboard after successful registration
+  // Return invited guests to their link; ordinary registration still goes to the dashboard.
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
+      navigate(returnTo, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, returnTo]);
 
   // Clear error when unmounting
   useEffect(() => {
@@ -319,7 +339,7 @@ export function RegisterPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               {t('auth.hasAccount')}{' '}
-              <Link to="/login" className="text-[var(--color-primary)] hover:text-[var(--color-accent)] font-medium">
+              <Link to={loginHref} className="text-[var(--color-primary)] hover:text-[var(--color-accent)] font-medium">
                 {t('auth.login')}
               </Link>
             </p>

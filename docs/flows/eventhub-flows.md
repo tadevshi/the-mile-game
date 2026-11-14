@@ -225,6 +225,18 @@ GET /api/admin/events/:slug/analytics/scores   # Score distribution
 POST /api/events/:slug/page-view                # Track page view
 ```
 
+### Invitaciones de invitados (cuentas, sin administración)
+
+Los invitados obtienen una membresía vinculada a su cuenta; no reciben permisos de owner ni de collaborator.
+
+1. Un owner o collaborator copia o rota el link único desde **Configuración → Invitados**.
+2. El invitado abre `/guest-join/:slug?token=...`. Si no inició sesión, EventHub lo envía a login y conserva el link para volver; el registro también conserva ese destino.
+3. Con la sesión iniciada, la app envía `POST /api/guests/accept?token=...`.
+4. Al aceptar, el invitado llega a `/e/:slug`, donde puede jugar y publicar postales, pero no administrar el evento.
+5. Rotar el link impide nuevas aceptaciones; no revoca membresías existentes. El owner o collaborator puede quitar una membresía por separado.
+
+> **Límite de MR2:** los eventos siguen siendo públicos. La invitación no restringe la visibilidad pública ni cambia las autorizaciones de uploads, WebSockets o cachés de medios; esos controles quedan para incrementos posteriores.
+
 ---
 
 ## 5. Quiz Flow (Player-Facing)
@@ -397,6 +409,15 @@ POST /api/auth/login
 POST /api/auth/refresh
 GET  /api/auth/me
 POST /api/auth/logout
+```
+
+### Guest invitations
+```
+POST   /api/guests/accept?token=TOKEN
+GET    /api/admin/events/:slug/guests/invite
+POST   /api/admin/events/:slug/guests/invite
+GET    /api/admin/events/:slug/guests
+DELETE /api/admin/events/:slug/guests/:user_id
 ```
 
 ### Events
