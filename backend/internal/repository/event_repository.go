@@ -37,6 +37,7 @@ func (r *EventRepository) Create(ownerID uuid.UUID, slug, name, description stri
 		StartsAt:    startsAt,
 		EndsAt:      endsAt,
 		IsActive:    true,
+		IsPublic:    true,
 		CreatedAt:   time.Now(),
 	}
 
@@ -45,13 +46,13 @@ func (r *EventRepository) Create(ownerID uuid.UUID, slug, name, description stri
 	settingsJSON, _ := json.Marshal(settings)
 
 	query := `
-		INSERT INTO events (id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		INSERT INTO events (id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, is_public, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
 
 	_, err := r.db.Exec(query,
 		event.ID, event.Slug, event.OwnerID, event.Name, event.Description,
-		featuresJSON, settingsJSON, event.StartsAt, event.EndsAt, event.IsActive, event.CreatedAt)
+		featuresJSON, settingsJSON, event.StartsAt, event.EndsAt, event.IsActive, event.IsPublic, event.CreatedAt)
 
 	if err != nil {
 		// Verificar si es error de duplicado (slug único)
@@ -70,7 +71,7 @@ func (r *EventRepository) GetBySlug(slug string) (*models.Event, error) {
 	var featuresJSON, settingsJSON []byte
 
 	query := `
-		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token, invite_token
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, is_public, created_at, secret_box_token, invite_token
 		FROM events
 		WHERE slug = $1
 	`
@@ -78,7 +79,7 @@ func (r *EventRepository) GetBySlug(slug string) (*models.Event, error) {
 	var inviteToken sql.NullString
 	err := r.db.QueryRow(query, slug).Scan(
 		&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
-		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
+		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.IsPublic, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
 	)
 	if err == nil && inviteToken.Valid {
 		event.InviteToken = &inviteToken.String
@@ -103,7 +104,7 @@ func (r *EventRepository) GetByID(id uuid.UUID) (*models.Event, error) {
 	var featuresJSON, settingsJSON []byte
 
 	query := `
-		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token, invite_token
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, is_public, created_at, secret_box_token, invite_token
 		FROM events
 		WHERE id = $1
 	`
@@ -111,7 +112,7 @@ func (r *EventRepository) GetByID(id uuid.UUID) (*models.Event, error) {
 	var inviteToken sql.NullString
 	err := r.db.QueryRow(query, id).Scan(
 		&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
-		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
+		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.IsPublic, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
 	)
 	if err == nil && inviteToken.Valid {
 		event.InviteToken = &inviteToken.String
@@ -132,7 +133,7 @@ func (r *EventRepository) GetByID(id uuid.UUID) (*models.Event, error) {
 // ListByOwner obtiene todos los eventos de un usuario
 func (r *EventRepository) ListByOwner(ownerID uuid.UUID) ([]models.Event, error) {
 	query := `
-		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token, invite_token
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, is_public, created_at, secret_box_token, invite_token
 		FROM events
 		WHERE owner_id = $1
 		ORDER BY created_at DESC
@@ -152,7 +153,7 @@ func (r *EventRepository) ListByOwner(ownerID uuid.UUID) ([]models.Event, error)
 		var inviteToken sql.NullString
 		err := rows.Scan(
 			&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
-			&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
+			&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.IsPublic, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
 		)
 		if inviteToken.Valid {
 			event.InviteToken = &inviteToken.String
@@ -199,7 +200,7 @@ func (r *EventRepository) ListAccessibleByUser(userID uuid.UUID, collaboratorEve
 	}
 
 	query := `
-		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token, invite_token
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, is_public, created_at, secret_box_token, invite_token
 		FROM events
 		WHERE owner_id = $1 OR id = ANY($2)
 		ORDER BY created_at DESC
@@ -219,7 +220,7 @@ func (r *EventRepository) ListAccessibleByUser(userID uuid.UUID, collaboratorEve
 
 		err := rows.Scan(
 			&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
-			&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt,
+			&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.IsPublic, &event.CreatedAt,
 			&event.SecretBoxToken, &inviteToken,
 		)
 		if err != nil {
@@ -252,14 +253,14 @@ func (r *EventRepository) GetByInviteToken(token string) (*models.Event, error) 
 	var inviteToken sql.NullString
 
 	query := `
-		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, created_at, secret_box_token, invite_token
+		SELECT id, slug, owner_id, name, description, features, settings, starts_at, ends_at, is_active, is_public, created_at, secret_box_token, invite_token
 		FROM events
 		WHERE invite_token = $1
 	`
 
 	err := r.db.QueryRow(query, token).Scan(
 		&event.ID, &event.Slug, &event.OwnerID, &event.Name, &event.Description,
-		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
+		&featuresJSON, &settingsJSON, &event.StartsAt, &event.EndsAt, &event.IsActive, &event.IsPublic, &event.CreatedAt, &event.SecretBoxToken, &inviteToken,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

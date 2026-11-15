@@ -29,6 +29,7 @@ type Event struct {
 	StartsAt       *time.Time    `json:"starts_at,omitempty" db:"starts_at"`
 	EndsAt         *time.Time    `json:"ends_at,omitempty" db:"ends_at"`
 	IsActive       bool          `json:"is_active" db:"is_active"`
+	IsPublic       bool          `json:"-" db:"is_public"` // Internal until private visibility activation is complete.
 	CreatedAt      time.Time     `json:"created_at" db:"created_at"`
 }
 
