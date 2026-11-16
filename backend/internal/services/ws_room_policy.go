@@ -1,0 +1,67 @@
+package services
+
+import (
+	"errors"
+
+	"github.com/google/uuid"
+	"github.com/the-mile-game/backend/internal/repository"
+)
+
+// WsAdmission is the outcome of the WebSocket room admission check.
+type WsAdmission int
+
+const (
+	WsAdmissionGranted          WsAdmission = iota // the identity may join the room
+	WsAdmissionIdentityRequired                    // the room needs an identity the client could not present
+	WsAdmissionForbidden                           // the identity is not allowed in that room
+)
+
+// WsRoomPolicy applies the persisted event visibility to a WebSocket room: a
+// public event is open to anyone, and a private event only to its owner, its
+// collaborators and its accepted guests.
+type WsRoomPolicy struct {
+	events        *repository.EventRepository
+	collaborators *repository.CollaboratorRepository
+	guests        *repository.GuestRepository
+}
+
+// NewWsRoomPolicy builds the room admission policy.
+func NewWsRoomPolicy(events *repository.EventRepository, collaborators *repository.CollaboratorRepository, guests *repository.GuestRepository) *WsRoomPolicy {
+	return &WsRoomPolicy{events: events, collaborators: collaborators, guests: guests}
+}
+
+// AdmitRoom reports whether the identity may join the room. userID is
+// uuid.Nil when the client presented no valid ticket.
+func (p *WsRoomPolicy) AdmitRoom(eventSlug string, userID uuid.UUID) (WsAdmission, error) {
+	event, err := p.events.GetBySlug(eventSlug)
+	if err != nil {
+		if errors.Is(err, repository.ErrEventNotFound) {
+			return WsAdmissionForbidden, nil
+		}
+		return WsAdmissionForbidden, err
+	}
+	if event.IsPublic {
+		return WsAdmissionGranted, nil
+	}
+	if userID == uuid.Nil {
+		return WsAdmissionIdentityRequired, nil
+	}
+	if userID == event.OwnerID {
+		return WsAdmissionGranted, nil
+	}
+	isCollaborator, err := p.collaborators.Exists(event.ID, userID)
+	if err != nil {
+		return WsAdmissionForbidden, err
+	}
+	if isCollaborator {
+		return WsAdmissionGranted, nil
+	}
+	isGuest, err := p.guests.Exists(event.ID, userID)
+	if err != nil {
+		return WsAdmissionForbidden, err
+	}
+	if isGuest {
+		return WsAdmissionGranted, nil
+	}
+	return WsAdmissionForbidden, nil
+}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/the-mile-game/backend/internal/models"
+	"github.com/the-mile-game/backend/internal/services"
 )
 
 const (
@@ -50,6 +51,10 @@ type Hub struct {
 
 	// Validador de eventos (opcional) - si está presente, se validan los event slugs
 	eventValidator EventValidator
+
+	// Validador de tickets y política de admisión por room (opcionales)
+	tickets   TicketValidator
+	admission RoomAdmissionPolicy
 
 	// Mutex para acceso seguro concurrente
 	mu sync.RWMutex
@@ -131,6 +136,8 @@ func getAllowedOrigins() []string {
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	// El protocolo de la aplicación se negocia cuando el cliente lo ofrece
+	Subprotocols: []string{services.WsTicketProtocol},
 	CheckOrigin: func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		if origin == "" {
@@ -164,6 +171,15 @@ func NewHub() *Hub {
 func NewHubWithValidator(validator EventValidator) *Hub {
 	hub := NewHub()
 	hub.eventValidator = validator
+	return hub
+}
+
+// NewHubWithAdmission crea un Hub que admite a los clientes con la política
+// de visibilidad del room solicitado.
+func NewHubWithAdmission(validator EventValidator, tickets TicketValidator, admission RoomAdmissionPolicy) *Hub {
+	hub := NewHubWithValidator(validator)
+	hub.tickets = tickets
+	hub.admission = admission
 	return hub
 }
 
@@ -209,6 +225,11 @@ func (h *Hub) Run() {
 
 		case roomMsg := <-h.broadcastToRoom:
 			// Broadcast a un room específico (evento)
+			if roomMsg.EventSlug == "" {
+				// Un broadcast de room sin slug no llega a nadie
+				log.Printf("WebSocket: Broadcast a room ignorado — no hay eventSlug")
+				continue
+			}
 			h.mu.RLock()
 			room := h.rooms[roomMsg.EventSlug]
 			if room == nil {
@@ -227,7 +248,7 @@ func (h *Hub) Run() {
 			}
 			h.mu.RUnlock()
 
-// Limpiar clientes muertos
+			// Limpiar clientes muertos
 			if len(deadClients) > 0 {
 				h.mu.Lock()
 				for _, client := range deadClients {
@@ -247,6 +268,10 @@ func (h *Hub) Run() {
 			var deadClients []*Client
 
 			for client := range h.clients {
+				// Los broadcasts globales solo llegan a los observadores sin room
+				if client.EventSlug != "" {
+					continue
+				}
 				select {
 				case client.send <- message:
 				default:
@@ -279,17 +304,25 @@ func (h *Hub) Run() {
 // ServeHTTP maneja las conexiones WebSocket
 // El query param "event" es opcional; sin él el cliente recibe broadcasts globales
 // Si hay un eventValidator configurado, se validará que el evento exista
+// Si hay una política de admisión, el room se admite solo a las identidades
+// que la visibilidad persistida del evento permite
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Extraer event slug del query param
 	eventSlug := r.URL.Query().Get("event")
 	if eventSlug == "" {
 		// Sin event, el cliente no recibe mensajes específicos
 		log.Printf("WebSocket: Conexión sin event slug - recibirá broadcasts globales nomás")
-	} else if h.eventValidator != nil {
-		// Validar que el evento existe y está activo
-		if err := h.eventValidator.ValidateEvent(eventSlug); err != nil {
-			log.Printf("WebSocket: Evento '%s' no válido: %v", eventSlug, err)
-			http.Error(w, "Event not found or inactive", http.StatusNotFound)
+	} else {
+		if h.eventValidator != nil {
+			// Validar que el evento existe y está activo
+			if err := h.eventValidator.ValidateEvent(eventSlug); err != nil {
+				log.Printf("WebSocket: Evento '%s' no válido: %v", eventSlug, err)
+				http.Error(w, "Event not found or inactive", http.StatusNotFound)
+				return
+			}
+		}
+		// Admitir el room antes del upgrade
+		if h.admission != nil && !h.admit(w, r, eventSlug) {
 			return
 		}
 		log.Printf("WebSocket: Conexión al evento '%s' aceptada", eventSlug)
@@ -375,12 +408,6 @@ func (h *Hub) GetClientCount() int {
 
 // BroadcastRankingToRoom envía el ranking actualizado solo a clientes de un evento específico
 func (h *Hub) BroadcastRankingToRoom(eventSlug string, ranking []models.RankingEntry) {
-	if eventSlug == "" {
-		// Si no hay eventSlug, usar broadcast global
-		h.BroadcastRanking(ranking)
-		return
-	}
-
 	msg := RankingUpdateMessage{
 		Type:    "ranking_update",
 		Ranking: ranking,
@@ -405,12 +432,6 @@ func (h *Hub) BroadcastRankingToRoom(eventSlug string, ranking []models.RankingE
 
 // BroadcastPostcardToRoom envía una nueva postal solo a clientes de un evento específico
 func (h *Hub) BroadcastPostcardToRoom(eventSlug string, postcard models.Postcard) {
-	if eventSlug == "" {
-		// Si no hay eventSlug, usar broadcast global
-		h.BroadcastPostcard(postcard)
-		return
-	}
-
 	msg := PostcardNewMessage{
 		Type:     "postcard_new",
 		Postcard: postcard,
@@ -435,11 +456,6 @@ func (h *Hub) BroadcastPostcardToRoom(eventSlug string, postcard models.Postcard
 
 // BroadcastSecretRevealToRoom envía el evento de reveal solo a clientes de un evento específico
 func (h *Hub) BroadcastSecretRevealToRoom(eventSlug string, postcards []models.Postcard) {
-	if eventSlug == "" {
-		h.BroadcastSecretReveal(postcards)
-		return
-	}
-
 	msg := SecretRevealMessage{
 		Type:      "secret_box_reveal",
 		EventSlug: eventSlug,

@@ -153,7 +153,10 @@ func main() {
 	eventValidator := &webSocketEventValidator{eventRepo: eventRepo}
 
 	// Crear WebSocket Hub con validador de eventos
-	hub := websocket.NewHubWithValidator(eventValidator)
+	// La admisión del room aplica la visibilidad persistida del evento: el
+	// ticket identifica la cuenta y la política decide si puede entrar.
+	roomPolicy := services.NewWsRoomPolicy(eventRepo, collaboratorRepo, guestRepo)
+	hub := websocket.NewHubWithAdmission(eventValidator, wsTicketService, roomPolicy)
 	go hub.Run()
 
 	// Crear handlers
