@@ -76,6 +76,9 @@ type Handler struct {
 	backupWorker     BackupWorkerEnqueuer
 	// visibility enforces the persisted event visibility on the legacy routes.
 	visibility *LegacyEventVisibility
+	// legacyAdmin bounds the legacy administration routes to the events the
+	// caller owns or collaborates on.
+	legacyAdmin *LegacyAdminScope
 }
 
 // NewHandler crea un nuevo handler
@@ -120,6 +123,14 @@ func NewHandlerWithDrive(
 // content that belongs to an event.
 func (h *Handler) WithLegacyVisibility(visibility *LegacyEventVisibility) *Handler {
 	h.visibility = visibility
+	return h
+}
+
+// WithLegacyAdminScope injects the administration scope used by the legacy
+// (non event-scoped) administration routes. Without it those routes fail
+// closed and deny every caller.
+func (h *Handler) WithLegacyAdminScope(scope *LegacyAdminScope) *Handler {
+	h.legacyAdmin = scope
 	return h
 }
 
@@ -1072,14 +1083,8 @@ func (h *Handler) GetSecretBoxStatus(c *gin.Context) {
 		return
 	}
 
-	// Fallback: versión global (backward compatibility)
-	status, err := h.postcardRepo.GetSecretBoxStatus()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get secret box status"})
-		return
-	}
-
-	c.JSON(http.StatusOK, status)
+	// Fallback: versión legacy, acotada a los eventos que administra el caller
+	h.legacySecretBoxStatus(c)
 }
 
 // ListSecretPostcards devuelve todas las postales secretas (para preview del admin)
@@ -1091,8 +1096,9 @@ func (h *Handler) ListSecretPostcards(c *gin.Context) {
 	if eventID, exists := c.Get("event_id"); exists {
 		postcards, err = h.postcardRepo.ListSecretByEvent(eventID.(uuid.UUID))
 	} else {
-		// Fallback: versión global (backward compatibility)
-		postcards, err = h.postcardRepo.ListSecret()
+		// Fallback: versión legacy, acotada a los eventos que administra el caller
+		h.legacyListSecretPostcards(c)
+		return
 	}
 
 	if err != nil {
@@ -1130,8 +1136,9 @@ func (h *Handler) RevealSecretBox(c *gin.Context) {
 	if eventID, exists := c.Get("event_id"); exists {
 		postcards, err = h.postcardRepo.RevealSecretBoxByEvent(eventID.(uuid.UUID))
 	} else {
-		// Fallback: versión global (backward compatibility)
-		postcards, err = h.postcardRepo.RevealSecretBox()
+		// Fallback: versión legacy, acotada a los eventos que administra el caller
+		h.legacyRevealSecretBox(c)
+		return
 	}
 
 	if err != nil {
