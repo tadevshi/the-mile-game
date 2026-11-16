@@ -93,6 +93,10 @@ func main() {
 	}
 	authService := services.NewAuthService(userRepo, jwtSecret)
 
+	// Admission tickets for the WebSocket: signed, short-lived and bound to
+	// the account and the event, issued over the authenticated HTTP surface.
+	wsTicketService := services.NewWsTicketService(jwtSecret)
+
 	// Email sender: Resend en producción, console log en desarrollo
 	var emailSender services.EmailSender
 	resendAPIKey := os.Getenv("RESEND_API_KEY")
@@ -226,6 +230,10 @@ func main() {
 			auth.GET("/me", authHandler.Me)
 			auth.POST("/logout", authHandler.Logout)
 		}
+
+		// Admission de WebSocket (protegido): el ticket se pide por HTTP
+		// autenticado y viaja en el subprotocolo del socket.
+		handlers.RegisterWsTicketRoutes(api, authMiddleware, handlers.NewWsTicketHandler(wsTicketService))
 
 		// User events (protegido)
 		users := api.Group("/users")
