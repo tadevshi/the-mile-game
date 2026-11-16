@@ -313,7 +313,7 @@ Clients offer two subprotocols: `eventhub.v1` and `ticket.<ticket value>`. The s
 
 ### Delivery
 
-A client admitted to a room receives only the messages of that room. The global broadcasts reach only the connections without a room, and a room broadcast without an event slug reaches nobody. The global recipient filtering for those observers is a separate unit, so an observer connection without a room still receives the global payloads.
+A client admitted to a room receives only the messages of that room. The global broadcasts reach only the connections without a room, and a room broadcast without an event slug reaches nobody. Those observers have no identity, so the global payload carries only what anybody may see: the public events and the records that belong to no event. A ranking, postcard or secret reveal of a private event never reaches them. The global recipient filtering for the observers is therefore complete; the legacy call sites still publish globally, so the legacy updates of a private event are not delivered over a socket.
 
 Events:
 - `ranking_update` - Ranking changed
