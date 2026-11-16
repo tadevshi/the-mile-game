@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -43,7 +44,7 @@ func TestWsTicketServiceRejectsTamperedTicket(t *testing.T) {
 		t.Fatalf("issue error = %v", err)
 	}
 
-	tampered := ticket[:len(ticket)-1] + "X"
+	tampered := tamperSignature(ticket)
 	if _, err := service.Validate(tampered); !errors.Is(err, ErrWsTicketInvalid) {
 		t.Fatalf("tampered ticket error = %v, want %v", err, ErrWsTicketInvalid)
 	}
@@ -80,4 +81,23 @@ func TestWsTicketServiceRejectsExpiredTicket(t *testing.T) {
 	if _, err := service.Validate(ticket); err != nil {
 		t.Fatalf("fresh ticket error = %v", err)
 	}
+}
+
+// tamperSignature changes a character in the middle of the signature part. The
+// last character of a base64 signature only carries a few significant bits, so
+// replacing it can decode to the same bytes and would make the assertion
+// flaky.
+func tamperSignature(ticket string) string {
+	parts := strings.Split(ticket, ".")
+	if len(parts) != 2 || len(parts[1]) < 3 {
+		return ticket + "X"
+	}
+	signature := []byte(parts[1])
+	middle := len(signature) / 2
+	if signature[middle] == 'A' {
+		signature[middle] = 'B'
+	} else {
+		signature[middle] = 'A'
+	}
+	return parts[0] + "." + string(signature)
 }
