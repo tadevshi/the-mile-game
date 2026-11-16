@@ -121,6 +121,7 @@ func TestPublicEventDetail_PreservesOrdinaryFields(t *testing.T) {
 	assert.Equal(t, "A fun birthday", decoded["description"])
 	assert.Equal(t, true, decoded["is_active"])
 	assert.Contains(t, decoded, "created_at")
+	assert.NotContains(t, decoded, "is_public")
 	assert.Contains(t, decoded, "starts_at")
 	assert.Contains(t, decoded, "ends_at")
 
