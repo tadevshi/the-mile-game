@@ -95,3 +95,35 @@ func eventIDOf(t *testing.T, db *sql.DB, slug string) uuid.UUID {
 func containsPlayerName(message, name string) bool {
 	return len(name) > 0 && strings.Contains(message, name)
 }
+
+// The secret reveal is the third filtered broadcast: the secret postcards of a
+// private event must not reach an observer either.
+func TestWebSocketGlobalBroadcasts_HidePrivateEventSecretReveal(t *testing.T) {
+	f := newWSFixture(t)
+
+	db := openWSTestDB(t)
+	publicID := eventIDOf(t, db, f.publicSlug)
+	privateID := eventIDOf(t, db, f.privateSlug)
+
+	observer, _, err := f.dial(t, "", nil)
+	must(t, err, "dial observer")
+	defer observer.Close()
+	waitClients(t, f.hub, 1)
+
+	f.hub.BroadcastSecretReveal([]models.Postcard{{ID: uuid.New(), EventID: privateID, Message: "private secret", IsSecret: true}})
+	assertNoMessage(t, observer, "a secret reveal of a private event reached an observer")
+
+	// A second connection receives the public reveal: a read that times out
+	// leaves the first connection unusable.
+	second, _, err := f.dial(t, "", nil)
+	must(t, err, "dial second observer")
+	defer second.Close()
+	waitClients(t, f.hub, 2)
+
+	f.hub.BroadcastSecretReveal([]models.Postcard{{ID: uuid.New(), EventID: publicID, Message: "public secret", IsSecret: true}})
+	message, err := readMessage(second, 2*time.Second)
+	must(t, err, "read secret reveal message")
+	if !containsPlayerName(message, "public secret") {
+		t.Fatalf("global secret reveal did not carry the public secret: %s", message)
+	}
+}

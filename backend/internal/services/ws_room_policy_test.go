@@ -70,6 +70,10 @@ func TestWsRoomPolicyCanAnonymousViewEvent(t *testing.T) {
 	ownerID := createPolicyTestUser(t, db)
 	publicID := createPolicyTestEvent(t, db, events, ownerID, true)
 	privateID := createPolicyTestEvent(t, db, events, ownerID, false)
+	endedID := createPolicyTestEvent(t, db, events, ownerID, true)
+	if _, err := db.Exec(`UPDATE events SET is_active = FALSE WHERE id = $1`, endedID); err != nil {
+		t.Fatalf("end test event: %v", err)
+	}
 
 	cases := []struct {
 		name     string
@@ -78,6 +82,7 @@ func TestWsRoomPolicyCanAnonymousViewEvent(t *testing.T) {
 	}{
 		{"public event", publicID, true},
 		{"private event", privateID, false},
+		{"ended public event", endedID, false},
 		{"eventless data", uuid.Nil, true},
 		{"unknown event", uuid.New(), false},
 	}

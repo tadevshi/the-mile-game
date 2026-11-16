@@ -458,7 +458,7 @@ func (h *Hub) BroadcastSecretReveal(postcards []models.Postcard) {
 	}
 
 	h.broadcast <- data
-	log.Printf("WebSocket: Secret Box revelada — %d postales broadcasteadas a %d clientes", len(postcards), h.GetClientCount())
+	log.Printf("WebSocket: Secret Box revelada — %d postales broadcasteadas a %d clientes", len(visible), h.GetClientCount())
 }
 
 // GetClientCount devuelve el número de clientes conectados
