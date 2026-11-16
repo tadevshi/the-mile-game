@@ -23,6 +23,11 @@ import (
 type fakeBroadcastHub struct {
 	rankingBroadcasts  int
 	postcardBroadcasts int
+	// secretRevealGlobal counts the global (non room-scoped) secret reveal
+	// broadcasts and secretRevealRooms records the rooms that received one.
+	secretRevealGlobal   int
+	secretRevealRooms    []string
+	secretRevealMessages map[string][]string
 }
 
 func (h *fakeBroadcastHub) BroadcastRanking(ranking []models.RankingEntry) {
@@ -33,7 +38,9 @@ func (h *fakeBroadcastHub) BroadcastPostcard(postcard models.Postcard) {
 	h.postcardBroadcasts++
 }
 
-func (h *fakeBroadcastHub) BroadcastSecretReveal(postcards []models.Postcard) {}
+func (h *fakeBroadcastHub) BroadcastSecretReveal(postcards []models.Postcard) {
+	h.secretRevealGlobal++
+}
 
 func (h *fakeBroadcastHub) BroadcastRankingToRoom(eventSlug string, ranking []models.RankingEntry) {
 	h.rankingBroadcasts++
@@ -44,6 +51,15 @@ func (h *fakeBroadcastHub) BroadcastPostcardToRoom(eventSlug string, postcard mo
 }
 
 func (h *fakeBroadcastHub) BroadcastSecretRevealToRoom(eventSlug string, postcards []models.Postcard) {
+	h.secretRevealRooms = append(h.secretRevealRooms, eventSlug)
+	if h.secretRevealMessages == nil {
+		h.secretRevealMessages = map[string][]string{}
+	}
+	messages := make([]string, 0, len(postcards))
+	for _, postcard := range postcards {
+		messages = append(messages, postcard.Message)
+	}
+	h.secretRevealMessages[eventSlug] = append(h.secretRevealMessages[eventSlug], messages...)
 }
 
 func (h *fakeBroadcastHub) BroadcastSecretResetToRoom(eventSlug string, count int64) {}
