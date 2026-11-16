@@ -148,3 +148,71 @@ func TestScopedEventContentAndSecretBoxRoutesUseSeparatePolicies(t *testing.T) {
 		t.Errorf("Secret Box upload unexpectedly ran content membership checks: collaborators=%d guests=%d; want 2 each", collaborators.calls, guests.calls)
 	}
 }
+
+func TestScopedPageViewRouteUsesEventVisibilityPolicy(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	ownerID := uuid.New()
+	guestID := uuid.New()
+	collaboratorID := uuid.New()
+	outsiderID := uuid.New()
+	event := &models.Event{ID: uuid.New(), OwnerID: ownerID, IsPublic: true}
+	router := gin.New()
+	api := router.Group("/api")
+	pageViewCalls := 0
+	eventLookup := func(c *gin.Context) {
+		c.Set("event", event)
+		c.Set("event_id", event.ID)
+		c.Next()
+	}
+	optionalAuth := func(c *gin.Context) {
+		identities := map[string]uuid.UUID{
+			"owner":        ownerID,
+			"guest":        guestID,
+			"collaborator": collaboratorID,
+			"outsider":     outsiderID,
+		}
+		if userID, ok := identities[c.GetHeader("X-Test-Identity")]; ok {
+			c.Set("user_id", userID)
+		}
+		c.Next()
+	}
+	collaborators := &routeMembershipChecker{allowed: collaboratorID}
+	guests := &routeMembershipChecker{allowed: guestID}
+	registerScopedPageViewRoute(api, eventLookup, optionalAuth, middleware.EventVisibilityMiddleware(collaborators, guests), func(c *gin.Context) {
+		pageViewCalls++
+		c.JSON(http.StatusOK, gin.H{"logged": true})
+	})
+
+	tests := []struct {
+		name       string
+		isPublic   bool
+		identity   string
+		wantStatus int
+		wantBody   string
+		wantCalls  int
+	}{
+		{name: "public anonymous", isPublic: true, wantStatus: http.StatusOK, wantBody: `{"logged":true}`, wantCalls: 1},
+		{name: "private anonymous", identity: "", wantStatus: http.StatusUnauthorized, wantBody: `{"error":"Authentication required"}`, wantCalls: 1},
+		{name: "private outsider", identity: "outsider", wantStatus: http.StatusForbidden, wantBody: `{"error":"Not authorized to view this event"}`, wantCalls: 1},
+		{name: "private owner", identity: "owner", wantStatus: http.StatusOK, wantBody: `{"logged":true}`, wantCalls: 2},
+		{name: "private collaborator", identity: "collaborator", wantStatus: http.StatusOK, wantBody: `{"logged":true}`, wantCalls: 3},
+		{name: "private accepted guest", identity: "guest", wantStatus: http.StatusOK, wantBody: `{"logged":true}`, wantCalls: 4},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event.IsPublic = tt.isPublic
+			request := httptest.NewRequest(http.MethodPost, "/api/events/test/page-view", nil)
+			if tt.identity != "" {
+				request.Header.Set("X-Test-Identity", tt.identity)
+			}
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+			if response.Code != tt.wantStatus || response.Body.String() != tt.wantBody {
+				t.Errorf("response = %d %q, want %d %q", response.Code, response.Body.String(), tt.wantStatus, tt.wantBody)
+			}
+			if pageViewCalls != tt.wantCalls {
+				t.Errorf("analytics handler calls = %d, want %d", pageViewCalls, tt.wantCalls)
+			}
+		})
+	}
+}
