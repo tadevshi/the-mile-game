@@ -168,6 +168,9 @@ func main() {
 	// La visibilidad persistida del evento se aplica también a las rutas legacy.
 	handler = handler.WithLegacyVisibility(handlers.NewLegacyEventVisibility(eventRepo, collaboratorRepo, guestRepo))
 
+	// La administración legacy queda acotada a los eventos que administra el caller.
+	handler = handler.WithLegacyAdminScope(handlers.NewLegacyAdminScope(eventRepo, collaboratorRepo))
+
 	authHandler := handlers.NewAuthHandler(authServiceWithReset)
 	themeHandler := handlers.NewThemeHandler(themeService)
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
@@ -311,9 +314,11 @@ func main() {
 		registerScopedPageViewRoute(api, eventMiddleware, optionalAuthMiddleware, eventVisibilityMiddleware, analyticsHandler.LogPageView)
 
 		// Admin routes (legacy - backward compatibility)
-		api.GET("/admin/status", handler.GetSecretBoxStatus)
-		api.GET("/admin/secret-box", handler.ListSecretPostcards)
-		api.POST("/admin/reveal", handler.RevealSecretBox)
+		// La identidad es opcional en el middleware: el handler exige una
+		// identidad valida y acota la administracion a los eventos del caller.
+		api.GET("/admin/status", optionalAuthMiddleware, handler.GetSecretBoxStatus)
+		api.GET("/admin/secret-box", optionalAuthMiddleware, handler.ListSecretPostcards)
+		api.POST("/admin/reveal", optionalAuthMiddleware, handler.RevealSecretBox)
 
 		// Drive admin routes (user-level, not event-scoped)
 		// These routes handle Google Drive OAuth connection and backup job management
