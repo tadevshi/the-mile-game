@@ -236,7 +236,7 @@ func main() {
 
 		// Admission de WebSocket (protegido): el ticket se pide por HTTP
 		// autenticado y viaja en el subprotocolo del socket.
-		handlers.RegisterWsTicketRoutes(api, authMiddleware, handlers.NewWsTicketHandler(wsTicketService))
+		handlers.RegisterWsTicketRoutes(api, authMiddleware, handlers.NewWsTicketHandler(wsTicketService, roomPolicy))
 
 		// User events (protegido)
 		users := api.Group("/users")

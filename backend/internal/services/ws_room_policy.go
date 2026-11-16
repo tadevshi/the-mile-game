@@ -30,6 +30,17 @@ func NewWsRoomPolicy(events *repository.EventRepository, collaborators *reposito
 	return &WsRoomPolicy{events: events, collaborators: collaborators, guests: guests}
 }
 
+// CanAccessRoom reports whether the account may see the event at all. It is
+// used to refuse a ticket for an event the account cannot reach, so the
+// ticket is only ever minted for a room the account may enter.
+func (p *WsRoomPolicy) CanAccessRoom(eventSlug string, userID uuid.UUID) (bool, error) {
+	admission, err := p.AdmitRoom(eventSlug, userID)
+	if err != nil {
+		return false, err
+	}
+	return admission == WsAdmissionGranted, nil
+}
+
 // AdmitRoom reports whether the identity may join the room. userID is
 // uuid.Nil when the client presented no valid ticket.
 func (p *WsRoomPolicy) AdmitRoom(eventSlug string, userID uuid.UUID) (WsAdmission, error) {
