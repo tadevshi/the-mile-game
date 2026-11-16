@@ -27,6 +27,9 @@ vi.mock('axios', () => ({
 
 import { api } from '../api'
 
+const requestInterceptor = mockRequestInterceptorsUse.mock.calls[0]?.[0] as
+  | ((config: { headers: Record<string, string> }) => void) | undefined
+
 describe('ApiClient', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -414,6 +417,25 @@ describe('ApiClient', () => {
 
       await expect(api.acceptGuestInvitation('guest token/?')).resolves.toEqual(accepted)
       expect(mockPost).toHaveBeenCalledWith('/guests/accept?token=guest%20token%2F%3F', {})
+    })
+  })
+
+  // ─── WebSocket admission ticket ─────────────────────────────────────────────
+
+  describe('requestWsTicket', () => {
+    const ticket = { ticket: 'signed-ticket', expires_at: '2026-05-19T12:00:00Z', protocol: 'eventhub.v1' }
+
+    it('POSTs the event to /ws/ticket and returns the ticket', async () => {
+      mockPost.mockResolvedValueOnce({ data: ticket })
+      await expect(api.requestWsTicket('ale-roy')).resolves.toEqual(ticket)
+      expect(mockPost).toHaveBeenCalledWith('/ws/ticket', { event: 'ale-roy' })
+    })
+
+    it('sends the session credentials with the ticket request', () => {
+      localStorage.setItem('auth-token', 'jwt-secret')
+      const config: { headers: Record<string, string> } = { headers: {} }
+      requestInterceptor?.(config)
+      expect(config.headers.Authorization).toBe('Bearer jwt-secret')
     })
   })
 

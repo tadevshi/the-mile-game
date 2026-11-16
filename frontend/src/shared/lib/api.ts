@@ -123,6 +123,13 @@ export interface InviteTokenResponse {
   share_url: string;
 }
 
+// Short-lived WebSocket admission ticket, minted over the authenticated surface.
+export interface WsTicket {
+  ticket: string;
+  expires_at: string;
+  protocol: string;
+}
+
 // Cliente API
 const PLAYER_ID_KEY = 'mile-game-player-id';
 const PLAYER_EVENT_KEY = 'mile-game-player-event'; // Guardar el eventSlug del player
@@ -482,6 +489,18 @@ class ApiClient {
       {}
     );
     return response.data;
+  }
+
+  /** Request a short-lived admission ticket for an event; the ticket travels
+   * in the WebSocket subprotocol, never in the URL. */
+  async requestWsTicket(eventSlug: string): Promise<WsTicket> {
+    const response = await this.client.post<WsTicket>('/ws/ticket', { event: eventSlug });
+    return response.data;
+  }
+
+  /** True when a ticket request would be authenticated. */
+  hasAuthSession(): boolean {
+    try { return !!localStorage.getItem('auth-token'); } catch { return false; }
   }
 
   // ==========================================
