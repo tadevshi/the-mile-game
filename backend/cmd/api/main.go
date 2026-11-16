@@ -200,6 +200,8 @@ func main() {
 	eventMiddleware := middleware.EventMiddleware(eventRepo)
 	authMiddleware := middleware.AuthMiddleware(authService)
 	adminMiddleware := middleware.AdminMiddleware(collaboratorRepo)
+	eventVisibilityMiddleware := middleware.EventVisibilityMiddleware(collaboratorRepo, guestRepo)
+	optionalAuthMiddleware := middleware.OptionalAuthMiddleware(authService)
 
 	// Rutas API
 	api := r.Group("/api")
@@ -237,8 +239,7 @@ func main() {
 		api.GET("/themes/presets", themeHandler.GetPresets)
 
 		// Event-scoped routes (nuevas - multi-event)
-		events := api.Group("/events/:slug")
-		events.Use(eventMiddleware)
+		events := scopedEventContentGroup(api, eventMiddleware, optionalAuthMiddleware, eventVisibilityMiddleware)
 		{
 			// Event info
 			handlers.RegisterPublicEventRoutes(events, eventHandler)
@@ -270,14 +271,10 @@ func main() {
 				corkboard.POST("", handler.CreatePostcard)
 				corkboard.GET("", handler.ListPostcards)
 			}
-
-			// Secret Box
-			secretBox := events.Group("/secret-box")
-			secretBox.Use(middleware.SecretBoxFeatureMiddleware())
-			{
-				secretBox.POST("", handler.CreateSecretPostcard)
-			}
 		}
+
+		// Secret Box upload remains token-authorized and is not event-content access.
+		registerSecretBoxUploadRoute(api, eventMiddleware, handler.CreateSecretPostcard)
 
 		// Legacy routes (backward compatibility - usan evento default)
 		// Players
