@@ -39,8 +39,16 @@ See [Authentication](AUTH.md) for details on obtaining tokens.
 |--------|----------|-------------|------|
 | GET | `/users/me/events` | Get user's events | Yes |
 | POST | `/events` | Create new event | Yes |
-| GET | `/events/:slug` | Get event by slug | No |
-| POST | `/events/:slug/page-view` | Track page view | No |
+| GET | `/events/:slug` | Get event by slug | Public: no; private: JWT event member |
+| POST | `/events/:slug/page-view` | Track page view | Public: no; private: JWT event member |
+
+### Current scoped event visibility
+
+Current `/events/:slug/...` content and play routes remain anonymous for public events. For a private event they require a valid account JWT belonging to the event owner, a collaborator, or an accepted guest; missing/invalid identity returns `401`, and an authenticated non-member receives `403`. Guest membership permits event participation but does not grant administration. Invalid optional authentication does not change public-event access.
+
+All supported event creation and administration paths continue to leave events public; this API does not yet expose a visibility-setting operation. Legacy unscoped endpoints retain their existing behavior and are not covered by this scoped policy. Do not activate private visibility until the later legacy, WebSocket, and media protections are available.
+
+`POST /events/:slug/secret-box` remains a separate upload-only endpoint authorized by that event's `X-Secret-Token`; the token does not grant access to event content.
 
 ### Event Guests
 | Method | Endpoint | Description | Auth |
@@ -56,34 +64,36 @@ The event guest link is separate from the collaborator invitation link. Guests m
 ### Players
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| POST | `/events/:slug/players` | Register player | No |
-| GET | `/events/:slug/players` | List players | No |
-| GET | `/events/:slug/players/:id` | Get player | No |
+| POST | `/events/:slug/players` | Register player | Public: no; private: JWT event member |
+| GET | `/events/:slug/players` | List players | Public: no; private: JWT event member |
+| GET | `/events/:slug/players/:id` | Get player | Public: no; private: JWT event member |
 
 ### Quiz
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| GET | `/events/:slug/quiz/questions` | Get quiz questions | No |
-| POST | `/events/:slug/quiz/submit` | Submit quiz answers | Yes (Player) |
-| GET | `/events/:slug/quiz/answers/:playerId` | Get player answers | Yes (Player) |
+| GET | `/events/:slug/quiz/questions` | Get quiz questions | Public: no; private: JWT event member |
+| POST | `/events/:slug/quiz/submit` | Submit quiz answers | Public: player ID; private: JWT event member and player ID |
+| GET | `/events/:slug/quiz/answers/:playerId` | Get player answers | Public: no; private: JWT event member |
 
 ### Ranking
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| GET | `/events/:slug/ranking` | Get ranking | No |
+| GET | `/events/:slug/ranking` | Get ranking | Public: no; private: JWT event member |
 
 ### Postcards (Corkboard) — Supports Images & Videos
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| GET | `/postcards` | List postcards (query: ?event_id=) | No |
-| POST | `/postcards` | Create postcard (image OR media) | Yes (Player) |
-| POST | `/events/:slug/secret-box` | Create secret postcard | No (X-Secret-Token for that event) |
+| GET | `/events/:slug/postcards` | List event postcards | Public: no; private: JWT event member |
+| POST | `/events/:slug/postcards` | Create event postcard (image OR media) | Public: no; private: JWT event member |
+| GET | `/postcards` | List postcards (legacy query: `event_id`) | Legacy; unchanged by scoped visibility |
+| POST | `/postcards` | Create postcard (legacy) | Legacy; unchanged by scoped visibility |
+| POST | `/events/:slug/secret-box` | Create secret postcard | `X-Secret-Token` for that event; upload only |
 
 ### Themes
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | GET | `/themes/presets` | List theme presets | No |
-| GET | `/events/:slug/theme` | Get event theme | No |
+| GET | `/events/:slug/theme` | Get event theme | Public: no; private: JWT event member |
 | PUT | `/admin/events/:slug/theme` | Update theme | Yes (Owner) |
 | POST | `/admin/events/:slug/theme/preset` | Apply preset | Yes (Owner) |
 
