@@ -11,7 +11,8 @@ import (
 type WsAdmission int
 
 const (
-	WsAdmissionGranted          WsAdmission = iota // the identity may join the room
+	WsAdmissionGranted          WsAdmission = iota // the identity is a member of the private event
+	WsAdmissionPublicRoom                         // the event is public: anyone may join
 	WsAdmissionIdentityRequired                    // the room needs an identity the client could not present
 	WsAdmissionForbidden                           // the identity is not allowed in that room
 )
@@ -38,7 +39,7 @@ func (p *WsRoomPolicy) CanAccessRoom(eventSlug string, userID uuid.UUID) (bool, 
 	if err != nil {
 		return false, err
 	}
-	return admission == WsAdmissionGranted, nil
+	return admission == WsAdmissionGranted || admission == WsAdmissionPublicRoom, nil
 }
 
 // AdmitRoom reports whether the identity may join the room. userID is
@@ -52,7 +53,7 @@ func (p *WsRoomPolicy) AdmitRoom(eventSlug string, userID uuid.UUID) (WsAdmissio
 		return WsAdmissionForbidden, err
 	}
 	if event.IsPublic {
-		return WsAdmissionGranted, nil
+		return WsAdmissionPublicRoom, nil
 	}
 	if userID == uuid.Nil {
 		return WsAdmissionIdentityRequired, nil
