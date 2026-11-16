@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/the-mile-game/backend/internal/models"
 	"github.com/the-mile-game/backend/internal/services"
@@ -347,11 +348,55 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	go client.readPump()
 }
 
+// anonymousVisibilityCache memoizes the visibility decisions of one broadcast.
+type anonymousVisibilityCache map[uuid.UUID]bool
+
+// anonymouslyVisible reports whether the content of an event may be seen by a
+// client without an identity, which is the audience of the global broadcasts.
+// The records that belong to no event keep their current behavior and stay
+// visible.
+func (h *Hub) anonymouslyVisible(eventID uuid.UUID, cache anonymousVisibilityCache) bool {
+	if eventID == uuid.Nil {
+		return true
+	}
+	if h.admission == nil {
+		// Without a policy nothing can be proven to be public: fail closed.
+		return false
+	}
+	if visible, ok := cache[eventID]; ok {
+		return visible
+	}
+
+	visible, err := h.admission.CanAnonymousViewEvent(eventID)
+	if err != nil {
+		log.Printf("WebSocket: no se pudo verificar la visibilidad del evento '%s': %v", eventID, err)
+		visible = false
+	}
+	cache[eventID] = visible
+	return visible
+}
+
 // BroadcastRanking envía el ranking actualizado a todos los clientes
 func (h *Hub) BroadcastRanking(ranking []models.RankingEntry) {
+	// Los observers no tienen identidad: el payload global solo lleva lo que
+	// puede ver cualquiera, es decir los eventos públicos y los datos sin evento.
+	cache := anonymousVisibilityCache{}
+	visible := make([]models.RankingEntry, 0, len(ranking))
+	for _, entry := range ranking {
+		if h.anonymouslyVisible(entry.Player.EventID, cache) {
+			visible = append(visible, entry)
+		}
+	}
+	if len(visible) == 0 {
+		return
+	}
+	for i := range visible {
+		visible[i].Position = i + 1
+	}
+
 	msg := RankingUpdateMessage{
 		Type:    "ranking_update",
-		Ranking: ranking,
+		Ranking: visible,
 	}
 
 	data, err := json.Marshal(msg)
@@ -366,6 +411,11 @@ func (h *Hub) BroadcastRanking(ranking []models.RankingEntry) {
 
 // BroadcastPostcard envía una nueva postal a todos los clientes conectados
 func (h *Hub) BroadcastPostcard(postcard models.Postcard) {
+	// Una postal de un evento privado no puede salir en un broadcast global.
+	if !h.anonymouslyVisible(postcard.EventID, anonymousVisibilityCache{}) {
+		return
+	}
+
 	msg := PostcardNewMessage{
 		Type:     "postcard_new",
 		Postcard: postcard,
@@ -384,9 +434,21 @@ func (h *Hub) BroadcastPostcard(postcard models.Postcard) {
 // BroadcastSecretReveal envía el evento de reveal de la Secret Box a todos los clientes.
 // Este mensaje dispara la animación de caja de regalos en todos los corkboards conectados.
 func (h *Hub) BroadcastSecretReveal(postcards []models.Postcard) {
+	// Las postcards secretas de un evento privado no pueden salir en un broadcast global.
+	cache := anonymousVisibilityCache{}
+	visible := make([]models.Postcard, 0, len(postcards))
+	for _, postcard := range postcards {
+		if h.anonymouslyVisible(postcard.EventID, cache) {
+			visible = append(visible, postcard)
+		}
+	}
+	if len(visible) == 0 {
+		return
+	}
+
 	msg := SecretRevealMessage{
 		Type:      "secret_box_reveal",
-		Postcards: postcards,
+		Postcards: visible,
 	}
 
 	data, err := json.Marshal(msg)

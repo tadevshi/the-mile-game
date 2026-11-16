@@ -12,7 +12,7 @@ type WsAdmission int
 
 const (
 	WsAdmissionGranted          WsAdmission = iota // the identity is a member of the private event
-	WsAdmissionPublicRoom                         // the event is public: anyone may join
+	WsAdmissionPublicRoom                          // the event is public: anyone may join
 	WsAdmissionIdentityRequired                    // the room needs an identity the client could not present
 	WsAdmissionForbidden                           // the identity is not allowed in that room
 )
@@ -40,6 +40,25 @@ func (p *WsRoomPolicy) CanAccessRoom(eventSlug string, userID uuid.UUID) (bool, 
 		return false, err
 	}
 	return admission == WsAdmissionGranted || admission == WsAdmissionPublicRoom, nil
+}
+
+// CanAnonymousViewEvent reports whether the content of an event may be seen by
+// a client without an identity. The records that belong to no event keep their
+// current behavior, so they stay visible.
+func (p *WsRoomPolicy) CanAnonymousViewEvent(eventID uuid.UUID) (bool, error) {
+	if eventID == uuid.Nil {
+		return true, nil
+	}
+
+	event, err := p.events.GetByID(eventID)
+	if err != nil {
+		if errors.Is(err, repository.ErrEventNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return event.IsPublic, nil
 }
 
 // AdmitRoom reports whether the identity may join the room. userID is
