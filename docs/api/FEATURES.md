@@ -88,14 +88,22 @@ The response includes the `features` object with current settings.
 
 The event payloads in the following responses use an explicit allowlist DTO
 (`models.PublicEventResponse`) so that invitation and Secret Box credentials are not
-included in generic event responses. Dedicated token endpoints remain the only
-responses that return those credentials.
+included in generic event responses. The internal `is_public` field is also omitted.
+Dedicated token endpoints remain the only responses that return those credentials.
+
+Current event-scoped content routes remain anonymous for public events. A private event
+requires a valid account JWT for its owner, a collaborator, or an accepted guest; guests
+may participate but do not receive administration rights. Missing/invalid identity
+returns `401`, while an authenticated non-member receives `403`. All supported event
+creation and administration paths still leave events public, and this API has no
+visibility-setting operation yet. Legacy unscoped routes are unchanged; do not activate
+private visibility until their later protections are in place.
 
 ### Responses that use the safe payload
 
 | Endpoint | Auth | Notes |
 |----------|------|-------|
-| `GET /api/events/:slug` | Public | Event detail for visitors |
+| `GET /api/events/:slug` | Public event: no; private event: JWT event member | Event detail for visitors |
 | `GET /api/users/me/events` | JWT | Owned **and** collaborator events |
 | `POST /api/collaborators/accept` | JWT | Joined event |
 | `PUT /api/admin/events/:slug/features` | Owner or collaborator | Updated event |
