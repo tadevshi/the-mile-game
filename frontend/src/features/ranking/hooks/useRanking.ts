@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useWebSocketStore } from '@/shared/store/websocketStore';
+import { useWebSocketStore, createEventProtocols } from '@/shared/store/websocketStore';
 import { api, type RankingEntry } from '@/shared/lib/api';
 import { rankingService } from '../services/rankingApi';
 
@@ -27,12 +27,13 @@ export function useRanking() {
   useEffect(() => {
     const wsStore = useWebSocketStore.getState();
 
-    // Connect if not already connected or URL changed
+    // Connect if not already connected or URL changed. The admission ticket is
+    // minted per attempt; the store asks for a fresh one on every reconnect.
     if (!wsStore.isConnected && !wsStore.isConnecting) {
-      wsStore.connect(wsUrl);
+      wsStore.connect(wsUrl, createEventProtocols(slug));
     } else if (wsStore.currentUrl !== wsUrl) {
       // URL changed, reconnect with new event slug
-      wsStore.connect(wsUrl);
+      wsStore.connect(wsUrl, createEventProtocols(slug));
     }
 
     // Subscribe to messages

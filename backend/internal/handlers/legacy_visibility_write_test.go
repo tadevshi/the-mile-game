@@ -18,11 +18,10 @@ import (
 func TestLegacyOptionalAuthDoesNotChangePublicBehavior(t *testing.T) {
 	fixture := newLegacyVisibilityFixture(t)
 
-	tampered := fixture.ownerToken
+	tampered := tamperJWTSignature(fixture.ownerToken)
 	if len(tampered) < 2 {
-		t.Fatalf("unexpected access token %q", tampered)
+		t.Fatalf("unexpected access token %q", fixture.ownerToken)
 	}
-	tampered = tampered[:len(tampered)-1] + "X"
 
 	headers := map[string]string{
 		"absent":            "",
@@ -337,4 +336,23 @@ func TestLegacyQuizSubmitBroadcastExcludesPrivateEventPlayers(t *testing.T) {
 			t.Fatalf("legacy ranking broadcast exposed the player %s of a private event", fixture.privatePlayer.ID)
 		}
 	}
+}
+
+// tamperJWTSignature changes a character in the middle of the signature part
+// of a token. The last character of a base64url signature carries only a few
+// significant bits, so replacing it can decode to the same bytes and would
+// leave the token valid, making the assertion flaky.
+func tamperJWTSignature(token string) string {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 || len(parts[2]) < 3 {
+		return token + "X"
+	}
+	signature := []byte(parts[2])
+	middle := len(signature) / 2
+	if signature[middle] == 'A' {
+		signature[middle] = 'B'
+	} else {
+		signature[middle] = 'A'
+	}
+	return parts[0] + "." + parts[1] + "." + string(signature)
 }

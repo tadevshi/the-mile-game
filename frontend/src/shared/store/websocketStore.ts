@@ -1,4 +1,32 @@
 import { create } from 'zustand';
+import { api } from '@/shared/lib/api';
+
+/** Application subprotocol of the EventHub WebSocket handshake. */
+export const WS_APP_PROTOCOL = 'eventhub.v1';
+
+/** Prefix of the admission ticket subprotocol (`ticket.<value>`). */
+export const WS_TICKET_PROTOCOL_PREFIX = 'ticket.';
+
+/** The subprotocols offered: the application one, plus the admission ticket. */
+export function buildWsProtocols(ticket?: string | null): string[] {
+  return ticket ? [WS_APP_PROTOCOL, `${WS_TICKET_PROTOCOL_PREFIX}${ticket}`] : [WS_APP_PROTOCOL];
+}
+
+/** Protocols offered to the handshake, ready or minted per attempt. */
+export type WsProtocols = string[] | (() => string[] | Promise<string[]>);
+
+/**
+ * The provider both event hooks use: it mints an admission ticket over the
+ * authenticated surface when there is a session, and offers the application
+ * protocol alone when there is none or the request fails.
+ */
+export function createEventProtocols(eventSlug?: string): () => Promise<string[]> {
+  return async () => {
+    if (!eventSlug || !api.hasAuthSession()) return buildWsProtocols();
+    const ticket = await api.requestWsTicket(eventSlug).catch(() => null);
+    return buildWsProtocols(ticket?.ticket);
+  };
+}
 
 export interface WebSocketMessage {
   type: string;
@@ -32,7 +60,7 @@ interface WebSocketState {
   subscribers: Set<MessageHandler>;
 
   // Actions
-  connect: (url: string) => void;
+  connect: (url: string, protocols?: WsProtocols) => void;
   disconnect: () => void;
   sendMessage: (message: unknown) => void;
   subscribe: (handler: MessageHandler) => () => void;
@@ -40,6 +68,11 @@ interface WebSocketState {
 
 export const useWebSocketStore = create<WebSocketState>((set, get) => {
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Protocols of the last connection, kept so a reconnect re-mints them.
+  let protocolsRef: WsProtocols | undefined;
+  // Guards against a slower connection attempt overwriting a newer one.
+  let connectSeq = 0;
 
   const handleReconnect = (url: string) => {
     const state = get();
@@ -58,7 +91,8 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
     );
 
     reconnectTimer = setTimeout(() => {
-      get().connect(url);
+      // A reconnect re-mints the admission ticket: the previous one expired.
+      get().connect(url, protocolsRef);
     }, delay);
   };
 
@@ -75,8 +109,24 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
     reconnectUrl: null,
     subscribers: new Set(),
 
-    connect: (url: string) => {
+    connect: (url: string, protocols?: WsProtocols) => {
       const state = get();
+      protocolsRef = protocols;
+
+      // A provider is resolved before the socket opens: the ticket is minted
+      // per attempt over the authenticated surface.
+      if (typeof protocols === 'function') {
+        const seq = ++connectSeq;
+        void (async () => {
+          const list = await Promise.resolve().then(() => protocols()).catch(() => [WS_APP_PROTOCOL]);
+          if (seq !== connectSeq) return; // a newer connection superseded this one
+          get().connect(url, list);
+          protocolsRef = protocols; // the next reconnect re-mints the ticket
+        })();
+        return;
+      }
+
+      connectSeq++;
 
       // If there's an existing socket with a different URL, close it first
       if (state.socket && state.currentUrl !== url) {
@@ -117,7 +167,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => {
 
       try {
         console.log('[WebSocket Store] Connecting to:', url);
-        const ws = new WebSocket(url);
+        const ws = new WebSocket(url, protocols ?? []);
 
         ws.onopen = () => {
           console.log('[WebSocket Store] Connected');
