@@ -11,7 +11,8 @@ import (
 type WsAdmission int
 
 const (
-	WsAdmissionGranted          WsAdmission = iota // the identity may join the room
+	WsAdmissionGranted          WsAdmission = iota // the identity is a member of the private event
+	WsAdmissionPublicRoom                         // the event is public: anyone may join
 	WsAdmissionIdentityRequired                    // the room needs an identity the client could not present
 	WsAdmissionForbidden                           // the identity is not allowed in that room
 )
@@ -30,6 +31,17 @@ func NewWsRoomPolicy(events *repository.EventRepository, collaborators *reposito
 	return &WsRoomPolicy{events: events, collaborators: collaborators, guests: guests}
 }
 
+// CanAccessRoom reports whether the account may see the event at all. It is
+// used to refuse a ticket for an event the account cannot reach, so the
+// ticket is only ever minted for a room the account may enter.
+func (p *WsRoomPolicy) CanAccessRoom(eventSlug string, userID uuid.UUID) (bool, error) {
+	admission, err := p.AdmitRoom(eventSlug, userID)
+	if err != nil {
+		return false, err
+	}
+	return admission == WsAdmissionGranted || admission == WsAdmissionPublicRoom, nil
+}
+
 // AdmitRoom reports whether the identity may join the room. userID is
 // uuid.Nil when the client presented no valid ticket.
 func (p *WsRoomPolicy) AdmitRoom(eventSlug string, userID uuid.UUID) (WsAdmission, error) {
@@ -41,7 +53,7 @@ func (p *WsRoomPolicy) AdmitRoom(eventSlug string, userID uuid.UUID) (WsAdmissio
 		return WsAdmissionForbidden, err
 	}
 	if event.IsPublic {
-		return WsAdmissionGranted, nil
+		return WsAdmissionPublicRoom, nil
 	}
 	if userID == uuid.Nil {
 		return WsAdmissionIdentityRequired, nil
