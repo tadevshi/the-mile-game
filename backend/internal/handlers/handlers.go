@@ -3,7 +3,9 @@ package handlers
 import (
 	"crypto/sha256"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -312,7 +314,17 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 		// Legacy route: resolve the event that owns the player and apply the
 		// persisted visibility before storing any answer.
 		player, playerErr := h.playerRepo.GetByID(playerID)
-		if playerErr == nil && !h.requireLegacyEventAccess(c, player.EventID) {
+		switch {
+		case playerErr == nil:
+			if !h.requireLegacyEventAccess(c, player.EventID) {
+				return
+			}
+		case errors.Is(playerErr, sql.ErrNoRows):
+			// The player does not exist: keep the previous behavior, the answer
+			// storage fails on the foreign key.
+		default:
+			// Fail closed: the visibility of the player could not be verified.
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify event access"})
 			return
 		}
 	}
@@ -379,6 +391,29 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 		players, err = h.playerRepo.ListByEvent(eventID)
 	} else {
 		players, err = h.playerRepo.List()
+		if err == nil {
+			// Legacy route: the global ranking broadcast reaches every connected
+			// client, so it must not carry the players of a private event the
+			// caller may not see.
+			eventIDs := make([]uuid.UUID, len(players))
+			for i, player := range players {
+				eventIDs[i] = player.EventID
+			}
+
+			visible, failure := h.legacyVisibleFlags(c, eventIDs)
+			if failure != nil {
+				// Fail closed: without the visibility the broadcast is skipped.
+				players = nil
+			} else {
+				filtered := make([]models.Player, 0, len(players))
+				for i, player := range players {
+					if visible[i] {
+						filtered = append(filtered, player)
+					}
+				}
+				players = filtered
+			}
+		}
 	}
 
 	if err == nil && h.hub != nil {
@@ -426,7 +461,16 @@ func (h *Handler) GetQuizAnswers(c *gin.Context) {
 		// Legacy route: the answers belong to a player, so the visibility of the
 		// player's event decides whether they can be read.
 		player, playerErr := h.playerRepo.GetByID(playerID)
-		if playerErr == nil && !h.requireLegacyEventAccess(c, player.EventID) {
+		switch {
+		case playerErr == nil:
+			if !h.requireLegacyEventAccess(c, player.EventID) {
+				return
+			}
+		case errors.Is(playerErr, sql.ErrNoRows):
+			// The player does not exist: the answers lookup answers 404 as before.
+		default:
+			// Fail closed: the visibility of the player could not be verified.
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify event access"})
 			return
 		}
 	}

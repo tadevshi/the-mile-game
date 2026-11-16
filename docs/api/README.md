@@ -126,7 +126,7 @@ The event guest link is separate from the collaborator invitation link. Guests m
 |--------|----------|-------------|------|
 | GET | `/events/:slug/postcards` | List event postcards | Public: no; private: JWT event member |
 | POST | `/events/:slug/postcards` | Create event postcard (image OR media) | Public: no; private: JWT event member |
-| GET | `/postcards` | List postcards (legacy query: `event_id`) | Legacy; filtered by event visibility |
+| GET | `/postcards` | List postcards (legacy route, no event filter in the query) | Legacy; filtered by event visibility |
 | POST | `/postcards` | Create postcard (legacy) | Legacy; denied for private events the caller may not see; stored bound to the event of its player |
 | POST | `/events/:slug/secret-box` | Create secret postcard | `X-Secret-Token` for that event; upload only |
 
