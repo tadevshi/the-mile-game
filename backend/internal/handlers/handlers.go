@@ -180,6 +180,18 @@ func (h *Handler) GetPlayer(c *gin.Context) {
 		return
 	}
 
+	if eventValue, scoped := c.Get("event_id"); scoped {
+		eventID, ok := eventValue.(uuid.UUID)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Event not in context"})
+			return
+		}
+		if player.EventID != eventID {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, player)
 }
 
@@ -344,6 +356,19 @@ func (h *Handler) GetQuizAnswers(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid player ID"})
 		return
+	}
+
+	if eventValue, scoped := c.Get("event_id"); scoped {
+		eventID, ok := eventValue.(uuid.UUID)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Event not in context"})
+			return
+		}
+		player, playerErr := h.playerRepo.GetByID(playerID)
+		if playerErr != nil || player.EventID != eventID {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Answers not found"})
+			return
+		}
 	}
 
 	answers, err := h.quizRepo.GetAnswersByPlayerID(playerID)
