@@ -85,6 +85,12 @@ func newScopedAccessFixture(t *testing.T) *scopedAccessFixture {
 		nil,
 		"",
 	)
+	// The legacy routes resolve the persisted event visibility.
+	handler.WithLegacyVisibility(NewLegacyEventVisibility(
+		eventRepo,
+		repository.NewCollaboratorRepository(db),
+		repository.NewGuestRepository(db),
+	))
 	return &scopedAccessFixture{db: db, handler: handler, players: players, quiz: quiz, eventA: eventA, eventB: eventB, playerA: playerA, playerB: playerB}
 }
 

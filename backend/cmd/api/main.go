@@ -165,6 +165,12 @@ func main() {
 		handler = handlers.NewHandler(playerRepo, quizRepo, quizQuestionRepo, postcardRepo, hub, uploadsDir)
 	}
 
+	// La visibilidad persistida del evento se aplica también a las rutas legacy.
+	handler = handler.WithLegacyVisibility(handlers.NewLegacyEventVisibility(eventRepo, collaboratorRepo, guestRepo))
+
+	// La administración legacy queda acotada a los eventos que administra el caller.
+	handler = handler.WithLegacyAdminScope(handlers.NewLegacyAdminScope(eventRepo, collaboratorRepo))
+
 	authHandler := handlers.NewAuthHandler(authServiceWithReset)
 	themeHandler := handlers.NewThemeHandler(themeService)
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
@@ -276,24 +282,30 @@ func main() {
 		// Secret Box upload remains token-authorized and is not event-content access.
 		registerSecretBoxUploadRoute(api, eventMiddleware, handler.CreateSecretPostcard)
 
-		// Legacy routes (backward compatibility - usan evento default)
-		// Players
-		api.POST("/players", handler.CreatePlayer)
-		api.GET("/players/:id", handler.GetPlayer)
-		api.GET("/players", handler.ListPlayers)
+		// Legacy routes (backward compatibility - usan evento default).
+		// La identidad opcional permite aplicar la visibilidad persistida del
+		// evento a las lecturas y escrituras heredadas.
+		legacy := api.Group("")
+		legacy.Use(optionalAuthMiddleware)
+		{
+			// Players
+			legacy.POST("/players", handler.CreatePlayer)
+			legacy.GET("/players/:id", handler.GetPlayer)
+			legacy.GET("/players", handler.ListPlayers)
 
-		// Quiz
-		api.GET("/quiz/questions", handler.GetQuizQuestions)
-		api.POST("/quiz/submit", handler.SubmitQuiz)
-		api.GET("/quiz/answers/:playerId", handler.GetQuizAnswers)
-		api.GET("/quiz/descriptions", handler.GetDescriptions)
+			// Quiz
+			legacy.GET("/quiz/questions", handler.GetQuizQuestions)
+			legacy.POST("/quiz/submit", handler.SubmitQuiz)
+			legacy.GET("/quiz/answers/:playerId", handler.GetQuizAnswers)
+			legacy.GET("/quiz/descriptions", handler.GetDescriptions)
 
-		// Ranking
-		api.GET("/ranking", handler.GetRanking)
+			// Ranking
+			legacy.GET("/ranking", handler.GetRanking)
 
-		// Postcards (Cartelera de Corcho)
-		api.POST("/postcards", handler.CreatePostcard)
-		api.GET("/postcards", handler.ListPostcards)
+			// Postcards (Cartelera de Corcho)
+			legacy.POST("/postcards", handler.CreatePostcard)
+			legacy.GET("/postcards", handler.ListPostcards)
+		}
 
 		// Secret Box
 		api.POST("/postcards/secret", handler.CreateSecretPostcard)
@@ -302,9 +314,11 @@ func main() {
 		registerScopedPageViewRoute(api, eventMiddleware, optionalAuthMiddleware, eventVisibilityMiddleware, analyticsHandler.LogPageView)
 
 		// Admin routes (legacy - backward compatibility)
-		api.GET("/admin/status", handler.GetSecretBoxStatus)
-		api.GET("/admin/secret-box", handler.ListSecretPostcards)
-		api.POST("/admin/reveal", handler.RevealSecretBox)
+		// La identidad es opcional en el middleware: el handler exige una
+		// identidad valida y acota la administracion a los eventos del caller.
+		api.GET("/admin/status", optionalAuthMiddleware, handler.GetSecretBoxStatus)
+		api.GET("/admin/secret-box", optionalAuthMiddleware, handler.ListSecretPostcards)
+		api.POST("/admin/reveal", optionalAuthMiddleware, handler.RevealSecretBox)
 
 		// Drive admin routes (user-level, not event-scoped)
 		// These routes handle Google Drive OAuth connection and backup job management
