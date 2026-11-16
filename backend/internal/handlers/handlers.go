@@ -896,6 +896,11 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	var playerID *uuid.UUID
 	var err error
 
+	// legacyEventID keeps the event of the referenced player on the legacy
+	// route, so a created postcard stays bound to its event and the visibility
+	// rules can filter it.
+	var legacyEventID uuid.UUID
+
 	if playerIDStr != "" {
 		// Modo 1: jugador existente
 		id, parseErr := uuid.Parse(playerIDStr)
@@ -918,10 +923,13 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Player does not belong to this event"})
 				return
 			}
-		} else if !h.requireLegacyEventAccess(c, player.EventID) {
+		} else {
 			// Legacy route: the referenced player belongs to an event the caller
 			// may not see. Denied before any media or row is stored.
-			return
+			if !h.requireLegacyEventAccess(c, player.EventID) {
+				return
+			}
+			legacyEventID = player.EventID
 		}
 	} else {
 		// Modo 2: inline player registration
@@ -976,6 +984,10 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	var postcard *models.Postcard
 	if eventID, exists := c.Get("event_id"); exists {
 		postcard, err = h.postcardRepo.CreateWithEvent(eventID.(uuid.UUID), playerID, mediaResult.PublicPath, message, rotation, senderName, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
+	} else if legacyEventID != uuid.Nil {
+		// Legacy route: the postcard belongs to the event of its player, so the
+		// legacy list applies the event visibility to it.
+		postcard, err = h.postcardRepo.CreateWithEvent(legacyEventID, playerID, mediaResult.PublicPath, message, rotation, senderName, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
 	} else {
 		postcard, err = h.postcardRepo.Create(*playerID, mediaResult.PublicPath, message, rotation, senderName, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
 	}
