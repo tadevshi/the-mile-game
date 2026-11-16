@@ -14,6 +14,11 @@ type WsTicketIssuer interface {
 	Issue(userID uuid.UUID, eventSlug string) (string, time.Time, error)
 }
 
+// WsEventAccessChecker reports whether an account may see an event.
+type WsEventAccessChecker interface {
+	CanAccessRoom(eventSlug string, userID uuid.UUID) (bool, error)
+}
+
 // WsTicketHandler issues the short-lived admission tickets that let a browser
 // open a WebSocket for an event it is allowed to see.
 //
@@ -22,12 +27,13 @@ type WsTicketIssuer interface {
 // already allowed to reach that event.
 type WsTicketHandler struct {
 	issuer   WsTicketIssuer
+	access   WsEventAccessChecker
 	protocol string
 }
 
 // NewWsTicketHandler builds the ticket handler.
-func NewWsTicketHandler(issuer WsTicketIssuer) *WsTicketHandler {
-	return &WsTicketHandler{issuer: issuer, protocol: services.WsTicketProtocol}
+func NewWsTicketHandler(issuer WsTicketIssuer, access WsEventAccessChecker) *WsTicketHandler {
+	return &WsTicketHandler{issuer: issuer, access: access, protocol: services.WsTicketProtocol}
 }
 
 // RegisterWsTicketRoutes registers the ticket endpoint behind the
@@ -51,6 +57,21 @@ func (h *WsTicketHandler) Issue(c *gin.Context) {
 	if err := c.ShouldBindJSON(&request); err != nil || request.Event == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Event is required"})
 		return
+	}
+
+	// A ticket is only minted for an event the account may reach: the
+	// admission still decides at the handshake, but there is no reason to
+	// hand out a credential for a room the account cannot enter.
+	if h.access != nil {
+		allowed, err := h.access.CanAccessRoom(request.Event, userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify event access"})
+			return
+		}
+		if !allowed {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to view this event"})
+			return
+		}
 	}
 
 	ticket, expiresAt, err := h.issuer.Issue(userID, request.Event)
