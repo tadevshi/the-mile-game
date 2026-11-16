@@ -21,6 +21,9 @@ type TicketValidator interface {
 // injectable.
 type RoomAdmissionPolicy interface {
 	AdmitRoom(eventSlug string, userID uuid.UUID) (services.WsAdmission, error)
+	// CanAnonymousViewEvent reports whether the content of an event may be
+	// seen by a client without an identity.
+	CanAnonymousViewEvent(eventID uuid.UUID) (bool, error)
 }
 
 // ticketFromRequest extracts the admission ticket from the offered
