@@ -46,9 +46,50 @@ See [Authentication](AUTH.md) for details on obtaining tokens.
 
 Current `/events/:slug/...` content and play routes remain anonymous for public events. For a private event they require a valid account JWT belonging to the event owner, a collaborator, or an accepted guest; missing/invalid identity returns `401`, and an authenticated non-member receives `403`. Guest membership permits event participation but does not grant administration. Invalid optional authentication does not change public-event access.
 
-All supported event creation and administration paths continue to leave events public; this API does not yet expose a visibility-setting operation. Legacy unscoped endpoints retain their existing behavior and are not covered by this scoped policy. Do not activate private visibility until the later legacy, WebSocket, and media protections are available.
+All supported event creation and administration paths continue to leave events public; this API does not yet expose a visibility-setting operation. Legacy unscoped endpoints are not covered by this scoped policy; they follow the legacy visibility and legacy administration rules below. Do not activate private visibility until the later WebSocket and media protections are available — private-event protection is not complete yet.
 
 `POST /events/:slug/secret-box` remains a separate upload-only endpoint authorized by that event's `X-Secret-Token`; the token does not grant access to event content.
+
+### Legacy (unscoped) event visibility
+
+The legacy, non-event-scoped routes resolve the event that owns each record and apply the persisted event visibility, with the same semantics as the scoped routes above. A record that belongs to a public event stays readable by anyone, including anonymous callers. A record that belongs to a private event is readable only by the event owner, its collaborators and its accepted guests.
+
+| Method | Endpoint | Visibility |
+|--------|----------|------------|
+| GET | `/players/:id` | Resolves the player's event; public: no auth; private: JWT event member |
+| GET | `/players` | Lists only the rows of the events the caller may see |
+| GET | `/ranking` | Lists only the entries of the events the caller may see |
+| GET | `/quiz/answers/:playerId` | Resolves the player's event; public: no auth; private: JWT event member |
+| GET | `/quiz/descriptions` | Returns only the descriptions of the events the caller may see |
+| GET | `/postcards` | Lists only the postcards of the events the caller may see |
+| POST | `/quiz/submit` | Denied before anything is stored when the referenced player belongs to a private event the caller may not see |
+| POST | `/postcards` | Denied before anything is stored when the referenced player belongs to a private event the caller may not see |
+
+The denial semantics match the scoped routes:
+
+- `401` with `Authentication required` when the request carries no valid account identity.
+- `403` with `Not authorized to view this event` when the request carries a valid identity but the caller is not an owner, collaborator or accepted guest of the event.
+
+The legacy list routes filter out the rows the caller may not see and keep their status code and response shape. Legacy records that belong to no event keep their current behavior.
+
+The legacy routes accept an optional bearer token. An absent, malformed or invalid token never changes access to a public event.
+
+### Legacy administration
+
+The legacy administration routes now require an authenticated account and are bounded to the events the caller administers.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | `/admin/status` | Yes (owner or collaborator of at least one event) |
+| GET | `/admin/secret-box` | Yes (owner or collaborator of at least one event) |
+| POST | `/admin/reveal` | Yes (owner or collaborator of at least one event) |
+
+- `401` with `Authentication required` when the request carries no valid account identity.
+- `403` with `Not authorized. You are not the owner or a collaborator of this event` when the caller administers no event. Accepted guests are not collaborators, so a guest never gains administrative access.
+
+The routes aggregate, list and reveal only over the events the caller owns or collaborates on. `POST /admin/reveal` reveals each of those events separately and broadcasts every affected event to its own room, addressed by event slug, instead of a single global broadcast; an event with no pending postcards is neither revealed nor broadcast.
+
+Private-event protection is still incomplete. There is no supported administration write that can switch an event to private (`EventRepository.Update` does not persist `is_public`), and the WebSocket admission, global recipient isolation and media/cache protections are separate later units.
 
 ### Event Guests
 | Method | Endpoint | Description | Auth |
@@ -85,8 +126,8 @@ The event guest link is separate from the collaborator invitation link. Guests m
 |--------|----------|-------------|------|
 | GET | `/events/:slug/postcards` | List event postcards | Public: no; private: JWT event member |
 | POST | `/events/:slug/postcards` | Create event postcard (image OR media) | Public: no; private: JWT event member |
-| GET | `/postcards` | List postcards (legacy query: `event_id`) | Legacy; unchanged by scoped visibility |
-| POST | `/postcards` | Create postcard (legacy) | Legacy; unchanged by scoped visibility |
+| GET | `/postcards` | List postcards (legacy query: `event_id`) | Legacy; filtered by event visibility |
+| POST | `/postcards` | Create postcard (legacy) | Legacy; denied for private events the caller may not see |
 | POST | `/events/:slug/secret-box` | Create secret postcard | `X-Secret-Token` for that event; upload only |
 
 ### Themes
