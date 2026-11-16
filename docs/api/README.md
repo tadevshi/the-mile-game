@@ -305,13 +305,15 @@ POST /api/ws/ticket          # authenticated
 201 {"ticket": "<signed value>", "expires_at": "<RFC3339>", "protocol": "eventhub.v1"}
 ```
 
-The ticket is bound to the account and to that event, and it expires about a minute after it is minted, so the client requests a fresh one for every connection attempt. A ticket minted for another event is refused with `403`, and a ticket that does not validate leaves the client anonymous, which never grants access to a private room.
+The ticket is bound to the account and to that event, and it expires about a minute after it is minted, so the client requests a fresh one for every connection attempt. A ticket minted for another event does not open that room, but it also does not close a public room, which stays open to everyone. A ticket that does not validate leaves the client anonymous, which never grants access to a private room.
+
+The ticket is a short-lived bearer credential: whoever holds it can use it as that account until it expires. The short lifetime, the subprotocol transport and the fact that the ticket is only minted for an event the account may reach bound that risk.
 
 Clients offer two subprotocols: `eventhub.v1` and `ticket.<ticket value>`. The server negotiates `eventhub.v1`.
 
 ### Delivery
 
-A client admitted to a room receives only the messages of that room. The global broadcasts reach only the connections without a room, and a room broadcast without an event slug reaches nobody. The global recipient filtering for those observers is a separate unit.
+A client admitted to a room receives only the messages of that room. The global broadcasts reach only the connections without a room, and a room broadcast without an event slug reaches nobody. The global recipient filtering for those observers is a separate unit, so an observer connection without a room still receives the global payloads.
 
 Events:
 - `ranking_update` - Ranking changed
