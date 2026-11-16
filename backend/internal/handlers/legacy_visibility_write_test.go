@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -276,5 +277,64 @@ func TestScopedRoutesKeepMR3VisibilityBehavior(t *testing.T) {
 	fixture.scoped.ServeHTTP(scopedSubmit, request)
 	if scopedSubmit.Code != http.StatusUnauthorized {
 		t.Fatalf("scoped private submit status = %d, want 401; body=%s", scopedSubmit.Code, scopedSubmit.Body.String())
+	}
+}
+
+// A legacy postcard created for a player of a private event must belong to
+// that event, otherwise it stays eventless and the legacy list exposes it to
+// anonymous callers even though the event is private.
+func TestLegacyPostcardForPrivateEventStaysBoundToItsEvent(t *testing.T) {
+	fixture := newLegacyVisibilityFixture(t)
+
+	created := legacyPostPostcard(t, fixture.router, fixture.ownerToken, fixture.privatePlayer.ID.String())
+	if created.Code != http.StatusCreated {
+		t.Fatalf("legacy postcard status = %d, want 201; body=%s", created.Code, created.Body.String())
+	}
+
+	var postcard models.Postcard
+	decodeJSON(t, created, &postcard)
+	if postcard.EventID != fixture.privateEvent.ID {
+		t.Fatalf("legacy postcard event_id = %s, want %s", postcard.EventID, fixture.privateEvent.ID)
+	}
+
+	anonymous := legacyGet(t, fixture.router, "/api/postcards", "")
+	if anonymous.Code != http.StatusOK {
+		t.Fatalf("legacy postcards list status = %d, want 200; body=%s", anonymous.Code, anonymous.Body.String())
+	}
+	if strings.Contains(anonymous.Body.String(), postcard.ID.String()) {
+		t.Fatalf("legacy postcards list exposed a private-event postcard to an anonymous caller: %s", anonymous.Body.String())
+	}
+
+	owner := legacyGet(t, fixture.router, "/api/postcards", fixture.ownerToken)
+	if owner.Code != http.StatusOK {
+		t.Fatalf("legacy postcards list status = %d, want 200; body=%s", owner.Code, owner.Body.String())
+	}
+	if !strings.Contains(owner.Body.String(), postcard.ID.String()) {
+		t.Fatalf("legacy postcards list hid the postcard from the event owner: %s", owner.Body.String())
+	}
+}
+
+// The legacy quiz submit broadcasts a ranking to the global room. That
+// broadcast must not carry the players of a private event, because every
+// connected client receives it.
+func TestLegacyQuizSubmitBroadcastExcludesPrivateEventPlayers(t *testing.T) {
+	fixture := newLegacyVisibilityFixture(t)
+
+	submit := legacyPostJSON(t, fixture.router, "/api/quiz/submit", "", models.SubmitQuizRequest{
+		Favorites:   map[string]string{"favorite": "F"},
+		Preferences: map[string]string{},
+		Description: "public submit",
+	}, fixture.publicPlayer.ID.String())
+	if submit.Code != http.StatusOK {
+		t.Fatalf("legacy submit status = %d, want 200; body=%s", submit.Code, submit.Body.String())
+	}
+
+	if fixture.hub.globalRankingEntries == nil {
+		t.Fatalf("legacy submit did not broadcast a ranking")
+	}
+	for _, entry := range fixture.hub.globalRankingEntries {
+		if entry.Player.ID == fixture.privatePlayer.ID {
+			t.Fatalf("legacy ranking broadcast exposed the player %s of a private event", fixture.privatePlayer.ID)
+		}
 	}
 }
