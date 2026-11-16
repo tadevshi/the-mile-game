@@ -3,8 +3,16 @@ import { renderHook, waitFor, act } from '@testing-library/react'
 import type { RankingEntry } from '@/shared/lib/api'
 import { useWebSocketStore } from '@/shared/store/websocketStore'
 
+const { mockSlug, mockHasAuthSession, mockRequestWsTicket } = vi.hoisted(() => ({
+  mockSlug: { current: undefined as string | undefined }, mockHasAuthSession: vi.fn(() => true),
+  mockRequestWsTicket: vi.fn(async () => ({ ticket: 'TICKET-1', expires_at: '2026-05-19T12:00:00Z', protocol: 'eventhub.v1' })),
+}))
+
+vi.mock('react-router-dom', () => ({ useParams: () => ({ slug: mockSlug.current }) }))
+
 // Mock useWebSocketStore to avoid real WebSocket connections
-vi.mock('@/shared/store/websocketStore', () => ({
+vi.mock('@/shared/store/websocketStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/shared/store/websocketStore')>()),
   useWebSocketStore: vi.fn(),
 }))
 
@@ -17,6 +25,8 @@ vi.mock('../../services/rankingApi', () => ({
 vi.mock('@/shared/lib/api', () => ({
   api: {
     getPlayerId: vi.fn(() => 'current-player-id'),
+    hasAuthSession: mockHasAuthSession,
+    requestWsTicket: mockRequestWsTicket,
   },
 }))
 
@@ -37,6 +47,7 @@ describe('useRanking', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockSlug.current = undefined
     vi.mocked(rankingService.getRanking).mockResolvedValue(mockRanking)
     
     mockSubscribe = vi.fn().mockReturnValue(vi.fn()); // Returns unsubscribe function
@@ -284,6 +295,19 @@ describe('useRanking', () => {
       
       const { result } = renderHook(() => useRanking())
       expect(result.current.isWsConnected).toBe(true)
+    })
+  })
+
+  // ─── WebSocket admission ────────────────────────────────────────────────────
+  describe('WebSocket admission', () => {
+    it('requests a ticket for the event of the page and offers it as a subprotocol', async () => {
+      mockSlug.current = 'ale-roy'
+      renderHook(() => useRanking())
+      await waitFor(() => expect(mockConnect).toHaveBeenCalled())
+      const [url, protocols] = mockConnect.mock.calls[0]
+      expect(url).toContain('event=ale-roy')
+      await expect(protocols()).resolves.toEqual(['eventhub.v1', 'ticket.TICKET-1'])
+      expect(mockRequestWsTicket).toHaveBeenCalledWith('ale-roy')
     })
   })
 })
