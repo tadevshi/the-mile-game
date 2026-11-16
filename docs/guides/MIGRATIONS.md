@@ -124,6 +124,12 @@ Guest memberships are separate from `event_collaborators`: accepting a guest inv
 
 **Rollback warning:** `014_event_guests.down.sql` drops both tables. Applying it deletes all guest memberships and event invitation tokens. Do not apply it if those records must be preserved. Restoring deleted records requires a backup; a forward migration can recreate schema, but cannot recover dropped data.
 
+## Migration 015: Default-Public Event Visibility
+
+`015_event_visibility.up.sql` adds `events.is_public BOOLEAN NOT NULL DEFAULT TRUE`. Existing events are backfilled as public by the column default, and the current repository creation path explicitly creates new events as public. The API and admin UI expose no visibility-setting operation; do not activate private visibility before the later legacy, WebSocket, and media protections are complete. The field is internal and omitted from the safe public event DTO.
+
+**Rollback warning:** `015_event_visibility.down.sql` drops `events.is_public` and any visibility values stored in it. Do not apply it if those values must be retained; use a validated backup or a forward migration instead.
+
 ## Validation
 
 Useful checks:

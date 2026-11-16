@@ -15,6 +15,12 @@ func scopedEventContentGroup(api *gin.RouterGroup, eventLookup, optionalAuth, vi
 	return events
 }
 
+// registerScopedPageViewRoute keeps event analytics subject to the same visibility policy as content reads.
+func registerScopedPageViewRoute(api *gin.RouterGroup, eventLookup, optionalAuth, visibility, logPageView gin.HandlerFunc) {
+	events := scopedEventContentGroup(api, eventLookup, optionalAuth, visibility)
+	events.POST("/page-view", logPageView)
+}
+
 // registerSecretBoxUploadRoute keeps the token-authorized upload endpoint
 // outside the event-content visibility gate.
 func registerSecretBoxUploadRoute(api *gin.RouterGroup, eventLookup, createPostcard gin.HandlerFunc) {

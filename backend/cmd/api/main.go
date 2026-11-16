@@ -298,12 +298,8 @@ func main() {
 		// Secret Box
 		api.POST("/postcards/secret", handler.CreateSecretPostcard)
 
-		// Analytics (event-scoped, público para page view tracking)
-		eventsAnalytics := api.Group("/events/:slug")
-		eventsAnalytics.Use(eventMiddleware)
-		{
-			eventsAnalytics.POST("/page-view", analyticsHandler.LogPageView)
-		}
+		// Analytics page views are event-scoped content and follow the visibility policy.
+		registerScopedPageViewRoute(api, eventMiddleware, optionalAuthMiddleware, eventVisibilityMiddleware, analyticsHandler.LogPageView)
 
 		// Admin routes (legacy - backward compatibility)
 		api.GET("/admin/status", handler.GetSecretBoxStatus)
