@@ -74,6 +74,8 @@ type Handler struct {
 	uploadsDir       string
 	driveRepo        *repository.DriveRepository
 	backupWorker     BackupWorkerEnqueuer
+	// visibility enforces the persisted event visibility on the legacy routes.
+	visibility *LegacyEventVisibility
 }
 
 // NewHandler crea un nuevo handler
@@ -111,6 +113,14 @@ func NewHandlerWithDrive(
 		driveRepo:        driveRepo,
 		backupWorker:     backupWorker,
 	}
+}
+
+// WithLegacyVisibility injects the visibility dependency used by the legacy
+// (non event-scoped) routes. Without it the legacy routes fail closed for any
+// content that belongs to an event.
+func (h *Handler) WithLegacyVisibility(visibility *LegacyEventVisibility) *Handler {
+	h.visibility = visibility
+	return h
 }
 
 // CreatePlayer crea un nuevo jugador (legacy - sin evento)
@@ -190,6 +200,9 @@ func (h *Handler) GetPlayer(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
 			return
 		}
+	} else if !h.requireLegacyEventAccess(c, player.EventID) {
+		// Legacy route: the player belongs to an event the caller may not see.
+		return
 	}
 
 	c.JSON(http.StatusOK, player)
@@ -203,7 +216,29 @@ func (h *Handler) ListPlayers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, players)
+	eventIDs := make([]uuid.UUID, len(players))
+	for i, player := range players {
+		eventIDs[i] = player.EventID
+	}
+
+	visible, failure := h.legacyVisibleFlags(c, eventIDs)
+	if failure != nil {
+		c.JSON(failure.status, gin.H{"error": failure.message})
+		return
+	}
+
+	filtered := make([]models.Player, 0, len(players))
+	for i, player := range players {
+		if visible[i] {
+			filtered = append(filtered, player)
+		}
+	}
+	if players == nil {
+		// Preserve the current empty response shape.
+		filtered = nil
+	}
+
+	c.JSON(http.StatusOK, filtered)
 }
 
 // ListPlayersScoped lista jugadores del evento actual
@@ -261,6 +296,13 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 		// Obtener features del evento
 		if ev, ok := c.Get("event"); ok {
 			eventFeatures = ev.(*models.Event).Features
+		}
+	} else {
+		// Legacy route: resolve the event that owns the player and apply the
+		// persisted visibility before storing any answer.
+		player, playerErr := h.playerRepo.GetByID(playerID)
+		if playerErr == nil && !h.requireLegacyEventAccess(c, player.EventID) {
+			return
 		}
 	}
 
@@ -369,6 +411,13 @@ func (h *Handler) GetQuizAnswers(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Answers not found"})
 			return
 		}
+	} else {
+		// Legacy route: the answers belong to a player, so the visibility of the
+		// player's event decides whether they can be read.
+		player, playerErr := h.playerRepo.GetByID(playerID)
+		if playerErr == nil && !h.requireLegacyEventAccess(c, player.EventID) {
+			return
+		}
 	}
 
 	answers, err := h.quizRepo.GetAnswersByPlayerID(playerID)
@@ -446,7 +495,9 @@ func (h *Handler) GetRanking(c *gin.Context) {
 	// Si hay event_id en el contexto, usar ListByEvent, sino List
 	var players []models.Player
 	var err error
+	scoped := false
 	if eventID, exists := c.Get("event_id"); exists {
+		scoped = true
 		players, err = h.playerRepo.ListByEvent(eventID.(uuid.UUID))
 	} else {
 		players, err = h.playerRepo.List()
@@ -455,6 +506,28 @@ func (h *Handler) GetRanking(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get ranking"})
 		return
+	}
+
+	if !scoped {
+		// Legacy route: hide the entries of private events the caller may not see.
+		eventIDs := make([]uuid.UUID, len(players))
+		for i, player := range players {
+			eventIDs[i] = player.EventID
+		}
+
+		visible, failure := h.legacyVisibleFlags(c, eventIDs)
+		if failure != nil {
+			c.JSON(failure.status, gin.H{"error": failure.message})
+			return
+		}
+
+		filtered := make([]models.Player, 0, len(players))
+		for i, player := range players {
+			if visible[i] {
+				filtered = append(filtered, player)
+			}
+		}
+		players = filtered
 	}
 
 	// Construir ranking con posiciones
@@ -834,6 +907,10 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Player does not belong to this event"})
 				return
 			}
+		} else if !h.requireLegacyEventAccess(c, player.EventID) {
+			// Legacy route: the referenced player belongs to an event the caller
+			// may not see. Denied before any media or row is stored.
+			return
 		}
 	} else {
 		// Modo 2: inline player registration
@@ -1163,7 +1240,9 @@ func (h *Handler) ListPostcards(c *gin.Context) {
 	// Si hay event_id en el contexto, usar ListByEvent, sino List
 	var postcards []models.Postcard
 	var err error
+	scoped := false
 	if eventID, exists := c.Get("event_id"); exists {
+		scoped = true
 		postcards, err = h.postcardRepo.ListByEvent(eventID.(uuid.UUID))
 	} else {
 		postcards, err = h.postcardRepo.List()
@@ -1172,6 +1251,28 @@ func (h *Handler) ListPostcards(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list postcards"})
 		return
+	}
+
+	if !scoped {
+		// Legacy route: hide the postcards of private events the caller may not see.
+		eventIDs := make([]uuid.UUID, len(postcards))
+		for i, postcard := range postcards {
+			eventIDs[i] = postcard.EventID
+		}
+
+		visible, failure := h.legacyVisibleFlags(c, eventIDs)
+		if failure != nil {
+			c.JSON(failure.status, gin.H{"error": failure.message})
+			return
+		}
+
+		filtered := make([]models.Postcard, 0, len(postcards))
+		for i, postcard := range postcards {
+			if visible[i] {
+				filtered = append(filtered, postcard)
+			}
+		}
+		postcards = filtered
 	}
 
 	// Devolver array vacío en lugar de null si no hay postales
@@ -1188,10 +1289,39 @@ func (h *Handler) ListPostcards(c *gin.Context) {
 
 // GetDescriptions devuelve todas las descripciones de Mile de forma anónima
 func (h *Handler) GetDescriptions(c *gin.Context) {
-	descriptions, err := h.quizRepo.ListDescriptions()
+	entries, err := h.quizRepo.ListDescriptionsWithEvent()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get descriptions"})
 		return
+	}
+
+	// Con contexto de evento solo se devuelven las descripciones de ese evento.
+	scopedEventID, scoped := uuid.Nil, false
+	if eventID, exists := c.Get("event_id"); exists {
+		if id, ok := eventID.(uuid.UUID); ok {
+			scopedEventID, scoped = id, true
+		}
+	}
+
+	descriptions := []string{}
+	for _, entry := range entries {
+		if scoped {
+			if entry.EventID != scopedEventID {
+				continue
+			}
+			descriptions = append(descriptions, entry.Description)
+			continue
+		}
+
+		// Legacy route: hide the descriptions of private events the caller may not see.
+		decision := h.legacyVisibility(c, entry.EventID)
+		if decision.status == http.StatusInternalServerError {
+			c.JSON(decision.status, gin.H{"error": decision.message})
+			return
+		}
+		if decision.allowed {
+			descriptions = append(descriptions, entry.Description)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"descriptions": descriptions})
