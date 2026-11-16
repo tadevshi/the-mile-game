@@ -163,7 +163,7 @@ the persisted event visibility, with the same semantics as the scoped routes.
 | GET | `/api/quiz/descriptions` | Returns only the descriptions of the events the caller may see |
 | GET | `/api/postcards` | Lists only the postcards of the events the caller may see |
 | POST | `/api/quiz/submit` | Denied before anything is stored when the referenced player belongs to a private event the caller may not see |
-| POST | `/api/postcards` | Denied before anything is stored when the referenced player belongs to a private event the caller may not see |
+| POST | `/api/postcards` | Denied before anything is stored when the referenced player belongs to a private event the caller may not see; a stored postcard keeps the event of its player |
 
 A record that belongs to a public event stays readable by anyone, including anonymous
 callers. A record that belongs to a private event is readable only by the event owner,

@@ -63,7 +63,7 @@ The legacy, non-event-scoped routes resolve the event that owns each record and 
 | GET | `/quiz/descriptions` | Returns only the descriptions of the events the caller may see |
 | GET | `/postcards` | Lists only the postcards of the events the caller may see |
 | POST | `/quiz/submit` | Denied before anything is stored when the referenced player belongs to a private event the caller may not see |
-| POST | `/postcards` | Denied before anything is stored when the referenced player belongs to a private event the caller may not see |
+| POST | `/postcards` | Denied before anything is stored when the referenced player belongs to a private event the caller may not see; a stored postcard keeps the event of its player |
 
 The denial semantics match the scoped routes:
 
@@ -127,7 +127,7 @@ The event guest link is separate from the collaborator invitation link. Guests m
 | GET | `/events/:slug/postcards` | List event postcards | Public: no; private: JWT event member |
 | POST | `/events/:slug/postcards` | Create event postcard (image OR media) | Public: no; private: JWT event member |
 | GET | `/postcards` | List postcards (legacy query: `event_id`) | Legacy; filtered by event visibility |
-| POST | `/postcards` | Create postcard (legacy) | Legacy; denied for private events the caller may not see |
+| POST | `/postcards` | Create postcard (legacy) | Legacy; denied for private events the caller may not see; stored bound to the event of its player |
 | POST | `/events/:slug/secret-box` | Create secret postcard | `X-Secret-Token` for that event; upload only |
 
 ### Themes
