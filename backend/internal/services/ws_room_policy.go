@@ -58,7 +58,9 @@ func (p *WsRoomPolicy) CanAnonymousViewEvent(eventID uuid.UUID) (bool, error) {
 		return false, err
 	}
 
-	return event.IsPublic, nil
+	// An event that already ended answers 410 over HTTP, so its content is not
+	// readable either: the same rule applies to the global payloads.
+	return event.IsPublic && event.IsActive, nil
 }
 
 // AdmitRoom reports whether the identity may join the room. userID is
