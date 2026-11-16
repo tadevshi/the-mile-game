@@ -96,8 +96,9 @@ requires a valid account JWT for its owner, a collaborator, or an accepted guest
 may participate but do not receive administration rights. Missing/invalid identity
 returns `401`, while an authenticated non-member receives `403`. All supported event
 creation and administration paths still leave events public, and this API has no
-visibility-setting operation yet. Legacy unscoped routes are unchanged; do not activate
-private visibility until their later protections are in place.
+visibility-setting operation yet. Legacy unscoped routes follow the legacy rules below;
+do not activate private visibility until the later WebSocket and media protections are
+in place.
 
 ### Responses that use the safe payload
 
@@ -147,6 +148,56 @@ admin endpoint below.
 `POST /api/guests/accept?token=...` requires JWT authentication and returns only a success message plus event/user IDs; it never returns a token. Guest acceptance is separate from collaborator acceptance.
 
 Anonymous users get `401`; authenticated users without permission get `403`.
+
+## Legacy (unscoped) event visibility
+
+The legacy, non-event-scoped routes resolve the event that owns each record and apply
+the persisted event visibility, with the same semantics as the scoped routes.
+
+| Method | Endpoint | Visibility |
+|--------|----------|------------|
+| GET | `/api/players/:id` | Resolves the player's event; public: no auth; private: JWT event member |
+| GET | `/api/players` | Lists only the rows of the events the caller may see |
+| GET | `/api/ranking` | Lists only the entries of the events the caller may see |
+| GET | `/api/quiz/answers/:playerId` | Resolves the player's event; public: no auth; private: JWT event member |
+| GET | `/api/quiz/descriptions` | Returns only the descriptions of the events the caller may see |
+| GET | `/api/postcards` | Lists only the postcards of the events the caller may see |
+| POST | `/api/quiz/submit` | Denied before anything is stored when the referenced player belongs to a private event the caller may not see |
+| POST | `/api/postcards` | Denied before anything is stored when the referenced player belongs to a private event the caller may not see; a stored postcard keeps the event of its player |
+
+A record that belongs to a public event stays readable by anyone, including anonymous
+callers. A record that belongs to a private event is readable only by the event owner,
+its collaborators and its accepted guests. The denial semantics match the scoped routes:
+`401` with `Authentication required` without a valid account identity, and `403` with
+`Not authorized to view this event` for an authenticated non-member.
+
+The legacy list routes filter out the rows the caller may not see and keep their status
+code and response shape. Legacy records that belong to no event keep their current
+behavior. The legacy routes accept an optional bearer token: an absent, malformed or
+invalid token never changes access to a public event.
+
+## Legacy administration
+
+The legacy administration routes require an authenticated account and are bounded to the
+events the caller administers.
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | `/api/admin/status` | Yes (owner or collaborator of at least one event) |
+| GET | `/api/admin/secret-box` | Yes (owner or collaborator of at least one event) |
+| POST | `/api/admin/reveal` | Yes (owner or collaborator of at least one event) |
+
+`401` with `Authentication required` is returned without a valid account identity, and
+`403` with `Not authorized. You are not the owner or a collaborator of this event` when
+the caller administers no event. Accepted guests are not collaborators, so a guest never
+gains administrative access. The routes aggregate, list and reveal only over the events
+the caller owns or collaborates on, and the reveal broadcasts every affected event to
+its own room, addressed by event slug, instead of a single global broadcast.
+
+Private-event protection is still incomplete: there is no supported administration write
+that can switch an event to private (`EventRepository.Update` does not persist
+`is_public`), and the WebSocket admission, global recipient isolation and media/cache
+protections are separate later units.
 
 ## Feature Defaults
 

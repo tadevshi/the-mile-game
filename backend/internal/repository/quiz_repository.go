@@ -79,6 +79,42 @@ func (r *QuizRepository) ListDescriptions() ([]string, error) {
 	return descriptions, nil
 }
 
+// DescriptionEntry pairs a quiz description with the event that owns the player
+// it belongs to. Rows without an event keep the zero UUID.
+type DescriptionEntry struct {
+	Description string
+	EventID     uuid.UUID
+}
+
+// ListDescriptionsWithEvent devuelve todas las descripciones no vacías junto con
+// el evento al que pertenece el jugador que las respondió.
+func (r *QuizRepository) ListDescriptionsWithEvent() ([]DescriptionEntry, error) {
+	query := `
+		SELECT q.description, p.event_id
+		FROM quiz_answers q
+		LEFT JOIN players p ON p.id = q.player_id
+		WHERE TRIM(q.description) != ''
+		ORDER BY q.created_at ASC
+	`
+
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entries []DescriptionEntry
+	for rows.Next() {
+		var entry DescriptionEntry
+		if err := rows.Scan(&entry.Description, &entry.EventID); err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+
+	return entries, nil
+}
+
 // GetAnswersByPlayerID obtiene las respuestas de un jugador
 func (r *QuizRepository) GetAnswersByPlayerID(playerID uuid.UUID) (*models.QuizAnswers, error) {
 	query := `
