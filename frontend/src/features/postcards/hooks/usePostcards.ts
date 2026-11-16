@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { usePostcardStore } from '../store/postcardStore';
 import { postcardService } from '../services/postcardApi';
-import { useWebSocketStore } from '@/shared/store/websocketStore';
+import { useWebSocketStore, createEventProtocols } from '@/shared/store/websocketStore';
 import type { Postcard } from '../types/postcards.types';
 
 // Construir la URL del WebSocket según entorno y evento
@@ -33,10 +33,15 @@ export function usePostcards(eventSlug?: string) {
   useEffect(() => {
     const wsStore = useWebSocketStore.getState();
     const url = getWsUrl(eventSlug);
-    
-    // Connect if not already connected
+
+    // Connect if not already connected, or reconnect when the page moved to
+    // another event: the shared socket must belong to the event of the page.
+    // The admission ticket is minted per attempt; the store asks for a fresh
+    // one on every reconnect.
     if (!wsStore.isConnected && !wsStore.isConnecting) {
-      wsStore.connect(url);
+      wsStore.connect(url, createEventProtocols(eventSlug));
+    } else if (wsStore.currentUrl !== url) {
+      wsStore.connect(url, createEventProtocols(eventSlug));
     }
 
     // Subscribe to messages

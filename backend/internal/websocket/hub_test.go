@@ -376,8 +376,8 @@ func TestHub_BroadcastToAll(t *testing.T) {
 
 	hub.BroadcastRanking(ranking)
 
-	// Verificar que todos recibieron el mensaje
-	for _, client := range []*Client{clientA, clientB, clientNoRoom} {
+	// El broadcast global solo llega a los observers sin room
+	for _, client := range []*Client{clientNoRoom} {
 		select {
 		case msg := <-client.send:
 			var wsMsg Message
@@ -388,7 +388,16 @@ func TestHub_BroadcastToAll(t *testing.T) {
 				t.Errorf("Expected ranking_update, got %s", wsMsg.Type)
 			}
 		case <-time.After(1 * time.Second):
-			t.Error("All clients should receive global broadcast")
+			t.Error("The observer without room should receive the global broadcast")
+		}
+	}
+
+	// Los clientes con room no reciben el broadcast global
+	for _, client := range []*Client{clientA, clientB} {
+		select {
+		case msg := <-client.send:
+			t.Errorf("Client with room should NOT receive the global broadcast, got: %s", string(msg))
+		default:
 		}
 	}
 }
