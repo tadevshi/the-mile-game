@@ -3,7 +3,9 @@ package handlers
 import (
 	"crypto/sha256"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -76,6 +78,9 @@ type Handler struct {
 	backupWorker     BackupWorkerEnqueuer
 	// visibility enforces the persisted event visibility on the legacy routes.
 	visibility *LegacyEventVisibility
+	// legacyAdmin bounds the legacy administration routes to the events the
+	// caller owns or collaborates on.
+	legacyAdmin *LegacyAdminScope
 }
 
 // NewHandler crea un nuevo handler
@@ -120,6 +125,14 @@ func NewHandlerWithDrive(
 // content that belongs to an event.
 func (h *Handler) WithLegacyVisibility(visibility *LegacyEventVisibility) *Handler {
 	h.visibility = visibility
+	return h
+}
+
+// WithLegacyAdminScope injects the administration scope used by the legacy
+// (non event-scoped) administration routes. Without it those routes fail
+// closed and deny every caller.
+func (h *Handler) WithLegacyAdminScope(scope *LegacyAdminScope) *Handler {
+	h.legacyAdmin = scope
 	return h
 }
 
@@ -301,7 +314,17 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 		// Legacy route: resolve the event that owns the player and apply the
 		// persisted visibility before storing any answer.
 		player, playerErr := h.playerRepo.GetByID(playerID)
-		if playerErr == nil && !h.requireLegacyEventAccess(c, player.EventID) {
+		switch {
+		case playerErr == nil:
+			if !h.requireLegacyEventAccess(c, player.EventID) {
+				return
+			}
+		case errors.Is(playerErr, sql.ErrNoRows):
+			// The player does not exist: keep the previous behavior, the answer
+			// storage fails on the foreign key.
+		default:
+			// Fail closed: the visibility of the player could not be verified.
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify event access"})
 			return
 		}
 	}
@@ -368,6 +391,29 @@ func (h *Handler) SubmitQuiz(c *gin.Context) {
 		players, err = h.playerRepo.ListByEvent(eventID)
 	} else {
 		players, err = h.playerRepo.List()
+		if err == nil {
+			// Legacy route: the global ranking broadcast reaches every connected
+			// client, so it must not carry the players of a private event the
+			// caller may not see.
+			eventIDs := make([]uuid.UUID, len(players))
+			for i, player := range players {
+				eventIDs[i] = player.EventID
+			}
+
+			visible, failure := h.legacyVisibleFlags(c, eventIDs)
+			if failure != nil {
+				// Fail closed: without the visibility the broadcast is skipped.
+				players = nil
+			} else {
+				filtered := make([]models.Player, 0, len(players))
+				for i, player := range players {
+					if visible[i] {
+						filtered = append(filtered, player)
+					}
+				}
+				players = filtered
+			}
+		}
 	}
 
 	if err == nil && h.hub != nil {
@@ -415,7 +461,16 @@ func (h *Handler) GetQuizAnswers(c *gin.Context) {
 		// Legacy route: the answers belong to a player, so the visibility of the
 		// player's event decides whether they can be read.
 		player, playerErr := h.playerRepo.GetByID(playerID)
-		if playerErr == nil && !h.requireLegacyEventAccess(c, player.EventID) {
+		switch {
+		case playerErr == nil:
+			if !h.requireLegacyEventAccess(c, player.EventID) {
+				return
+			}
+		case errors.Is(playerErr, sql.ErrNoRows):
+			// The player does not exist: the answers lookup answers 404 as before.
+		default:
+			// Fail closed: the visibility of the player could not be verified.
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify event access"})
 			return
 		}
 	}
@@ -885,6 +940,11 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	var playerID *uuid.UUID
 	var err error
 
+	// legacyEventID keeps the event of the referenced player on the legacy
+	// route, so a created postcard stays bound to its event and the visibility
+	// rules can filter it.
+	var legacyEventID uuid.UUID
+
 	if playerIDStr != "" {
 		// Modo 1: jugador existente
 		id, parseErr := uuid.Parse(playerIDStr)
@@ -907,10 +967,13 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 				c.JSON(http.StatusForbidden, gin.H{"error": "Player does not belong to this event"})
 				return
 			}
-		} else if !h.requireLegacyEventAccess(c, player.EventID) {
+		} else {
 			// Legacy route: the referenced player belongs to an event the caller
 			// may not see. Denied before any media or row is stored.
-			return
+			if !h.requireLegacyEventAccess(c, player.EventID) {
+				return
+			}
+			legacyEventID = player.EventID
 		}
 	} else {
 		// Modo 2: inline player registration
@@ -965,6 +1028,10 @@ func (h *Handler) CreatePostcard(c *gin.Context) {
 	var postcard *models.Postcard
 	if eventID, exists := c.Get("event_id"); exists {
 		postcard, err = h.postcardRepo.CreateWithEvent(eventID.(uuid.UUID), playerID, mediaResult.PublicPath, message, rotation, senderName, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
+	} else if legacyEventID != uuid.Nil {
+		// Legacy route: the postcard belongs to the event of its player, so the
+		// legacy list applies the event visibility to it.
+		postcard, err = h.postcardRepo.CreateWithEvent(legacyEventID, playerID, mediaResult.PublicPath, message, rotation, senderName, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
 	} else {
 		postcard, err = h.postcardRepo.Create(*playerID, mediaResult.PublicPath, message, rotation, senderName, mediaResult.MediaType, mediaResult.ThumbnailPath, mediaResult.DurationMs)
 	}
@@ -1072,14 +1139,8 @@ func (h *Handler) GetSecretBoxStatus(c *gin.Context) {
 		return
 	}
 
-	// Fallback: versión global (backward compatibility)
-	status, err := h.postcardRepo.GetSecretBoxStatus()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get secret box status"})
-		return
-	}
-
-	c.JSON(http.StatusOK, status)
+	// Fallback: versión legacy, acotada a los eventos que administra el caller
+	h.legacySecretBoxStatus(c)
 }
 
 // ListSecretPostcards devuelve todas las postales secretas (para preview del admin)
@@ -1091,8 +1152,9 @@ func (h *Handler) ListSecretPostcards(c *gin.Context) {
 	if eventID, exists := c.Get("event_id"); exists {
 		postcards, err = h.postcardRepo.ListSecretByEvent(eventID.(uuid.UUID))
 	} else {
-		// Fallback: versión global (backward compatibility)
-		postcards, err = h.postcardRepo.ListSecret()
+		// Fallback: versión legacy, acotada a los eventos que administra el caller
+		h.legacyListSecretPostcards(c)
+		return
 	}
 
 	if err != nil {
@@ -1130,8 +1192,9 @@ func (h *Handler) RevealSecretBox(c *gin.Context) {
 	if eventID, exists := c.Get("event_id"); exists {
 		postcards, err = h.postcardRepo.RevealSecretBoxByEvent(eventID.(uuid.UUID))
 	} else {
-		// Fallback: versión global (backward compatibility)
-		postcards, err = h.postcardRepo.RevealSecretBox()
+		// Fallback: versión legacy, acotada a los eventos que administra el caller
+		h.legacyRevealSecretBox(c)
+		return
 	}
 
 	if err != nil {
