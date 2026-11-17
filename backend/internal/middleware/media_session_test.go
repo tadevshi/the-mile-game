@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/the-mile-game/backend/internal/models"
+	"github.com/the-mile-game/backend/internal/services"
 )
 
 type fakeMediaTokenValidator struct {
@@ -39,7 +40,7 @@ func newMediaSessionRouter(validator MediaTokenValidator) *gin.Engine {
 func mediaSessionCookie(t *testing.T, response *http.Response) *http.Cookie {
 	t.Helper()
 	for _, cookie := range response.Cookies() {
-		if cookie.Name == MediaSessionCookieName {
+		if cookie.Name == services.MediaSessionCookieName {
 			return cookie
 		}
 	}
@@ -88,7 +89,7 @@ func TestMediaSessionCookieIsNotReissuedForTheSameToken(t *testing.T) {
 
 	request := httptest.NewRequest(http.MethodGet, "/api/ping", nil)
 	request.Header.Set("Authorization", "Bearer valid-token")
-	request.AddCookie(&http.Cookie{Name: MediaSessionCookieName, Value: "valid-token"})
+	request.AddCookie(&http.Cookie{Name: services.MediaSessionCookieName, Value: "valid-token"})
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, request)
 
