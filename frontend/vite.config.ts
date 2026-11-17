@@ -101,15 +101,14 @@ export default defineConfig({
               },
             },
           },
+          // Media - NetworkOnly (NUNCA cachear media)
+          // El backend decide la visibilidad y las cabeceras de cache segun el
+          // evento: la media de un evento privado no puede quedar cacheada.
           {
             urlPattern: /\/uploads\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'NetworkOnly',
             options: {
-              cacheName: 'media-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 1 week
-              },
+              cacheName: 'media-network',
             },
           },
         ],
