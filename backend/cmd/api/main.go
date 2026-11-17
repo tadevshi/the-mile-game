@@ -191,6 +191,14 @@ func main() {
 	// Configurar router
 	r := gin.Default()
 
+	// La media se sirve desde el backend bajo la política de visibilidad del
+	// La media se sirve con la politica de visibilidad del evento. La ruta se
+	// registra despues del middleware CORS global: el CORS decide que origenes
+	// pueden leer el media y nunca responde con un comodin.
+	mediaRepo := repository.NewMediaRepository(db)
+	mediaPolicy := services.NewMediaPolicy(eventRepo, collaboratorRepo, guestRepo)
+	mediaHandler := handlers.NewMediaHandler(mediaRepo, mediaPolicy, uploadsDir, authService)
+
 	// Configurar CORS
 	config := cors.DefaultConfig()
 
@@ -218,6 +226,10 @@ func main() {
 
 	// Rutas API
 	api := r.Group("/api")
+	// La cookie de sesion de media se renueva en las peticiones autenticadas,
+	// para que un <img> o un <video> alcanza la media de un evento privado con
+	// la sesion restaurada. La cookie esta limitada a /uploads.
+	api.Use(middleware.MediaSessionCookieMiddleware(authService))
 	{
 		// Auth (público)
 		api.POST("/auth/register", authHandler.Register)
@@ -423,6 +435,10 @@ func main() {
 			adminQuestions.DELETE("/:id", adminQuestionHandler.DeleteQuestion)
 		}
 	}
+
+	// Media (sin /api prefix, igual que health): el backend sirve los archivos
+	// guardados aplicando la politica de visibilidad de su evento.
+	r.GET("/uploads/*filepath", mediaHandler.Serve)
 
 	// WebSocket endpoint (sin /api prefix, igual que health)
 	r.GET("/ws", gin.WrapH(hub))
