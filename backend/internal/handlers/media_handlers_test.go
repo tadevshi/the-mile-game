@@ -146,6 +146,7 @@ func newMediaFixture(t *testing.T) *mediaFixture {
 
 	router := gin.New()
 	router.GET("/uploads/*filepath", mediaHandler.Serve)
+	router.HEAD("/uploads/*filepath", mediaHandler.Serve)
 
 	return &mediaFixture{router: router, auth: authService, ownerToken: ownerToken, guestToken: guestToken, outsiderToken: outsiderToken, collabToken: collaboratorToken}
 }
@@ -428,5 +429,22 @@ func TestMediaHandlerDenialIsNotCacheable(t *testing.T) {
 		if cacheControl := response.Header().Get("Cache-Control"); cacheControl != "private, no-store" {
 			t.Errorf("%s: Cache-Control = %q, want %q", request.name, cacheControl, "private, no-store")
 		}
+	}
+}
+
+// The HEAD request of a media is answered like the GET one, without the body,
+// as the nginx volume did.
+func TestMediaHandlerAnswersHead(t *testing.T) {
+	fixture := newMediaFixture(t)
+
+	request := httptest.NewRequest(http.MethodHead, mediaPublicPath, nil)
+	response := httptest.NewRecorder()
+	fixture.router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusOK)
+	}
+	if body := response.Body.String(); body != "" {
+		t.Errorf("body = %q, want no body", body)
 	}
 }
