@@ -35,6 +35,7 @@ const (
 	mediaEventless    = "/uploads/postcards/media-eventless.png"
 	mediaEndedPath    = "/uploads/postcards/media-ended.png"
 	mediaUnknownPath  = "/uploads/postcards/media-unknown.bin"
+	mediaOrphanPath   = "/uploads/postcards/media-orphan.bin"
 	mediaContentBytes = "media-bytes"
 )
 
@@ -112,7 +113,7 @@ func newMediaFixture(t *testing.T) *mediaFixture {
 	t.Cleanup(func() { _, _ = db.Exec(`DELETE FROM event_guests WHERE event_id = $1`, privateEvent.ID) })
 
 	uploadsDir := t.TempDir()
-	for _, name := range []string{"media-public.png", "media-private.png", "media-eventless.png", "media-ended.png", "media-unknown.bin"} {
+	for _, name := range []string{"media-public.png", "media-private.png", "media-eventless.png", "media-ended.png", "media-unknown.bin", "media-orphan.bin"} {
 		path := filepath.Join(uploadsDir, "postcards", name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatalf("create uploads dir error = %v", err)
@@ -378,5 +379,54 @@ func TestMediaHandlerDoesNotSetItsOwnCORSHeaders(t *testing.T) {
 	}
 	if vary := response.Header().Get("Vary"); strings.Contains(vary, "Origin") {
 		t.Error("the handler must not set Vary, the CORS middleware owns it")
+	}
+}
+
+// A file that exists on the disk but that no stored record references is not
+// served: the lookup of the record happens before the disk is read.
+func TestMediaHandlerDoesNotServeAFileWithoutARecord(t *testing.T) {
+	fixture := newMediaFixture(t)
+
+	response := fixture.get(t, mediaOrphanPath, "", "")
+
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusNotFound)
+	}
+	if strings.Contains(response.Body.String(), mediaContentBytes) {
+		t.Errorf("body = %q, want no media served", response.Body.String())
+	}
+}
+
+// A malformed path is a bad request, not a server error.
+func TestMediaHandlerRejectsAMalformedPath(t *testing.T) {
+	fixture := newMediaFixture(t)
+
+	response := fixture.get(t, "/uploads/postcards/media-public.png%00.jpg", "", "")
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d (%s)", response.Code, http.StatusBadRequest, response.Body.String())
+	}
+}
+
+// The answers that depend on the identity of the caller are never stored by a
+// cache.
+func TestMediaHandlerDenialIsNotCacheable(t *testing.T) {
+	fixture := newMediaFixture(t)
+
+	for _, request := range []struct {
+		name  string
+		token string
+		want  int
+	}{
+		{"no identity", "", http.StatusUnauthorized},
+		{"unrelated account", fixture.outsiderToken, http.StatusForbidden},
+	} {
+		response := fixture.get(t, mediaPrivatePath, request.token, "")
+		if response.Code != request.want {
+			t.Errorf("%s: status = %d, want %d", request.name, response.Code, request.want)
+		}
+		if cacheControl := response.Header().Get("Cache-Control"); cacheControl != "private, no-store" {
+			t.Errorf("%s: Cache-Control = %q, want %q", request.name, cacheControl, "private, no-store")
+		}
 	}
 }

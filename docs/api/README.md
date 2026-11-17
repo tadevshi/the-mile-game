@@ -297,7 +297,14 @@ The cookie is issued by a successful login, register and refresh, and it is refr
 
 - The media of a public event and the media that belongs to no event answer `Cache-Control: public, max-age=2592000`.
 - The media of a private event answers `Cache-Control: private, no-store`.
+- The answers that depend on the identity of the caller (401, 403, 404, 410) answer `Cache-Control: private, no-store`, so no intermediary or browser cache keeps them.
 - The service worker never caches the media (`NetworkOnly` for `/uploads/*`); the static assets keep their current caching rules.
+
+### Deployment notes
+
+- The media route is behind the global CORS policy: a request whose `Origin` is not listed in `CORS_ALLOWED_ORIGINS` is refused with `403`, including the media of a public event. A deployment must list its own origin there, otherwise the CORS-mode media fetches of the frontend (the corkboard PNG export) fail.
+- The media session cookie is marked `Secure` when the request arrives over TLS, either directly or through an `X-Forwarded-Proto: https` header. A deployment that terminates TLS in front of the API must forward that header.
+- A stored path that is referenced by more than one record (for example a logo shared by two events) is only served when the caller may read every record that points to it, and it is never publicly cacheable.
 
 ## Detailed Endpoint Docs
 

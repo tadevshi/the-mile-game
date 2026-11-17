@@ -138,3 +138,23 @@ func TestMediaSessionCookieIsSecureBehindAForwardedHTTPSRequest(t *testing.T) {
 		t.Error("expected the cookie to be secure behind a forwarded HTTPS request")
 	}
 }
+
+// The logout response clears the cookie: the middleware never issues a fresh
+// credential there.
+func TestMediaSessionCookieIsNotIssuedOnLogout(t *testing.T) {
+	validator := &fakeMediaTokenValidator{validToken: "valid-token", ttl: 15 * time.Minute}
+
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(MediaSessionCookieMiddleware(validator))
+	router.POST("/api/auth/logout", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"ok": true}) })
+
+	request := httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil)
+	request.Header.Set("Authorization", "Bearer valid-token")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	if cookie := mediaSessionCookie(t, recorder.Result()); cookie != nil {
+		t.Fatalf("expected no media session cookie on the logout response, got %q", cookie.Value)
+	}
+}

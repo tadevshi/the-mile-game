@@ -14,6 +14,11 @@ import (
 // cannot send an Authorization header, so the identity travels in this cookie.
 const MediaSessionCookieName = "eventhub_media_session"
 
+// mediaLogoutPath is the route that clears the media session cookie. The
+// middleware never issues the cookie there: the logout response would hand a
+// fresh credential to a client that is signing out.
+const mediaLogoutPath = "/api/auth/logout"
+
 // MediaTokenValidator validates the access token of a request and reports the
 // lifetime of the issued tokens.
 type MediaTokenValidator interface {
@@ -27,12 +32,14 @@ type MediaTokenValidator interface {
 // state.
 func MediaSessionCookieMiddleware(validator MediaTokenValidator) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := BearerToken(c.GetHeader("Authorization"))
-		if token != "" {
-			current, err := c.Cookie(MediaSessionCookieName)
-			if err != nil || current != token {
-				if _, err := validator.ValidateToken(token); err == nil {
-					SetMediaSessionCookie(c, token, validator.AccessTokenTTL())
+		if c.Request.URL.Path != mediaLogoutPath {
+			token := BearerToken(c.GetHeader("Authorization"))
+			if token != "" {
+				current, err := c.Cookie(MediaSessionCookieName)
+				if err != nil || current != token {
+					if _, err := validator.ValidateToken(token); err == nil {
+						SetMediaSessionCookie(c, token, validator.AccessTokenTTL())
+					}
 				}
 			}
 		}
