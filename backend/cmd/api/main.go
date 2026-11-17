@@ -226,10 +226,6 @@ func main() {
 
 	// Rutas API
 	api := r.Group("/api")
-	// La cookie de sesion de media se renueva en las peticiones autenticadas,
-	// para que un <img> o un <video> alcanza la media de un evento privado con
-	// la sesion restaurada. La cookie esta limitada a /uploads.
-	api.Use(middleware.MediaSessionCookieMiddleware(authService))
 	{
 		// Auth (público)
 		api.POST("/auth/register", authHandler.Register)
