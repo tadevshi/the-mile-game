@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"github.com/the-mile-game/backend/internal/middleware"
 	"github.com/the-mile-game/backend/internal/models"
 	"github.com/the-mile-game/backend/internal/repository"
 	"github.com/the-mile-game/backend/internal/services"
@@ -112,7 +111,7 @@ func (h *MediaHandler) identity(c *gin.Context) uuid.UUID {
 		if len(header) > 7 && header[:7] == "Bearer " {
 			token = strings.TrimSpace(header[7:])
 		}
-	} else if cookie, err := c.Cookie(middleware.MediaSessionCookieName); err == nil {
+	} else if cookie, err := c.Cookie(services.MediaSessionCookieName); err == nil {
 		token = cookie
 	}
 
