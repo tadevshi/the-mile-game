@@ -15,11 +15,22 @@ function nginxUploadsBlock(nginx: string): string {
   return nginx.slice(start, end === -1 ? nginx.length : end);
 }
 
-function serviceWorkerRules(vite: string): Array<{ pattern: string; handler: string }> {
-  return [...vite.matchAll(/urlPattern:\s*([^,]+),\s*handler:\s*'([^']+)'/g)].map((match) => ({
-    pattern: match[1],
-    handler: match[2],
-  }));
+interface ServiceWorkerRule {
+  pattern: string;
+  handler: string;
+  regex: RegExp;
+}
+
+function serviceWorkerRules(vite: string): ServiceWorkerRule[] {
+  return [...vite.matchAll(/urlPattern:\s*(\/.*\/[a-z]*),\s*handler:\s*'([^']+)'/g)].map((match) => {
+    const literal = match[1];
+    const lastSlash = literal.lastIndexOf('/');
+    return {
+      pattern: literal,
+      handler: match[2],
+      regex: new RegExp(literal.slice(1, lastSlash), literal.slice(lastSlash + 1)),
+    };
+  });
 }
 
 describe('media delivery configuration', () => {
@@ -33,12 +44,19 @@ describe('media delivery configuration', () => {
 
   it('never lets the service worker cache the media', () => {
     const rules = serviceWorkerRules(readRootFile('vite.config.ts'));
-    const mediaRules = rules.filter((rule) => rule.pattern.includes('uploads'));
+    const mediaRules = rules.filter((rule) => rule.regex.test('/uploads/postcards/media-private.png'));
 
     expect(mediaRules.length).toBeGreaterThan(0);
-    for (const rule of mediaRules) {
-      expect(rule.handler).toBe('NetworkOnly');
-    }
+    expect(mediaRules[0].handler).toBe('NetworkOnly');
+    expect(mediaRules.some((rule) => rule.handler === 'CacheFirst')).toBe(false);
+  });
+
+  it('keeps caching the assets of the application', () => {
+    const rules = serviceWorkerRules(readRootFile('vite.config.ts'));
+    const assetRules = rules.filter((rule) => rule.regex.test('/assets/logo.png'));
+
+    expect(assetRules.length).toBeGreaterThan(0);
+    expect(assetRules[0].handler).toBe('CacheFirst');
   });
 
   it('lets the browser store the media session cookie on the API calls', async () => {

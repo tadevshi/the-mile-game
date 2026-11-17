@@ -45,6 +45,17 @@ export default defineConfig({
         navigateFallback: '/index.html', // IMPORTANTE: Servir index.html, no offline.html
         navigateFallbackDenylist: [/^\/api/, /^\/ws/], // No interceptar API ni WebSocket
         runtimeCaching: [
+          // Media - NetworkOnly (NUNCA cachear media)
+          // La regla va PRIMERA: workbox aplica la primera coincidencia, y las
+          // imagenes de media (.png, .jpg) tambien coinciden con la regla de
+          // assets estaticos que cachea los secretos de un evento privado.
+          {
+            urlPattern: /\/uploads\/.*/i,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'media-network',
+            },
+          },
           // Rutas dinámicas de eventos - NetworkOnly para evitar que el SW intercepte requests
           {
             urlPattern: /\/(e|login|dashboard|register).*/i,
@@ -62,8 +73,10 @@ export default defineConfig({
             },
           },
           // Assets estáticos - CacheFirst (estos sí se cachean)
+          // La exclusión de /uploads/ mantiene la media fuera de esta cache
+          // aunque el orden de las reglas cambie.
           {
-            urlPattern: /\.(js|css|png|jpg|svg|woff|woff2)$/i,
+            urlPattern: /^(?!.*\/uploads\/).*\.(js|css|png|jpg|svg|woff|woff2)$/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'static-assets',
@@ -99,16 +112,6 @@ export default defineConfig({
               cacheableResponse: {
                 statuses: [0, 200],
               },
-            },
-          },
-          // Media - NetworkOnly (NUNCA cachear media)
-          // El backend decide la visibilidad y las cabeceras de cache segun el
-          // evento: la media de un evento privado no puede quedar cacheada.
-          {
-            urlPattern: /\/uploads\/.*/i,
-            handler: 'NetworkOnly',
-            options: {
-              cacheName: 'media-network',
             },
           },
         ],
