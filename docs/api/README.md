@@ -265,6 +265,40 @@ player_id: "uuid"
 }
 ```
 
+## Media Delivery
+
+The stored media keeps its paths (`/uploads/postcards/...`, `/uploads/postcards/thumbnails/...`, `/uploads/logos/...`, `/uploads/backgrounds/...`). The backend serves them and applies the current event policy to each file, so a media URL is no longer a public shortcut to the content of a private event. The nginx `location ^~ /uploads/` proxies to the backend instead of serving the volume directly.
+
+### Identity
+
+A native element (`<img>`, `<video>`, a poster or a download) cannot send an `Authorization` header, so the account identity travels in an httpOnly cookie:
+
+```
+eventhub_media_session=<access token>; Path=/uploads; HttpOnly; SameSite=Lax
+```
+
+The cookie is issued by a successful login, register and refresh, and it is refreshed by the authenticated API calls. It is scoped to `/uploads`, so it never travels to the API routes and it cannot be used to change any state. The API keeps using the `Authorization: Bearer` token.
+
+### Responses
+
+| Case | Status |
+|------|--------|
+| Media of a public, active event, anonymous client | 200 |
+| Media of a public, active event, member | 200 |
+| Media of a private event, no identity | 401 `{"error":"Authentication required"}` |
+| Media of a private event, account that is not a member | 403 `{"error":"Not authorized to view this event"}` |
+| Media of a private event, owner, collaborator or accepted guest | 200 |
+| Media that belongs to no event | 200 |
+| Media of an event that already ended | 410 |
+| Unknown media path | 404 |
+| Malformed media path | 400 |
+
+### Cache
+
+- The media of a public event and the media that belongs to no event answer `Cache-Control: public, max-age=2592000`.
+- The media of a private event answers `Cache-Control: private, no-store`.
+- The service worker never caches the media (`NetworkOnly` for `/uploads/*`); the static assets keep their current caching rules.
+
 ## Detailed Endpoint Docs
 
 - [Authentication](AUTH.md) - Login, register, tokens
