@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -18,6 +19,10 @@ import (
 const (
 	// mediaUploadsPrefix is the public prefix of the stored media paths.
 	mediaUploadsPrefix = "/uploads/"
+
+	// mediaErrorCacheControl keeps the answers that depend on the identity of
+	// the caller out of every cache.
+	mediaErrorCacheControl = "private, no-store"
 )
 
 // TokenValidator validates an access token.
@@ -47,49 +52,49 @@ func (h *MediaHandler) Serve(c *gin.Context) {
 		return
 	}
 
-	record, err := h.mediaRepo.FindByPath(mediaUploadsPrefix + relativePath)
+	records, err := h.mediaRepo.FindByPath(mediaUploadsPrefix + relativePath)
 	if err != nil {
 		if errors.Is(err, repository.ErrMediaNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Media not found"})
+			h.deny(c, http.StatusNotFound, "Media not found")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to resolve media"})
+		h.deny(c, http.StatusInternalServerError, "Failed to resolve media")
 		return
 	}
 
-	decision, cacheControl := h.policy.Decide(record, h.identity(c))
+	decision, cacheControl := h.policy.DecideAll(records, h.identity(c))
 	switch decision {
 	case services.MediaNotFound:
-		c.JSON(http.StatusNotFound, gin.H{"error": "Media not found"})
+		h.deny(c, http.StatusNotFound, "Media not found")
 		return
 	case services.MediaGone:
-		c.JSON(http.StatusGone, gin.H{"error": "Event has ended"})
+		h.deny(c, http.StatusGone, "Event has ended")
 		return
 	case services.MediaUnauthorized:
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+		h.deny(c, http.StatusUnauthorized, "Authentication required")
 		return
 	case services.MediaForbidden:
-		c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to view this event"})
+		h.deny(c, http.StatusForbidden, "Not authorized to view this event")
 		return
 	case services.MediaFailed:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify event access"})
+		h.deny(c, http.StatusInternalServerError, "Failed to verify event access")
 		return
 	}
 
 	file, err := os.Open(filepath.Join(h.uploadsDir, filepath.FromSlash(relativePath)))
 	if err != nil {
 		if os.IsNotExist(err) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Media not found"})
+			h.deny(c, http.StatusNotFound, "Media not found")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open media"})
+		h.deny(c, http.StatusInternalServerError, "Failed to open media")
 		return
 	}
 	defer file.Close()
 
 	stat, err := file.Stat()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open media"})
+		h.deny(c, http.StatusInternalServerError, "Failed to open media")
 		return
 	}
 
@@ -99,6 +104,14 @@ func (h *MediaHandler) Serve(c *gin.Context) {
 
 	// ServeContent answers the range requests of the video postcards.
 	http.ServeContent(c.Writer, c.Request, filepath.Base(relativePath), stat.ModTime(), file)
+}
+
+// deny answers a media request that must not serve the file. The answer
+// depends on the identity of the caller, so it is never stored by an
+// intermediary or by a private browser cache.
+func (h *MediaHandler) deny(c *gin.Context, status int, message string) {
+	c.Header("Cache-Control", mediaErrorCacheControl)
+	c.JSON(status, gin.H{"error": message})
 }
 
 // identity resolves the account identity of a media request. The Bearer token
@@ -134,6 +147,12 @@ func mediaRelativePath(requestPath string) (string, bool) {
 	}
 	relativePath := strings.TrimPrefix(requestPath, mediaUploadsPrefix)
 	if relativePath == "" {
+		return "", false
+	}
+	if strings.ContainsRune(relativePath, 0) {
+		return "", false
+	}
+	if !utf8.ValidString(relativePath) {
 		return "", false
 	}
 	for _, segment := range strings.Split(relativePath, "/") {

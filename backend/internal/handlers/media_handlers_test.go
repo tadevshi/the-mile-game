@@ -23,6 +23,8 @@ import (
 type mediaFixture struct {
 	router        *gin.Engine
 	auth          *services.AuthService
+	db            *sql.DB
+	privateEvent  *models.Event
 	ownerToken    string
 	guestToken    string
 	outsiderToken string
@@ -35,6 +37,7 @@ const (
 	mediaEventless    = "/uploads/postcards/media-eventless.png"
 	mediaEndedPath    = "/uploads/postcards/media-ended.png"
 	mediaUnknownPath  = "/uploads/postcards/media-unknown.bin"
+	mediaOrphanPath   = "/uploads/postcards/media-orphan.bin"
 	mediaContentBytes = "media-bytes"
 )
 
@@ -112,7 +115,7 @@ func newMediaFixture(t *testing.T) *mediaFixture {
 	t.Cleanup(func() { _, _ = db.Exec(`DELETE FROM event_guests WHERE event_id = $1`, privateEvent.ID) })
 
 	uploadsDir := t.TempDir()
-	for _, name := range []string{"media-public.png", "media-private.png", "media-eventless.png", "media-ended.png", "media-unknown.bin"} {
+	for _, name := range []string{"media-public.png", "media-private.png", "media-eventless.png", "media-ended.png", "media-unknown.bin", "media-orphan.bin", "media-shared.png"} {
 		path := filepath.Join(uploadsDir, "postcards", name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatalf("create uploads dir error = %v", err)
@@ -145,8 +148,9 @@ func newMediaFixture(t *testing.T) *mediaFixture {
 
 	router := gin.New()
 	router.GET("/uploads/*filepath", mediaHandler.Serve)
+	router.HEAD("/uploads/*filepath", mediaHandler.Serve)
 
-	return &mediaFixture{router: router, auth: authService, ownerToken: ownerToken, guestToken: guestToken, outsiderToken: outsiderToken, collabToken: collaboratorToken}
+	return &mediaFixture{router: router, auth: authService, db: db, privateEvent: privateEvent, ownerToken: ownerToken, guestToken: guestToken, outsiderToken: outsiderToken, collabToken: collaboratorToken}
 }
 
 // get performs a media request with an optional bearer token and cookie.
@@ -378,5 +382,113 @@ func TestMediaHandlerDoesNotSetItsOwnCORSHeaders(t *testing.T) {
 	}
 	if vary := response.Header().Get("Vary"); strings.Contains(vary, "Origin") {
 		t.Error("the handler must not set Vary, the CORS middleware owns it")
+	}
+}
+
+// A file that exists on the disk but that no stored record references is not
+// served: the lookup of the record happens before the disk is read.
+func TestMediaHandlerDoesNotServeAFileWithoutARecord(t *testing.T) {
+	fixture := newMediaFixture(t)
+
+	response := fixture.get(t, mediaOrphanPath, "", "")
+
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusNotFound)
+	}
+	if strings.Contains(response.Body.String(), mediaContentBytes) {
+		t.Errorf("body = %q, want no media served", response.Body.String())
+	}
+}
+
+// A malformed path is a bad request, not a server error.
+func TestMediaHandlerRejectsAMalformedPath(t *testing.T) {
+	fixture := newMediaFixture(t)
+
+	response := fixture.get(t, "/uploads/postcards/media-public.png%00.jpg", "", "")
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d (%s)", response.Code, http.StatusBadRequest, response.Body.String())
+	}
+}
+
+// The answers that depend on the identity of the caller are never stored by a
+// cache.
+func TestMediaHandlerDenialIsNotCacheable(t *testing.T) {
+	fixture := newMediaFixture(t)
+
+	for _, request := range []struct {
+		name  string
+		token string
+		want  int
+	}{
+		{"no identity", "", http.StatusUnauthorized},
+		{"unrelated account", fixture.outsiderToken, http.StatusForbidden},
+	} {
+		response := fixture.get(t, mediaPrivatePath, request.token, "")
+		if response.Code != request.want {
+			t.Errorf("%s: status = %d, want %d", request.name, response.Code, request.want)
+		}
+		if cacheControl := response.Header().Get("Cache-Control"); cacheControl != "private, no-store" {
+			t.Errorf("%s: Cache-Control = %q, want %q", request.name, cacheControl, "private, no-store")
+		}
+	}
+}
+
+// The HEAD request of a media is answered like the GET one, without the body,
+// as the nginx volume did.
+func TestMediaHandlerAnswersHead(t *testing.T) {
+	fixture := newMediaFixture(t)
+
+	request := httptest.NewRequest(http.MethodHead, mediaPublicPath, nil)
+	response := httptest.NewRecorder()
+	fixture.router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusOK)
+	}
+	if body := response.Body.String(); body != "" {
+		t.Errorf("body = %q, want no body", body)
+	}
+}
+
+// A path with an invalid byte sequence is a malformed path, not a server
+// error.
+func TestMediaHandlerRejectsAnInvalidUTF8Path(t *testing.T) {
+	fixture := newMediaFixture(t)
+
+	request := httptest.NewRequest(http.MethodGet, "/uploads/postcards/%FF.png", nil)
+	response := httptest.NewRecorder()
+	fixture.router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d (%s)", response.Code, http.StatusBadRequest, response.Body.String())
+	}
+}
+
+// A path that is referenced by a public event and by a private event is only
+// served when the caller may read both of them.
+func TestMediaHandlerDoesNotServeASharedPathToAnonymous(t *testing.T) {
+	fixture := newMediaFixture(t)
+
+	sharedPath := "/uploads/postcards/media-shared.png"
+	if _, err := fixture.db.Exec(`INSERT INTO postcards (id, event_id, image_path) VALUES ($1, $2, $3)`,
+		uuid.New(), fixture.privateEvent.ID, sharedPath); err != nil {
+		t.Fatalf("insert shared postcard error = %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = fixture.db.Exec(`DELETE FROM postcards WHERE image_path = $1`, sharedPath)
+	})
+
+	response := fixture.get(t, sharedPath, "", "")
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d (%s)", response.Code, http.StatusUnauthorized, response.Body.String())
+	}
+	if strings.Contains(response.Body.String(), mediaContentBytes) {
+		t.Errorf("body = %q, want no media served", response.Body.String())
+	}
+
+	owner := fixture.get(t, sharedPath, fixture.ownerToken, "")
+	if owner.Code != http.StatusOK {
+		t.Fatalf("owner status = %d, want %d", owner.Code, http.StatusOK)
 	}
 }

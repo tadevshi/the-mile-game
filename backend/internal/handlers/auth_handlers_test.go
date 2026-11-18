@@ -2,15 +2,19 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	_ "github.com/lib/pq"
 	"github.com/the-mile-game/backend/internal/models"
 	"github.com/the-mile-game/backend/internal/repository"
+	"github.com/the-mile-game/backend/internal/services"
 )
 
 // MockAuthService simula el servicio de autenticación para tests
@@ -916,5 +920,181 @@ func TestLogoutUnauthenticated(t *testing.T) {
 
 	if w.Code != http.StatusUnauthorized {
 		t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+// ========== MEDIA SESSION COOKIE ==========
+
+// newMediaCookieAuthHandler builds a real auth handler over the disposable
+// PostgreSQL used by the tests.
+func newMediaCookieAuthHandler(t *testing.T) (*AuthHandler, *services.AuthService, string) {
+	t.Helper()
+	connString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		testEnv("TEST_DB_HOST", "localhost"), testEnv("TEST_DB_PORT", "5432"),
+		testEnv("TEST_DB_USER", "user"), testEnv("TEST_DB_PASSWORD", "password"),
+		testEnv("TEST_DB_NAME", "milegame_test"))
+	db, err := sql.Open("postgres", connString)
+	if err != nil {
+		t.Fatalf("sql.Open() error = %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err := db.Ping(); err != nil {
+		t.Fatalf("database ping error = %v", err)
+	}
+
+	userRepo := repository.NewUserRepository(db)
+	authService := services.NewAuthService(userRepo, "media-cookie-test-secret")
+	email := "media-cookie-" + uuid.NewString() + "@example.test"
+	if _, err := userRepo.Create(email, "password-123", "Media Cookie User"); err != nil {
+		t.Fatalf("create test user error = %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = db.Exec(`DELETE FROM users WHERE email = $1`, email)
+	})
+	return NewAuthHandler(authService), authService, email
+}
+
+// mediaSessionCookie returns the media session cookie of a response.
+func mediaSessionCookie(t *testing.T, response *httptest.ResponseRecorder) *http.Cookie {
+	t.Helper()
+	for _, cookie := range response.Result().Cookies() {
+		if cookie.Name == "eventhub_media_session" {
+			return cookie
+		}
+	}
+	t.Fatalf("eventhub_media_session cookie not set, Set-Cookie headers = %v", response.Header()["Set-Cookie"])
+	return nil
+}
+
+// assertMediaCookieAttributes checks the documented cookie attributes.
+func assertMediaCookieAttributes(t *testing.T, cookie *http.Cookie, accessToken string, maxAge int) {
+	t.Helper()
+	if cookie.Value != accessToken {
+		t.Errorf("cookie value = %q, want the access token", cookie.Value)
+	}
+	if !cookie.HttpOnly {
+		t.Error("cookie must be HttpOnly")
+	}
+	if cookie.SameSite != http.SameSiteLaxMode {
+		t.Errorf("cookie SameSite = %v, want Lax", cookie.SameSite)
+	}
+	if cookie.Path != "/uploads" {
+		t.Errorf("cookie Path = %q, want /uploads", cookie.Path)
+	}
+	if cookie.MaxAge != maxAge {
+		t.Errorf("cookie Max-Age = %d, want %d", cookie.MaxAge, maxAge)
+	}
+	if cookie.Domain != "" {
+		t.Errorf("cookie Domain = %q, want no Domain attribute", cookie.Domain)
+	}
+	if cookie.Secure {
+		t.Error("cookie must not be Secure over a plain request")
+	}
+}
+
+func TestAuthResponsesSetMediaSessionCookie(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler, authService, email := newMediaCookieAuthHandler(t)
+
+	router := gin.New()
+	router.POST("/api/auth/register", handler.Register)
+	router.POST("/api/auth/login", handler.Login)
+	router.POST("/api/auth/refresh", handler.Refresh)
+
+	post := func(path string, payload any) *httptest.ResponseRecorder {
+		t.Helper()
+		body, _ := json.Marshal(payload)
+		request := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+		return response
+	}
+
+	// Register sets the cookie.
+	registerEmail := "media-cookie-register-" + uuid.NewString() + "@example.test"
+	registerResponse := post("/api/auth/register", models.RegisterRequest{
+		Email: registerEmail, Password: "password-123", Name: "Media Cookie Register",
+	})
+	if registerResponse.Code != http.StatusCreated {
+		t.Fatalf("register status = %d, want %d", registerResponse.Code, http.StatusCreated)
+	}
+	var registered models.AuthResponse
+	if err := json.Unmarshal(registerResponse.Body.Bytes(), &registered); err != nil {
+		t.Fatalf("decode register response error = %v", err)
+	}
+	assertMediaCookieAttributes(t, mediaSessionCookie(t, registerResponse), registered.AccessToken, registered.ExpiresIn)
+
+	// Login sets the cookie.
+	loginResponse := post("/api/auth/login", models.LoginRequest{Email: email, Password: "password-123"})
+	if loginResponse.Code != http.StatusOK {
+		t.Fatalf("login status = %d, want %d", loginResponse.Code, http.StatusOK)
+	}
+	var logged models.AuthResponse
+	if err := json.Unmarshal(loginResponse.Body.Bytes(), &logged); err != nil {
+		t.Fatalf("decode login response error = %v", err)
+	}
+	assertMediaCookieAttributes(t, mediaSessionCookie(t, loginResponse), logged.AccessToken, logged.ExpiresIn)
+
+	// Refresh sets the cookie.
+	refreshResponse := post("/api/auth/refresh", models.RefreshRequest{RefreshToken: logged.RefreshToken})
+	if refreshResponse.Code != http.StatusOK {
+		t.Fatalf("refresh status = %d, want %d", refreshResponse.Code, http.StatusOK)
+	}
+	var refreshed models.AuthResponse
+	if err := json.Unmarshal(refreshResponse.Body.Bytes(), &refreshed); err != nil {
+		t.Fatalf("decode refresh response error = %v", err)
+	}
+	assertMediaCookieAttributes(t, mediaSessionCookie(t, refreshResponse), refreshed.AccessToken, refreshed.ExpiresIn)
+
+	// The cookie is only set for TLS requests when the request arrived over TLS.
+	tlsRequest := httptest.NewRequest(http.MethodPost, "https://example.test/api/auth/login", bytes.NewReader([]byte(`{"email":"`+email+`","password":"password-123"}`)))
+	tlsRequest.Header.Set("Content-Type", "application/json")
+	tlsResponse := httptest.NewRecorder()
+	router.ServeHTTP(tlsResponse, tlsRequest)
+	secureCookie := mediaSessionCookie(t, tlsResponse)
+	if !secureCookie.Secure {
+		t.Error("cookie must be Secure when the request arrived over TLS")
+	}
+
+	// The API keeps the Bearer token: the auth response still carries it.
+	if logged.AccessToken == "" {
+		t.Error("expected access_token in the login response")
+	}
+	_ = authService
+}
+
+func TestLogoutClearsMediaSessionCookie(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler, _, _ := newMediaCookieAuthHandler(t)
+
+	router := gin.New()
+	router.POST("/api/auth/logout", func(c *gin.Context) {
+		c.Set("user_id", uuid.New())
+		handler.Logout(c)
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("logout status = %d, want %d", response.Code, http.StatusOK)
+	}
+	cookie := mediaSessionCookie(t, response)
+	if cookie.Value != "" {
+		t.Errorf("cookie value = %q, want it cleared", cookie.Value)
+	}
+	if cookie.MaxAge != -1 {
+		t.Errorf("cookie Max-Age = %d, want -1 (deleted)", cookie.MaxAge)
+	}
+	if cookie.Path != "/uploads" {
+		t.Errorf("cookie Path = %q, want /uploads", cookie.Path)
+	}
+	if !cookie.HttpOnly {
+		t.Error("cookie must be HttpOnly")
+	}
+	if cookie.SameSite != http.SameSiteLaxMode {
+		t.Errorf("cookie SameSite = %v, want Lax", cookie.SameSite)
 	}
 }

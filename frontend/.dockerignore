@@ -1,0 +1,5 @@
+# The image installs its own dependencies with `npm ci`, so the local
+# node_modules must never enter the build context: it is huge and a symlinked
+# one breaks `COPY . .`.
+node_modules
+dist

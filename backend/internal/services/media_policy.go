@@ -42,6 +42,56 @@ func NewMediaPolicy(events *repository.EventRepository, collaborators *repositor
 	return &MediaPolicy{events: events, collaborators: collaborators, guests: guests}
 }
 
+// DecideAll reports whether the caller may read the media and how the response
+// may be cached, for every stored record that references the path. The
+// decision is the strictest one: when a path is referenced by more than one
+// record, the media is only served when the caller may read all of them, so a
+// shared path can never disclose the content of a private event.
+func (p *MediaPolicy) DecideAll(records []*repository.MediaRecord, userID uuid.UUID) (MediaDecision, string) {
+	if len(records) == 0 {
+		return MediaNotFound, ""
+	}
+
+	decision := MediaAllowed
+	private := false
+	for _, record := range records {
+		recordDecision, recordCache := p.Decide(record, userID)
+		if mediaDecisionSeverity(recordDecision) > mediaDecisionSeverity(decision) {
+			decision = recordDecision
+		}
+		if recordCache == MediaCachePrivate {
+			private = true
+		}
+	}
+	if decision != MediaAllowed {
+		return decision, ""
+	}
+	if private {
+		return decision, MediaCachePrivate
+	}
+	return decision, MediaCachePublic
+}
+
+// mediaDecisionSeverity orders the decisions from the most restrictive one:
+// a failure, then a refusal, then the missing identity, then the ended
+// event, and finally the absence of the record.
+func mediaDecisionSeverity(decision MediaDecision) int {
+	switch decision {
+	case MediaFailed:
+		return 5
+	case MediaForbidden:
+		return 4
+	case MediaUnauthorized:
+		return 3
+	case MediaGone:
+		return 2
+	case MediaNotFound:
+		return 1
+	default:
+		return 0
+	}
+}
+
 // Decide reports whether the caller may read the media and how the response
 // may be cached. userID is uuid.Nil when the caller presented no valid identity.
 func (p *MediaPolicy) Decide(record *repository.MediaRecord, userID uuid.UUID) (MediaDecision, string) {
