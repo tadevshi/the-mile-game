@@ -437,8 +437,10 @@ func main() {
 	}
 
 	// Media (sin /api prefix, igual que health): el backend sirve los archivos
-	// guardados aplicando la politica de visibilidad de su evento.
+	// guardados aplicando la politica de visibilidad de su evento. El HEAD
+	// sigue disponible, como cuando los servia el volumen de nginx.
 	r.GET("/uploads/*filepath", mediaHandler.Serve)
+	r.HEAD("/uploads/*filepath", mediaHandler.Serve)
 
 	// WebSocket endpoint (sin /api prefix, igual que health)
 	r.GET("/ws", gin.WrapH(hub))
