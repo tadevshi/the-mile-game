@@ -40,53 +40,67 @@ func NewMediaRepository(db *sql.DB) *MediaRepository {
 	return &MediaRepository{db: db}
 }
 
-// FindByPath returns the stored media record of a stored path, for example
-// "/uploads/postcards/abc.jpg". The path is always bound as a query parameter
-// and never interpolated into the SQL text. The lookup covers every stored
-// reference of a media file: the postcard image and thumbnail, the event logo
-// and background, and the theme hero image.
-func (r *MediaRepository) FindByPath(storedPath string) (*MediaRecord, error) {
+// FindByPath returns every stored media record that references the stored
+// path, for example "/uploads/postcards/abc.jpg". The path is always bound as
+// a query parameter and never interpolated into the SQL text. The lookup
+// covers every stored reference of a media file: the postcard image and
+// thumbnail, the event logo and background, and the theme hero image.
+//
+// A path can be referenced by more than one record, for example when two
+// events share a logo. Every match is returned so the caller can apply the
+// strictest policy: the media is only served when the caller may read all the
+// records that point to it.
+func (r *MediaRepository) FindByPath(storedPath string) ([]*MediaRecord, error) {
 	if storedPath == "" {
 		return nil, ErrMediaNotFound
 	}
 	relativePath := strings.TrimPrefix(storedPath, "/uploads/")
 
 	const query = `
-		SELECT event_id, kind FROM (
-			SELECT event_id::text AS event_id, 'postcard_image' AS kind FROM postcards
-				WHERE image_path = $1 OR image_path = $2
-			UNION ALL
-			SELECT event_id::text AS event_id, 'postcard_thumbnail' AS kind FROM postcards
-				WHERE thumbnail_path = $1 OR thumbnail_path = $2
-			UNION ALL
-			SELECT id::text AS event_id, 'event_logo' AS kind FROM events
-				WHERE settings->>'logo_url' = $1 OR settings->>'logo_url' = $2
-			UNION ALL
-			SELECT id::text AS event_id, 'event_background' AS kind FROM events
-				WHERE settings->>'background_url' = $1 OR settings->>'background_url' = $2
-			UNION ALL
-			SELECT event_id::text AS event_id, 'theme_hero_image' AS kind FROM themes
-				WHERE hero_image_path = $1 OR hero_image_path = $2
-		) AS media
-		LIMIT 1`
+		SELECT event_id::text AS event_id, 'postcard_image' AS kind FROM postcards
+			WHERE image_path = $1 OR image_path = $2
+		UNION ALL
+		SELECT event_id::text AS event_id, 'postcard_thumbnail' AS kind FROM postcards
+			WHERE thumbnail_path = $1 OR thumbnail_path = $2
+		UNION ALL
+		SELECT id::text AS event_id, 'event_logo' AS kind FROM events
+			WHERE settings->>'logo_url' = $1 OR settings->>'logo_url' = $2
+		UNION ALL
+		SELECT id::text AS event_id, 'event_background' AS kind FROM events
+			WHERE settings->>'background_url' = $1 OR settings->>'background_url' = $2
+		UNION ALL
+		SELECT event_id::text AS event_id, 'theme_hero_image' AS kind FROM themes
+			WHERE hero_image_path = $1 OR hero_image_path = $2`
 
-	var eventID sql.NullString
-	var kind string
-	err := r.db.QueryRow(query, storedPath, relativePath).Scan(&eventID, &kind)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrMediaNotFound
-	}
+	rows, err := r.db.Query(query, storedPath, relativePath)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	record := &MediaRecord{Path: storedPath, Kind: MediaKind(kind)}
-	if eventID.Valid && eventID.String != "" {
-		parsed, parseErr := uuid.Parse(eventID.String)
-		if parseErr != nil {
-			return nil, parseErr
+	records := []*MediaRecord{}
+	for rows.Next() {
+		var eventID sql.NullString
+		var kind string
+		if err := rows.Scan(&eventID, &kind); err != nil {
+			return nil, err
 		}
-		record.EventID = &parsed
+
+		record := &MediaRecord{Path: storedPath, Kind: MediaKind(kind)}
+		if eventID.Valid && eventID.String != "" {
+			parsed, parseErr := uuid.Parse(eventID.String)
+			if parseErr != nil {
+				return nil, parseErr
+			}
+			record.EventID = &parsed
+		}
+		records = append(records, record)
 	}
-	return record, nil
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(records) == 0 {
+		return nil, ErrMediaNotFound
+	}
+	return records, nil
 }

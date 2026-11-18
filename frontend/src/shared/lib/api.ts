@@ -159,6 +159,9 @@ class ApiClient {
         'Content-Type': 'application/json',
       },
       timeout: 10000, // 10 segundos timeout
+      // La cookie de sesion de media (httpOnly, Path=/uploads) debe llegarse al
+      // backend para que los <img> y <video> nativos alcancen la media privada.
+      withCredentials: true,
     });
 
     // Request interceptor - add auth header

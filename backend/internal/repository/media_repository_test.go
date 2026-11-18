@@ -65,10 +65,14 @@ func TestMediaRepositoryFindByPath(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			record, err := repo.FindByPath(tc.path)
+			records, err := repo.FindByPath(tc.path)
 			if err != nil {
 				t.Fatalf("FindByPath(%q) error = %v", tc.path, err)
 			}
+			if len(records) != 1 {
+				t.Fatalf("records = %d, want 1", len(records))
+			}
+			record := records[0]
 			if record.Kind != tc.expected {
 				t.Errorf("kind = %q, want %q", record.Kind, tc.expected)
 			}
@@ -86,12 +90,12 @@ func TestMediaRepositoryFindByPathNotFound(t *testing.T) {
 
 	repo := NewMediaRepository(db)
 
-	record, err := repo.FindByPath("/uploads/postcards/does-not-exist.png")
+	records, err := repo.FindByPath("/uploads/postcards/does-not-exist.png")
 	if !errors.Is(err, ErrMediaNotFound) {
 		t.Fatalf("FindByPath() error = %v, want ErrMediaNotFound", err)
 	}
-	if record != nil {
-		t.Errorf("record = %v, want nil", record)
+	if records != nil {
+		t.Errorf("records = %v, want nil", records)
 	}
 }
 
@@ -109,11 +113,69 @@ func TestMediaRepositoryFindByPathEventless(t *testing.T) {
 		_, _ = db.Exec(`DELETE FROM postcards WHERE image_path = $1`, path)
 	})
 
-	record, err := repo.FindByPath(path)
+	records, err := repo.FindByPath(path)
 	if err != nil {
 		t.Fatalf("FindByPath(%q) error = %v", path, err)
 	}
-	if record.EventID != nil {
-		t.Errorf("event id = %v, want nil", record.EventID)
+	if len(records) != 1 {
+		t.Fatalf("records = %d, want 1", len(records))
+	}
+	if records[0].EventID != nil {
+		t.Errorf("event id = %v, want nil", records[0].EventID)
+	}
+}
+
+// A path that is referenced by more than one record returns every match, so
+// the caller can apply the strictest policy to a shared path.
+func TestMediaRepositoryFindByPathReturnsEveryReference(t *testing.T) {
+	db := setupTestDB(t)
+	t.Cleanup(func() { _ = db.Close() })
+
+	repo := NewMediaRepository(db)
+	unique := uuid.NewString()
+	path := "/uploads/postcards/media-repo-shared-" + unique + ".png"
+
+	owner := createTestUser(t, db)
+	t.Cleanup(func() { _, _ = db.Exec(`DELETE FROM users WHERE id = $1`, owner.ID) })
+
+	eventRepo := NewEventRepository(db)
+	eventIDs := []uuid.UUID{}
+	for i := 0; i < 2; i++ {
+		event, err := eventRepo.Create(owner.ID, "media-repo-shared-"+uuid.NewString(), "Media Repo Shared", "",
+			models.EventFeatures{}, models.EventSettings{}, nil, nil)
+		if err != nil {
+			t.Fatalf("create test event error = %v", err)
+		}
+		eventIDs = append(eventIDs, event.ID)
+		if _, err := db.Exec(`INSERT INTO postcards (id, event_id, image_path) VALUES ($1, $2, $3)`, uuid.New(), event.ID, path); err != nil {
+			t.Fatalf("insert test postcard error = %v", err)
+		}
+	}
+	t.Cleanup(func() {
+		_, _ = db.Exec(`DELETE FROM postcards WHERE image_path = $1`, path)
+		for _, eventID := range eventIDs {
+			_, _ = db.Exec(`DELETE FROM events WHERE id = $1`, eventID)
+		}
+	})
+
+	records, err := repo.FindByPath(path)
+	if err != nil {
+		t.Fatalf("FindByPath(%q) error = %v", path, err)
+	}
+	if len(records) != 2 {
+		t.Fatalf("records = %d, want 2", len(records))
+	}
+
+	found := map[uuid.UUID]bool{}
+	for _, record := range records {
+		if record.EventID == nil {
+			t.Fatalf("event id = nil, want one of the two events")
+		}
+		found[*record.EventID] = true
+	}
+	for _, eventID := range eventIDs {
+		if !found[eventID] {
+			t.Errorf("events = %v, want both %s and %s", found, eventIDs[0], eventIDs[1])
+		}
 	}
 }
