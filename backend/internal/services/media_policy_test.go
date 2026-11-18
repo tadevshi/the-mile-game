@@ -133,3 +133,73 @@ func TestMediaPolicyDecide(t *testing.T) {
 		})
 	}
 }
+
+// A path that is referenced by more than one record is only served when the
+// caller may read every record that points to it.
+func TestMediaPolicyDecideAllIsStrict(t *testing.T) {
+	db := openMediaPolicyTestDB(t)
+	t.Cleanup(func() { _ = db.Close() })
+
+	events := repository.NewEventRepository(db)
+	collaborators := repository.NewCollaboratorRepository(db)
+	guests := repository.NewGuestRepository(db)
+	policy := NewMediaPolicy(events, collaborators, guests)
+
+	ownerID := uuid.New()
+	if _, err := db.Exec(`INSERT INTO users (id, email, password_hash, name) VALUES ($1, $2, $3, $4)`,
+		ownerID, "media-policy-all-"+ownerID.String()+"@example.com", "hash", "Media Policy Owner"); err != nil {
+		t.Fatalf("create test user error = %v", err)
+	}
+	t.Cleanup(func() { _, _ = db.Exec(`DELETE FROM users WHERE id = $1`, ownerID) })
+
+	publicEvent, err := events.Create(ownerID, "policy-public-"+uuid.NewString(), "Media policy event", "",
+		models.EventFeatures{}, models.EventSettings{}, nil, nil)
+	if err != nil {
+		t.Fatalf("create test event error = %v", err)
+	}
+	t.Cleanup(func() { _, _ = db.Exec(`DELETE FROM events WHERE id = $1`, publicEvent.ID) })
+
+	privateEvent, err := events.Create(ownerID, "policy-private-"+uuid.NewString(), "Media policy event", "",
+		models.EventFeatures{}, models.EventSettings{}, nil, nil)
+	if err != nil {
+		t.Fatalf("create test event error = %v", err)
+	}
+	if _, err := db.Exec(`UPDATE events SET is_public = FALSE WHERE id = $1`, privateEvent.ID); err != nil {
+		t.Fatalf("make event private error = %v", err)
+	}
+	t.Cleanup(func() { _, _ = db.Exec(`DELETE FROM events WHERE id = $1`, privateEvent.ID) })
+
+	publicID := publicEvent.ID
+	privateID := privateEvent.ID
+
+	publicRecord := &repository.MediaRecord{Path: "/uploads/logos/shared.png", EventID: &publicID}
+	privateRecord := &repository.MediaRecord{Path: "/uploads/logos/shared.png", EventID: &privateID}
+
+	cases := []struct {
+		name      string
+		userID    uuid.UUID
+		decision  MediaDecision
+		cacheRule string
+	}{
+		{"shared path without identity", uuid.Nil, MediaUnauthorized, ""},
+		{"shared path for an unrelated account", uuid.New(), MediaForbidden, ""},
+		{"shared path for the owner of the private event", ownerID, MediaAllowed, MediaCachePrivate},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			decision, cacheControl := policy.DecideAll([]*repository.MediaRecord{publicRecord, privateRecord}, tc.userID)
+			if decision != tc.decision {
+				t.Fatalf("decision = %v, want %v", decision, tc.decision)
+			}
+			if cacheControl != tc.cacheRule {
+				t.Fatalf("cache control = %q, want %q", cacheControl, tc.cacheRule)
+			}
+		})
+	}
+
+	decision, _ := policy.DecideAll(nil, uuid.Nil)
+	if decision != MediaNotFound {
+		t.Fatalf("decision for no records = %v, want %v", decision, MediaNotFound)
+	}
+}
