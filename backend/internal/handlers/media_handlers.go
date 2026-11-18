@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -149,6 +150,9 @@ func mediaRelativePath(requestPath string) (string, bool) {
 		return "", false
 	}
 	if strings.ContainsRune(relativePath, 0) {
+		return "", false
+	}
+	if !utf8.ValidString(relativePath) {
 		return "", false
 	}
 	for _, segment := range strings.Split(relativePath, "/") {

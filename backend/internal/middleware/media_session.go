@@ -7,12 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/the-mile-game/backend/internal/models"
+	"github.com/the-mile-game/backend/internal/services"
 )
-
-// MediaSessionCookieName is the cookie that carries the account identity to the
-// native browser media requests. A native element such as an image or a video
-// cannot send an Authorization header, so the identity travels in this cookie.
-const MediaSessionCookieName = "eventhub_media_session"
 
 // mediaLogoutPath is the route that clears the media session cookie. The
 // middleware never issues the cookie there: the logout response would hand a
@@ -35,7 +31,7 @@ func MediaSessionCookieMiddleware(validator MediaTokenValidator) gin.HandlerFunc
 		if c.Request.URL.Path != mediaLogoutPath {
 			token := BearerToken(c.GetHeader("Authorization"))
 			if token != "" {
-				current, err := c.Cookie(MediaSessionCookieName)
+				current, err := c.Cookie(services.MediaSessionCookieName)
 				if err != nil || current != token {
 					if _, err := validator.ValidateToken(token); err == nil {
 						SetMediaSessionCookie(c, token, validator.AccessTokenTTL())
@@ -52,7 +48,7 @@ func MediaSessionCookieMiddleware(validator MediaTokenValidator) gin.HandlerFunc
 // media paths.
 func SetMediaSessionCookie(c *gin.Context, token string, ttl time.Duration) {
 	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     MediaSessionCookieName,
+		Name:     services.MediaSessionCookieName,
 		Value:    token,
 		Path:     "/uploads",
 		HttpOnly: true,
@@ -65,7 +61,7 @@ func SetMediaSessionCookie(c *gin.Context, token string, ttl time.Duration) {
 // ClearMediaSessionCookie removes the media session cookie.
 func ClearMediaSessionCookie(c *gin.Context) {
 	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     MediaSessionCookieName,
+		Name:     services.MediaSessionCookieName,
 		Value:    "",
 		Path:     "/uploads",
 		HttpOnly: true,
