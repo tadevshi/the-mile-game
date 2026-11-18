@@ -265,6 +265,47 @@ player_id: "uuid"
 }
 ```
 
+## Media Delivery
+
+The stored media keeps its paths (`/uploads/postcards/...`, `/uploads/postcards/thumbnails/...`, `/uploads/logos/...`, `/uploads/backgrounds/...`). The backend serves them and applies the current event policy to each file, so a media URL is no longer a public shortcut to the content of a private event. The nginx `location ^~ /uploads/` proxies to the backend instead of serving the volume directly.
+
+### Identity
+
+A native element (`<img>`, `<video>`, a poster or a download) cannot send an `Authorization` header, so the account identity travels in an httpOnly cookie:
+
+```
+eventhub_media_session=<access token>; Path=/uploads; HttpOnly; SameSite=Lax
+```
+
+The cookie is issued by a successful login, register and refresh, and it is refreshed by the authenticated API calls. It is scoped to `/uploads`, so it never travels to the API routes and it cannot be used to change any state. The API keeps using the `Authorization: Bearer` token.
+
+### Responses
+
+| Case | Status |
+|------|--------|
+| Media of a public, active event, anonymous client | 200 |
+| Media of a public, active event, member | 200 |
+| Media of a private event, no identity | 401 `{"error":"Authentication required"}` |
+| Media of a private event, account that is not a member | 403 `{"error":"Not authorized to view this event"}` |
+| Media of a private event, owner, collaborator or accepted guest | 200 |
+| Media that belongs to no event | 200 |
+| Media of an event that already ended | 410 |
+| Unknown media path | 404 |
+| Malformed media path | 400 |
+
+### Cache
+
+- The media of a public event and the media that belongs to no event answer `Cache-Control: public, max-age=2592000`.
+- The media of a private event answers `Cache-Control: private, no-store`.
+- The answers that depend on the identity of the caller (401, 403, 404, 410) answer `Cache-Control: private, no-store`, so no intermediary or browser cache keeps them.
+- The service worker never caches the media (`NetworkOnly` for `/uploads/*`); the static assets keep their current caching rules.
+
+### Deployment notes
+
+- The media route is behind the global CORS policy: a request whose `Origin` is not listed in `CORS_ALLOWED_ORIGINS` is refused with `403`, including the media of a public event. A deployment must list its own origin there, otherwise the CORS-mode media fetches of the frontend (the corkboard PNG export) fail.
+- The media session cookie is marked `Secure` when the request arrives over TLS, either directly or through an `X-Forwarded-Proto: https` header. A deployment that terminates TLS in front of the API must forward that header.
+- A stored path that is referenced by more than one record (for example a logo shared by two events) is only served when the caller may read every record that points to it, and it is never publicly cacheable.
+
 ## Detailed Endpoint Docs
 
 - [Authentication](AUTH.md) - Login, register, tokens

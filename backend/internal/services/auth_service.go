@@ -47,6 +47,11 @@ func NewAuthServiceWithReset(userRepo *repository.UserRepository, resetTokenRepo
 	return svc
 }
 
+// AccessTokenTTL returns the lifetime of the issued access tokens.
+func (s *AuthService) AccessTokenTTL() time.Duration {
+	return s.accessTokenTTL
+}
+
 // customClaims estructura de claims JWT personalizada
 type customClaims struct {
 	UserID uuid.UUID `json:"user_id"`

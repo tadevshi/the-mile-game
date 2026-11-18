@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/the-mile-game/backend/internal/middleware"
 	"github.com/the-mile-game/backend/internal/models"
 	"github.com/the-mile-game/backend/internal/services"
 )
@@ -37,6 +39,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	setMediaSessionCookie(c, resp.AccessToken, resp.ExpiresIn)
 	c.JSON(http.StatusCreated, resp)
 }
 
@@ -59,6 +62,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	setMediaSessionCookie(c, resp.AccessToken, resp.ExpiresIn)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -81,6 +85,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
+	setMediaSessionCookie(c, resp.AccessToken, resp.ExpiresIn)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -116,7 +121,21 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 	// Logout stateless: el cliente debe eliminar los tokens
 	// El servidor solo confirma el logout
+	clearMediaSessionCookie(c)
 	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
+}
+
+// setMediaSessionCookie entrega la credencial nativa de las peticiones de
+// media: una cookie httpOnly con el access token, limitada a /uploads para
+// que el navegador solo la envie a las URLs de media. La API sigue usando el
+// Bearer token y nunca lee esta cookie.
+func setMediaSessionCookie(c *gin.Context, accessToken string, expiresIn int) {
+	middleware.SetMediaSessionCookie(c, accessToken, time.Duration(expiresIn)*time.Second)
+}
+
+// clearMediaSessionCookie elimina la credencial de media de la respuesta.
+func clearMediaSessionCookie(c *gin.Context) {
+	middleware.ClearMediaSessionCookie(c)
 }
 
 // ForgotPassword solicita un email de recuperación de password
