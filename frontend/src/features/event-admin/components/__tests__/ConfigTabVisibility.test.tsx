@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('@/shared/lib/api', () => ({
@@ -39,6 +39,7 @@ vi.mock('../DriveConnectionPanel', () => ({ DriveConnectionPanel: () => null }))
 vi.mock('../BackupJobsList', () => ({ BackupJobsList: () => null }));
 
 import { api } from '@/shared/lib/api';
+import type { AdminEvent } from '@/shared/lib/api';
 import { ConfigTab } from '../ConfigTab';
 
 const mockGetAdminEvent = vi.mocked(api.getAdminEvent);
@@ -58,20 +59,50 @@ const baseEvent = {
 // Estado simulado del servidor: la visibilidad almacenada
 let serverIsPublic = true;
 
-function renderConfigTab() {
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
+function renderConfigTab(slug = 'ale-roy') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
 
-  return render(
+  const utils = render(
     <QueryClientProvider client={queryClient}>
-      <ConfigTab slug="ale-roy" currentTab="config" />
+      <ConfigTab slug={slug} currentTab="config" />
     </QueryClientProvider>
   );
+
+  return {
+    ...utils,
+    rerenderWithSlug: (nextSlug: string) =>
+      utils.rerender(
+        <QueryClientProvider client={queryClient}>
+          <ConfigTab slug={nextSlug} currentTab="config" />
+        </QueryClientProvider>
+      ),
+  };
 }
 
 function visibilitySwitch() {
   return screen.getByRole('switch', { name: 'Evento privado' });
+}
+
+function saveButton() {
+  return screen.getByRole('button', { name: /Guardar Cambios/i });
+}
+
+// La visibilidad no debe viajar en el guardado cuando el administrador no
+// movió el interruptor: el backend conserva la almacenada.
+function expectVisibilityNotSent() {
+  const options = mockUpdateEventFeatures.mock.calls[0]?.[2];
+  expect(options?.is_public).toBeUndefined();
+  expect(options && 'is_public' in options).toBe(false);
 }
 
 describe('ConfigTab — visibilidad del evento', () => {
@@ -109,7 +140,8 @@ describe('ConfigTab — visibilidad del evento', () => {
 
     await waitFor(() => expect(mockGetAdminEvent).toHaveBeenCalled());
     expect(await screen.findByText('Cumple de Ale')).toBeInTheDocument();
-    expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'false');
+    await waitFor(() => expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'false'));
+    expect(visibilitySwitch()).not.toBeDisabled();
     expect(screen.getByText('Evento privado')).toBeInTheDocument();
     expect(
       screen.getByText(/propietario, los colaboradores y los invitados/i)
@@ -122,6 +154,7 @@ describe('ConfigTab — visibilidad del evento', () => {
     renderConfigTab();
 
     await waitFor(() => expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'true'));
+    expect(visibilitySwitch()).not.toBeDisabled();
   });
 
   it('permite volver el evento privado y guarda el valor', async () => {
@@ -131,12 +164,12 @@ describe('ConfigTab — visibilidad del evento', () => {
 
     await waitFor(() => expect(mockGetAdminEvent).toHaveBeenCalled());
     expect(await screen.findByText('Cumple de Ale')).toBeInTheDocument();
-    expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'false');
+    await waitFor(() => expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'false'));
 
     fireEvent.click(visibilitySwitch());
     expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'true');
 
-    fireEvent.click(screen.getByRole('button', { name: /Guardar Cambios/i }));
+    fireEvent.click(saveButton());
 
     await waitFor(() => expect(mockUpdateEventFeatures).toHaveBeenCalledTimes(1));
     expect(mockUpdateEventFeatures).toHaveBeenCalledWith(
@@ -144,35 +177,68 @@ describe('ConfigTab — visibilidad del evento', () => {
       { quiz: true, corkboard: true, secretBox: false },
       { postcard_style: 'classic', is_public: false }
     );
+    expect(serverIsPublic).toBe(false);
   });
 
-  it('guarda la visibilidad actual cuando el administrador no toca el interruptor', async () => {
+  it('no informa la visibilidad cuando el administrador no toca el interruptor', async () => {
+    // El evento es privado y el administrador solo cambia otra cosa: el
+    // guardado no debe llevar la visibilidad, para que el backend conserve la
+    // almacenada y no se re-publique el evento.
     serverIsPublic = false;
 
     renderConfigTab();
 
     await waitFor(() => expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'true'));
 
-    fireEvent.click(screen.getByRole('button', { name: /Guardar Cambios/i }));
+    fireEvent.click(saveButton());
 
     await waitFor(() => expect(mockUpdateEventFeatures).toHaveBeenCalledTimes(1));
-    expect(mockUpdateEventFeatures).toHaveBeenCalledWith(
-      'ale-roy',
-      { quiz: true, corkboard: true, secretBox: false },
-      { postcard_style: 'classic', is_public: false }
-    );
+    expectVisibilityNotSent();
+    expect(serverIsPublic).toBe(false);
   });
 
-  it('guarda un evento público sin tocar el interruptor como público', async () => {
+  it('no informa la visibilidad de un evento público que el administrador no toca', async () => {
     serverIsPublic = true;
 
     renderConfigTab();
 
     await waitFor(() => expect(mockGetAdminEvent).toHaveBeenCalled());
     expect(await screen.findByText('Cumple de Ale')).toBeInTheDocument();
+    await waitFor(() => expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'false'));
+
+    fireEvent.click(saveButton());
+
+    await waitFor(() => expect(mockUpdateEventFeatures).toHaveBeenCalledTimes(1));
+    expectVisibilityNotSent();
+    expect(serverIsPublic).toBe(true);
+  });
+
+  it('una respuesta tardía no pisa el valor que el panel escribió', async () => {
+    // La primera lectura dice "público"; la lectura que llega después de la
+    // escritura trae un valor que no es el que el panel escribió.
+    const lateRead = deferred<AdminEvent>();
+    mockGetAdminEvent.mockImplementationOnce(async () => ({
+      ...baseEvent,
+      is_public: true,
+    }));
+    mockGetAdminEvent.mockImplementationOnce(() => lateRead.promise);
+    mockUpdateEventFeatures.mockImplementation(async () => ({
+      ...baseEvent,
+      is_public: true,
+    }));
+
+    renderConfigTab();
+
+    await waitFor(() => expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'false'));
+
+    // El administrador mueve el interruptor y vuelve a su posición: la
+    // decisión final es "público".
+    fireEvent.click(visibilitySwitch());
+    expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(visibilitySwitch());
     expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'false');
 
-    fireEvent.click(screen.getByRole('button', { name: /Guardar Cambios/i }));
+    fireEvent.click(saveButton());
 
     await waitFor(() => expect(mockUpdateEventFeatures).toHaveBeenCalledTimes(1));
     expect(mockUpdateEventFeatures).toHaveBeenCalledWith(
@@ -180,5 +246,74 @@ describe('ConfigTab — visibilidad del evento', () => {
       { quiz: true, corkboard: true, secretBox: false },
       { postcard_style: 'classic', is_public: true }
     );
+
+    // La lectura posterior a la escritura llega con "privado".
+    await waitFor(() => expect(mockGetAdminEvent).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      lateRead.resolve({ ...baseEvent, name: 'Cumple de Ale (tarde)', is_public: false });
+      await Promise.resolve();
+    });
+
+    // El panel sigue mostrando lo que escribió: la respuesta tardía no decide.
+    expect(await screen.findByText('Cumple de Ale (tarde)')).toBeInTheDocument();
+    expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('no afirma un valor de visibilidad hasta que resuelve la lectura administrativa', async () => {
+    const pending = deferred<AdminEvent>();
+    mockGetAdminEvent.mockReturnValue(pending.promise);
+
+    renderConfigTab();
+
+    // Mientras no se conoce la visibilidad, el interruptor no afirma nada
+    // sobre el evento.
+    const switchElement = visibilitySwitch();
+    expect(switchElement).toBeDisabled();
+    expect(switchElement).not.toHaveAttribute('aria-checked');
+
+    // Y el guardado en esa ventana no informa la visibilidad.
+    fireEvent.click(saveButton());
+
+    await waitFor(() => expect(mockUpdateEventFeatures).toHaveBeenCalledTimes(1));
+    expectVisibilityNotSent();
+  });
+
+  it('reinicia el estado de visibilidad cuando cambia el slug de la ruta', async () => {
+    const secondEvent = deferred<AdminEvent>();
+    mockGetAdminEvent.mockImplementation(async (slug) => {
+      if (slug === 'ale-roy') {
+        return { ...baseEvent, slug, is_public: true };
+      }
+      return secondEvent.promise;
+    });
+
+    const { rerenderWithSlug } = renderConfigTab('ale-roy');
+    await waitFor(() => expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'false'));
+
+    // El administrador mueve el interruptor del primer evento.
+    fireEvent.click(visibilitySwitch());
+    expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'true');
+
+    rerenderWithSlug('otro-evento');
+
+    // El estado se reinicia: la visibilidad del evento anterior no se arrastra
+    // ni se afirma antes de la lectura del nuevo evento.
+    await waitFor(() => expect(mockGetAdminEvent).toHaveBeenCalledWith('otro-evento'));
+    expect(visibilitySwitch()).toBeDisabled();
+    expect(visibilitySwitch()).not.toHaveAttribute('aria-checked');
+
+    // El guardado tampoco lleva la visibilidad del evento anterior.
+    fireEvent.click(saveButton());
+    await waitFor(() => expect(mockUpdateEventFeatures).toHaveBeenCalledTimes(1));
+    expectVisibilityNotSent();
+
+    // Con la lectura del nuevo evento, el panel muestra su visibilidad.
+    await act(async () => {
+      secondEvent.resolve({ ...baseEvent, slug: 'otro-evento', name: 'Otro evento', is_public: true });
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(screen.getByText('Otro evento')).toBeInTheDocument());
+    await waitFor(() => expect(visibilitySwitch()).toHaveAttribute('aria-checked', 'false'));
+    expect(visibilitySwitch()).not.toBeDisabled();
   });
 });
