@@ -181,7 +181,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authServiceWithReset)
 	themeHandler := handlers.NewThemeHandler(themeService)
 	adminQuestionHandler := handlers.NewAdminQuestionHandler(quizQuestionRepo, eventRepo, eventRepo)
-	adminEventHandler := handlers.NewAdminEventHandler(eventRepo, uploadsDir)
+	adminEventHandler := handlers.NewAdminEventHandler(eventRepo, eventRepo, uploadsDir)
 	adminSecretBoxHandler := handlers.NewSecretBoxAdminHandler(eventRepo)
 	eventHandler := handlers.NewEventHandler(eventRepo, collaboratorRepo)
 	analyticsHandler := handlers.NewAnalyticsHandler(db, eventRepo)
@@ -384,10 +384,7 @@ func main() {
 		}
 
 		// Admin routes: owner o colaboradores con permisos de admin
-		adminEvents := api.Group("/admin/events/:slug")
-		adminEvents.Use(eventMiddleware)
-		adminEvents.Use(authMiddleware)
-		adminEvents.Use(adminMiddleware)
+		adminEvents := adminEventRoutesGroup(api, eventMiddleware, authMiddleware, adminMiddleware)
 		{
 			adminEvents.GET("/status", handler.GetSecretBoxStatus)
 			adminEvents.GET("/secret-box", handler.ListSecretPostcards)
@@ -416,9 +413,7 @@ func main() {
 			adminEvents.PATCH("/questions/reorder", adminQuestionHandler.ReorderQuestions)
 
 			// Event Features Admin
-			adminEvents.PUT("/features", adminEventHandler.UpdateEventFeatures)
-			adminEvents.POST("/media", adminEventHandler.UploadMedia)
-			adminEvents.DELETE("/media", adminEventHandler.DeleteMedia)
+			registerAdminEventFeaturesRoutes(adminEvents, adminEventHandler)
 
 			// Analytics
 			adminEvents.GET("/analytics", analyticsHandler.GetAnalyticsSummary)
@@ -461,4 +456,29 @@ func main() {
 	if err := r.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
+}
+
+// adminEventRoutesGroup construye el grupo administrativo de un evento con la
+// misma cadena de middlewares que usa la aplicacion: la busqueda del evento,
+// la identidad de la cuenta y la condicion de owner o colaborador.
+//
+// La extraccion permite que las pruebas de politica de ruta del paquete
+// construyan el router real en lugar de una aproximacion.
+func adminEventRoutesGroup(api *gin.RouterGroup, eventLookup, auth, admin gin.HandlerFunc) *gin.RouterGroup {
+	adminEvents := api.Group("/admin/events/:slug")
+	adminEvents.Use(eventLookup)
+	adminEvents.Use(auth)
+	adminEvents.Use(admin)
+	return adminEvents
+}
+
+// registerAdminEventFeaturesRoutes registra las rutas administrativas del
+// evento dentro del grupo administrativo: la lectura del evento con el DTO
+// administrativo, la escritura de las features (que incluye la visibilidad)
+// y la media.
+func registerAdminEventFeaturesRoutes(adminEvents *gin.RouterGroup, adminEventHandler *handlers.AdminEventHandler) {
+	adminEvents.GET("", adminEventHandler.GetEvent)
+	adminEvents.PUT("/features", adminEventHandler.UpdateEventFeatures)
+	adminEvents.POST("/media", adminEventHandler.UploadMedia)
+	adminEvents.DELETE("/media", adminEventHandler.DeleteMedia)
 }

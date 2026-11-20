@@ -3,10 +3,14 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/the-mile-game/backend/internal/handlers"
 	"github.com/the-mile-game/backend/internal/middleware"
 	"github.com/the-mile-game/backend/internal/models"
 	"github.com/the-mile-game/backend/internal/services"
@@ -212,6 +216,107 @@ func TestScopedPageViewRouteUsesEventVisibilityPolicy(t *testing.T) {
 			}
 			if pageViewCalls != tt.wantCalls {
 				t.Errorf("analytics handler calls = %d, want %d", pageViewCalls, tt.wantCalls)
+			}
+		})
+	}
+}
+
+// routeEventUpdater es un guardado de evento sin efectos: la prueba de
+// politica de ruta ejercita la autorizacion, no la persistencia.
+type routeEventUpdater struct{}
+
+func (u *routeEventUpdater) Update(event *models.Event) error { return nil }
+
+func (u *routeEventUpdater) UpdateVisibility(eventID uuid.UUID, isPublic bool) error { return nil }
+
+// routeTestToken emite un token de acceso con el mismo secreto que usa el
+// AuthMiddleware real.
+func routeTestToken(t *testing.T, secret string, userID uuid.UUID) string {
+	t.Helper()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID.String(),
+		"email":   userID.String() + "@example.com",
+		"exp":     time.Now().Add(time.Hour).Unix(),
+	})
+	signed, err := token.SignedString([]byte(secret))
+	if err != nil {
+		t.Fatalf("SignedString() error = %v", err)
+	}
+	return signed
+}
+
+// La nueva ruta administrativa del evento se construye con el mismo router y
+// los mismos middlewares que usa la aplicacion. La matriz de politica:
+// sin credencial 401, una cuenta que no es miembro 403, un invitado aceptado
+// 403, un colaborador 200 y el owner 200.
+func TestAdminEventRoutePolicyMatrix(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	const secret = "admin-route-policy-secret"
+	authService := services.NewAuthService(nil, secret)
+
+	ownerID := uuid.New()
+	collaboratorID := uuid.New()
+	guestID := uuid.New()
+	outsiderID := uuid.New()
+
+	event := &models.Event{
+		ID:       uuid.New(),
+		Slug:     "policy-event",
+		Name:     "Policy Event",
+		OwnerID:  ownerID,
+		IsActive: true,
+		IsPublic: true,
+	}
+	collaborators := &routeMembershipChecker{allowed: collaboratorID}
+
+	router := gin.New()
+	api := router.Group("/api")
+	eventLookup := func(c *gin.Context) {
+		c.Set("event", event)
+		c.Set("event_id", event.ID)
+		c.Next()
+	}
+	adminEvents := adminEventRoutesGroup(
+		api,
+		eventLookup,
+		middleware.AuthMiddleware(authService),
+		middleware.AdminMiddleware(collaborators),
+	)
+	updater := &routeEventUpdater{}
+	registerAdminEventFeaturesRoutes(adminEvents, handlers.NewAdminEventHandler(updater, updater, ""))
+
+	tests := []struct {
+		name       string
+		token      string
+		wantStatus int
+	}{
+		{name: "without credentials", wantStatus: http.StatusUnauthorized},
+		{name: "an account that is not a member of the event", token: routeTestToken(t, secret, outsiderID), wantStatus: http.StatusForbidden},
+		{name: "an accepted guest", token: routeTestToken(t, secret, guestID), wantStatus: http.StatusForbidden},
+		{name: "a collaborator", token: routeTestToken(t, secret, collaboratorID), wantStatus: http.StatusOK},
+		{name: "the owner", token: routeTestToken(t, secret, ownerID), wantStatus: http.StatusOK},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "/api/admin/events/policy-event", nil)
+			if tt.token != "" {
+				request.Header.Set("Authorization", "Bearer "+tt.token)
+			}
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+
+			if response.Code != tt.wantStatus {
+				t.Fatalf("response = %d %q, want %d", response.Code, response.Body.String(), tt.wantStatus)
+			}
+			if tt.wantStatus == http.StatusOK {
+				if !strings.Contains(response.Body.String(), `"is_public"`) {
+					t.Errorf("response body %q must expose the administrative visibility", response.Body.String())
+				}
+				return
+			}
+			if !strings.Contains(response.Body.String(), "error") {
+				t.Errorf("response body %q must carry an error", response.Body.String())
 			}
 		})
 	}
