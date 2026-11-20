@@ -77,6 +77,7 @@ function renderAuthRoute(path: string) {
         <Route path="/e/:slug" element={<div data-testid="event-page">Event</div>} />
         <Route path="/guest-join/:slug" element={<div data-testid="guest-invitation">Invitation</div>} />
         <Route path="/dashboard" element={<div data-testid="dashboard">Dashboard</div>} />
+        <Route path="*" element={<div data-testid="elsewhere">Elsewhere</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -245,5 +246,86 @@ describe('unified return channel', () => {
 
       expect(replace).not.toHaveBeenCalled();
     });
+  });
+});
+
+// A destination that points outside the origin must never be navigated to,
+// neither by the login nor by the registration. These are the shapes of a
+// destination that a hostile link can carry.
+const FOREIGN_DESTINATIONS = [
+  'https://evil.example/steal',
+  '//evil.example/steal',
+  'https:/evil.example',
+  'javascript:alert(1)',
+  'data:text/html,x',
+  ' /leading-space',
+  '%2F%2Fevil.example/steal',
+  '/\\evil.example',
+  '?x=1',
+  '#x',
+  '',
+];
+
+// These ones are paths of the same origin: the URL parser normalizes the
+// newline and the backslash, and the "@" of a path is not a host. They must
+// survive the round trip.
+const SAME_ORIGIN_PATHS = [
+  '/path\nwith-newline',
+  '/path\\with-backslash',
+  '/@evil.example',
+];
+
+describe('a foreign destination is never navigated to', () => {
+  beforeEach(() => {
+    auth.isAuthenticated = false;
+    auth.isLoading = false;
+    auth.error = null;
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    if (originalLocation) {
+      Object.defineProperty(window, 'location', originalLocation);
+    }
+  });
+
+  it.each(FOREIGN_DESTINATIONS)('the login ignores %j', async (destination) => {
+    auth.isAuthenticated = true;
+    renderAuthRoute(`/login?return_to=${encodeURIComponent(destination)}`);
+
+    expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
+    expect(screen.queryByTestId('elsewhere')).not.toBeInTheDocument();
+  });
+
+  it.each(FOREIGN_DESTINATIONS)('the registration ignores %j', async (destination) => {
+    auth.isAuthenticated = true;
+    renderAuthRoute(`/register?return_to=${encodeURIComponent(destination)}`);
+
+    expect(await screen.findByTestId('dashboard')).toBeInTheDocument();
+    expect(screen.queryByTestId('elsewhere')).not.toBeInTheDocument();
+  });
+
+  it.each(FOREIGN_DESTINATIONS)('the login link to the registration carries no destination for %j', (destination) => {
+    renderAuthRoute(`/login?return_to=${encodeURIComponent(destination)}`);
+
+    const link = screen.getAllByRole('link').find((candidate) => candidate.getAttribute('href')?.startsWith('/register'));
+    expect(link?.getAttribute('href')).toBe('/register');
+  });
+
+  it.each(SAME_ORIGIN_PATHS)('the login keeps the same origin path %j', async (destination) => {
+    auth.isAuthenticated = true;
+    renderAuthRoute(`/login?return_to=${encodeURIComponent(destination)}`);
+
+    expect(await screen.findByTestId('elsewhere')).toBeInTheDocument();
+    expect(screen.queryByTestId('dashboard')).not.toBeInTheDocument();
+  });
+
+  it.each(SAME_ORIGIN_PATHS)('the registration keeps the same origin path %j', async (destination) => {
+    auth.isAuthenticated = true;
+    renderAuthRoute(`/register?return_to=${encodeURIComponent(destination)}`);
+
+    expect(await screen.findByTestId('elsewhere')).toBeInTheDocument();
+    expect(screen.queryByTestId('dashboard')).not.toBeInTheDocument();
   });
 });
