@@ -108,6 +108,7 @@ in place.
 | `GET /api/users/me/events` | JWT | Owned **and** collaborator events |
 | `POST /api/collaborators/accept` | JWT | Joined event |
 | `PUT /api/admin/events/:slug/features` | Owner or collaborator | Updated event |
+| `GET /api/admin/events/:slug` | Owner or collaborator | Event with its visibility |
 | `POST /api/admin/events/:slug/media` | Owner or collaborator | Uploaded media and updated event |
 | `DELETE /api/admin/events/:slug/media` | Owner or collaborator | Updated event |
 
@@ -194,10 +195,15 @@ gains administrative access. The routes aggregate, list and reveal only over the
 the caller owns or collaborates on, and the reveal broadcasts every affected event to
 its own room, addressed by event slug, instead of a single global broadcast.
 
-Private-event protection is still incomplete: there is no supported administration write
-that can switch an event to private (`EventRepository.Update` does not persist
-`is_public`), and the WebSocket admission, global recipient isolation and media/cache
-protections are separate later units.
+Private-event protection is complete: the owner and the collaborators can switch an event to private with
+`PUT /api/admin/events/:slug/features` and the optional `is_public` field, the WebSocket admission, the
+global recipient isolation and the media delivery with its native credential and its cache handling are in place.
+
+Two properties of that write are worth stating. A collaborator can also set the visibility back to public, the
+same way the owner can, and the owner has no veto over it. And the status codes reveal to a caller that is not a
+member that the event exists and that it is private (`401` for an anonymous request, `403` for an account that is
+not a member, `200` for a public event); the value of the visibility itself is never disclosed outside the
+administration.
 
 ## Feature Defaults
 

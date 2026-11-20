@@ -13,7 +13,8 @@ export interface EventStats {
 export function useEventAdmin(slug: string) {
   const eventQuery = useQuery({
     queryKey: ['event', slug],
-    queryFn: () => api.getEventBySlug(slug),
+    // Vía administrativa: la respuesta pública oculta la visibilidad del evento.
+    queryFn: () => api.getAdminEvent(slug),
     enabled: !!slug,
   });
 
