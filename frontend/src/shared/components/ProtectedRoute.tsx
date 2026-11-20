@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { buildLoginUrl } from '@/shared/lib/api';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface ProtectedRouteProps {
@@ -27,7 +28,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const authenticated = isAuthenticated || hasToken;
 
   if (!authenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // The destination travels in the `return_to` query parameter: it is the
+    // only channel of the return.
+    const destination = `${location.pathname}${location.search}`;
+    return <Navigate to={buildLoginUrl(destination)} replace />;
   }
 
   return <>{children}</>;
