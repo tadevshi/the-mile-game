@@ -68,6 +68,12 @@ export interface Event {
   settings?: EventSettings;  // Ajustado: los campos están anidados en settings
 }
 
+// Respuesta administrativa: igual que la pública más la visibilidad del evento.
+// Solo la pueden leer el propietario y los colaboradores del evento.
+export interface AdminEvent extends Event {
+  is_public: boolean;
+}
+
 // Google Drive Backup types
 export interface DriveStatus {
   connected: boolean;
@@ -567,6 +573,13 @@ class ApiClient {
     return response.data;
   }
 
+  // Lectura administrativa del evento: incluye la visibilidad (is_public),
+  // que la respuesta pública nunca expone.
+  async getAdminEvent(eventSlug: string): Promise<AdminEvent> {
+    const response = await this.client.get<AdminEvent>(`/admin/events/${eventSlug}`);
+    return response.data;
+  }
+
   // Get theme for an event
   async getEventTheme(slug: string): Promise<{
     id: string;
@@ -697,18 +710,28 @@ class ApiClient {
   async updateEventFeatures(
     eventSlug: string,
     features: EventFeatures,
-    settings?: { postcard_style: PostcardStyle }
-  ): Promise<Event> {
+    options?: { postcard_style?: PostcardStyle; is_public?: boolean }
+  ): Promise<AdminEvent> {
     // Transform camelCase to snake_case for backend compatibility
     const snakeFeatures = {
       quiz: features.quiz,
       corkboard: features.corkboard,
       secret_box: features.secretBox,  // snake_case para coincidir con backend
     };
-    
-    const response = await this.client.put<Event>(
+
+    // La visibilidad viaja en el mismo request; si no se informa, el backend
+    // conserva el valor actual.
+    const payload: Record<string, unknown> = { features: snakeFeatures };
+    if (options?.postcard_style) {
+      payload.settings = { postcard_style: options.postcard_style };
+    }
+    if (typeof options?.is_public === 'boolean') {
+      payload.is_public = options.is_public;
+    }
+
+    const response = await this.client.put<AdminEvent>(
       `/admin/events/${eventSlug}/features`,
-      { features: snakeFeatures, ...(settings && { settings }) }
+      payload
     );
     return response.data;
   }

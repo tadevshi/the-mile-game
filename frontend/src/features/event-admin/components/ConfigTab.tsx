@@ -37,6 +37,13 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
     secretBox: false,
   });
   const [postcardStyle, setPostcardStyle] = useState<PostcardStyle>('classic');
+  const [isPublic, setIsPublic] = useState(true);
+  // Marca que el administrador movió el interruptor: entonces la respuesta
+  // tardía del servidor no debe pisar su decisión.
+  const visibilityTouchedRef = useRef(false);
+  // Marca que ya se conoce la visibilidad real del evento: si no se sabe,
+  // el guardado no la informa y el backend conserva la almacenada.
+  const visibilityKnownRef = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -102,8 +109,25 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
     setPostcardStyle(getPostcardStyle(event?.settings?.postcard_style));
   }, [event?.settings?.postcard_style]);
 
+  // La visibilidad viene de la respuesta administrativa del evento
+  useEffect(() => {
+    if (typeof event?.is_public === 'boolean') {
+      visibilityKnownRef.current = true;
+      if (!visibilityTouchedRef.current) {
+        setIsPublic(event.is_public);
+      }
+    }
+  }, [event?.is_public]);
+
   const handleToggle = (key: keyof EventFeatures) => (checked: boolean) => {
     setFeatures((prev) => ({ ...prev, [key]: checked }));
+    setSuccess(false);
+    setError(null);
+  };
+
+  const handleToggleVisibility = (privateEvent: boolean) => {
+    visibilityTouchedRef.current = true;
+    setIsPublic(!privateEvent);
     setSuccess(false);
     setError(null);
   };
@@ -116,8 +140,13 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
     try {
       const updatedEvent = await api.updateEventFeatures(slug, features, {
         postcard_style: postcardStyle,
+        is_public: visibilityKnownRef.current ? isPublic : undefined,
       });
       syncSettings(slug, updatedEvent.settings);
+      visibilityTouchedRef.current = false;
+      if (typeof updatedEvent.is_public === 'boolean') {
+        setIsPublic(updatedEvent.is_public);
+      }
       setSuccess(true);
       refetchEvent();
       setTimeout(() => setSuccess(false), 3000);
@@ -212,6 +241,20 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
             <Switch
               checked={features.secretBox}
               onChange={handleToggle('secretBox')}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: `${theme.secondaryColor}30` }}>
+            <div>
+              <p className="font-medium" style={{ color: theme.textColor }}>Evento privado</p>
+              <p className="text-sm" style={{ color: `${theme.textColor}80` }}>
+                Solo el propietario, los colaboradores y los invitados pueden verlo
+              </p>
+            </div>
+            <Switch
+              checked={!isPublic}
+              onChange={handleToggleVisibility}
+              aria-label="Evento privado"
             />
           </div>
         </div>
