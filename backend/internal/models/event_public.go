@@ -55,6 +55,35 @@ func NewPublicEventResponse(event *Event) *PublicEventResponse {
 	}
 }
 
+// AdminEventResponse es el DTO de respuesta de evento para la administración.
+// Reune los mismos campos de la respuesta pública y agrega la visibilidad
+// persistida del evento.
+//
+// La visibilidad se expone solo por esta via: el DTO publico es una
+// allowlist y un cliente anonimo nunca debe aprender si un evento es privado.
+type AdminEventResponse struct {
+	PublicEventResponse
+	IsPublic bool `json:"is_public"`
+}
+
+// NewAdminEventResponse construye la respuesta administrativa de un evento.
+// Devuelve nil si el evento es nil.
+func NewAdminEventResponse(event *Event) *AdminEventResponse {
+	if event == nil {
+		return nil
+	}
+
+	public := NewPublicEventResponse(event)
+	if public == nil {
+		return nil
+	}
+
+	return &AdminEventResponse{
+		PublicEventResponse: *public,
+		IsPublic:            event.IsPublic,
+	}
+}
+
 // NewPublicEventResponses construye la respuesta pública para un listado de
 // eventos. Siempre devuelve un slice no nulo (JSON `[]` y no `null`).
 func NewPublicEventResponses(events []Event) []PublicEventResponse {

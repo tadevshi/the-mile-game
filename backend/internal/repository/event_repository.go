@@ -176,18 +176,21 @@ func (r *EventRepository) Update(event *models.Event) error {
 	featuresJSON, _ := json.Marshal(event.Features)
 	settingsJSON, _ := json.Marshal(event.Settings)
 
+	// La visibilidad se escribe con el resto del evento. Todos los demás
+	// llamadores cargan el evento de la base antes de guardarlo, de modo que
+	// conservan la visibilidad almacenada.
 	query := `
 		UPDATE events
 		SET name = $1, description = $2, features = $3, settings = $4,
 		    starts_at = $5, ends_at = $6, is_active = $7, secret_box_token = $8,
-		    invite_token = $9
-		WHERE id = $10
+		    invite_token = $9, is_public = $10
+		WHERE id = $11
 	`
 
 	_, err := r.db.Exec(query,
 		event.Name, event.Description, featuresJSON, settingsJSON,
 		event.StartsAt, event.EndsAt, event.IsActive, event.SecretBoxToken,
-		event.InviteToken, event.ID)
+		event.InviteToken, event.IsPublic, event.ID)
 
 	return err
 }

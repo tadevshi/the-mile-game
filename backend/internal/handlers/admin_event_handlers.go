@@ -29,6 +29,9 @@ type UpdateFeaturesRequest struct {
 	Settings *struct {
 		PostcardStyle models.PostcardStyle `json:"postcard_style"`
 	} `json:"settings,omitempty"`
+	// IsPublic es la visibilidad persistida del evento. Ausente = se conserva
+	// la actual; presente = debe ser un booleano.
+	IsPublic *bool `json:"is_public,omitempty"`
 }
 
 // allowedFeatures keys que se pueden actualizar
@@ -92,6 +95,20 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 		}
 	}
 
+	// La visibilidad es opcional: si viene, tiene que ser un booleano.
+	// Un valor invalido es un bad request y no se escribe nada.
+	isPublicProvided := false
+	isPublicValue := false
+	if rawIsPublic, exists := rawRequest["is_public"]; exists {
+		value, valid := rawIsPublic.(bool)
+		if !valid {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: 'is_public' must be a boolean"})
+			return
+		}
+		isPublicProvided = true
+		isPublicValue = value
+	}
+
 	var settingsData map[string]interface{}
 	if rawSettings, exists := rawRequest["settings"]; exists {
 		settingsData, ok = rawSettings.(map[string]interface{})
@@ -129,6 +146,9 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 	if settingsData != nil && settingsData["postcard_style"] != nil {
 		eventModel.Settings.PostcardStyle = req.Settings.PostcardStyle
 	}
+	if isPublicProvided {
+		eventModel.IsPublic = isPublicValue
+	}
 
 	// Actualizar en DB
 	if err := h.eventUpdater.Update(eventModel); err != nil {
@@ -137,8 +157,28 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 	}
 
 	// Devolver los campos del evento, sin credenciales que solo se sirven
-	// mediante sus endpoints administrativos dedicados.
-	c.JSON(http.StatusOK, models.NewPublicEventResponse(eventModel))
+	// mediante sus endpoints administrativos dedicados. La respuesta
+	// administrativa incluye la visibilidad persistida.
+	c.JSON(http.StatusOK, models.NewAdminEventResponse(eventModel))
+}
+
+// GetEvent GET /api/admin/events/:slug
+// Devuelve el evento con la respuesta administrativa, que incluye la
+// visibilidad persistida. La ruta vive en el grupo administrativo: el owner
+// y los colaboradores la alcanzan, un invitado no.
+func (h *AdminEventHandler) GetEvent(c *gin.Context) {
+	event, exists := c.Get("event")
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		return
+	}
+	eventModel, ok := event.(*models.Event)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid event data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.NewAdminEventResponse(eventModel))
 }
 
 // UploadMedia POST /api/admin/events/:slug/media

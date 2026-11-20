@@ -416,6 +416,7 @@ func main() {
 			adminEvents.PATCH("/questions/reorder", adminQuestionHandler.ReorderQuestions)
 
 			// Event Features Admin
+			adminEvents.GET("", adminEventHandler.GetEvent)
 			adminEvents.PUT("/features", adminEventHandler.UpdateEventFeatures)
 			adminEvents.POST("/media", adminEventHandler.UploadMedia)
 			adminEvents.DELETE("/media", adminEventHandler.DeleteMedia)

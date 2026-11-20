@@ -212,18 +212,16 @@ func TestEventVisibilityDefaultsToPublic(t *testing.T) {
 		t.Fatal("Create() IsPublic = false, want true for a new event")
 	}
 
-	// The generic event update API must not activate private visibility.
-	created.IsPublic = false
 	inviteToken := "public-visibility-test-token"
 	created.InviteToken = &inviteToken
 	if err := repo.Update(created); err != nil {
 		t.Fatalf("Update() error = %v", err)
 	}
 
-	assertPublic := func(method string, event *models.Event) {
+	assertVisibility := func(method string, event *models.Event, want bool) {
 		t.Helper()
-		if !event.IsPublic {
-			t.Errorf("%s IsPublic = false, want persisted public visibility", method)
+		if event.IsPublic != want {
+			t.Errorf("%s IsPublic = %v, want %v", method, event.IsPublic, want)
 		}
 	}
 
@@ -231,13 +229,13 @@ func TestEventVisibilityDefaultsToPublic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetBySlug() error = %v", err)
 	}
-	assertPublic("GetBySlug()", bySlug)
+	assertVisibility("GetBySlug()", bySlug, true)
 
 	byID, err := repo.GetByID(created.ID)
 	if err != nil {
 		t.Fatalf("GetByID() error = %v", err)
 	}
-	assertPublic("GetByID()", byID)
+	assertVisibility("GetByID()", byID, true)
 
 	byOwner, err := repo.ListByOwner(user.ID)
 	if err != nil {
@@ -246,7 +244,7 @@ func TestEventVisibilityDefaultsToPublic(t *testing.T) {
 	if len(byOwner) != 1 {
 		t.Fatalf("ListByOwner() returned %d events, want 1", len(byOwner))
 	}
-	assertPublic("ListByOwner()", &byOwner[0])
+	assertVisibility("ListByOwner()", &byOwner[0], true)
 
 	accessible, err := repo.ListAccessibleByUser(user.ID, []uuid.UUID{created.ID})
 	if err != nil {
@@ -255,13 +253,121 @@ func TestEventVisibilityDefaultsToPublic(t *testing.T) {
 	if len(accessible) != 1 {
 		t.Fatalf("ListAccessibleByUser() returned %d events, want 1", len(accessible))
 	}
-	assertPublic("ListAccessibleByUser()", &accessible[0])
+	assertVisibility("ListAccessibleByUser()", &accessible[0], true)
 
 	byInvite, err := repo.GetByInviteToken(inviteToken)
 	if err != nil {
 		t.Fatalf("GetByInviteToken() error = %v", err)
 	}
-	assertPublic("GetByInviteToken()", byInvite)
+	assertVisibility("GetByInviteToken()", byInvite, true)
+
+	// La escritura explicita de la visibilidad se persiste.
+	bySlug.IsPublic = false
+	if err := repo.Update(bySlug); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	reloaded, err := repo.GetBySlug("public-by-default")
+	if err != nil {
+		t.Fatalf("GetBySlug() error = %v", err)
+	}
+	assertVisibility("GetBySlug()", reloaded, false)
+
+	reloaded.IsPublic = true
+	if err := repo.Update(reloaded); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	reloadedAgain, err := repo.GetBySlug("public-by-default")
+	if err != nil {
+		t.Fatalf("GetBySlug() error = %v", err)
+	}
+	assertVisibility("GetBySlug()", reloadedAgain, true)
+}
+
+// Los demás llamadores de Update() cargan el evento desde la base antes de
+// guardarlo: la visibilidad que lei conserve la que estaba almacenada.
+func TestEventUpdatePreservesVisibilityForCallersThatLoadFromDatabase(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	defer cleanupTestData(t, db)
+
+	user := createTestUser(t, db)
+	repo := NewEventRepository(db)
+
+	created, err := repo.Create(user.ID, "private-preserved", "Private Preserved", "",
+		models.EventFeatures{}, models.EventSettings{}, nil, nil)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	created.IsPublic = false
+	if err := repo.Update(created); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	assertPrivate := func(method string, event *models.Event) {
+		t.Helper()
+		if event.IsPublic {
+			t.Errorf("%s IsPublic = true, want the persisted private visibility", method)
+		}
+	}
+
+	// Patrón del handler de colaboradores: GetBySlug() y luego Update().
+	bySlug, err := repo.GetBySlug("private-preserved")
+	if err != nil {
+		t.Fatalf("GetBySlug() error = %v", err)
+	}
+	newToken := "regenerated-invite-token"
+	bySlug.InviteToken = &newToken
+	if err := repo.Update(bySlug); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	reloadedBySlug, err := repo.GetBySlug("private-preserved")
+	if err != nil {
+		t.Fatalf("GetBySlug() error = %v", err)
+	}
+	assertPrivate("GetBySlug()", reloadedBySlug)
+	if reloadedBySlug.InviteToken == nil || *reloadedBySlug.InviteToken != newToken {
+		t.Error("Update() did not persist the invite token")
+	}
+
+	// Patrón del servicio de temas: GetByID() y luego Update().
+	byID, err := repo.GetByID(created.ID)
+	if err != nil {
+		t.Fatalf("GetByID() error = %v", err)
+	}
+	byID.Settings.Theme = "classic"
+	if err := repo.Update(byID); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	reloadedByID, err := repo.GetByID(created.ID)
+	if err != nil {
+		t.Fatalf("GetByID() error = %v", err)
+	}
+	assertPrivate("GetByID()", reloadedByID)
+	if reloadedByID.Settings.Theme != "classic" {
+		t.Error("Update() did not persist the settings")
+	}
+
+	// Patrón del handler de Secret Box: GetBySlug() y luego Update().
+	bySlug, err = repo.GetBySlug("private-preserved")
+	if err != nil {
+		t.Fatalf("GetBySlug() error = %v", err)
+	}
+	secretBoxToken := "regenerated-secret-box-token"
+	bySlug.SecretBoxToken = &secretBoxToken
+	if err := repo.Update(bySlug); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	reloadedFinal, err := repo.GetBySlug("private-preserved")
+	if err != nil {
+		t.Fatalf("GetBySlug() error = %v", err)
+	}
+	assertPrivate("GetBySlug()", reloadedFinal)
 }
 
 func TestCreateEventDuplicateSlug(t *testing.T) {

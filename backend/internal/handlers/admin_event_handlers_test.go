@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/the-mile-game/backend/internal/middleware"
 	"github.com/the-mile-game/backend/internal/models"
 )
 
@@ -658,4 +659,235 @@ func TestDeleteMedia_EventNotFound(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// ============== VISIBILIDAD ADMINISTRATIVA (MR8a) ==============
+
+// setupAdminVisibilityRouter replica el wiring de producción del grupo
+// administrativo de un evento: EventMiddleware (evento en contexto),
+// AuthMiddleware (identidad) y AdminMiddleware (owner o colaborador).
+//
+// El evento que se expone al handler es una copia del almacenado, de modo que
+// solo una llamada a Update deja el valor persistido.
+func setupAdminVisibilityRouter(
+	handler *AdminEventHandler,
+	updater *mockEventUpdater,
+	eventID uuid.UUID,
+	userID *uuid.UUID,
+	collaborators map[uuid.UUID]bool,
+) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	admin := r.Group("/api/admin/events/:slug")
+	admin.Use(func(c *gin.Context) {
+		if stored, ok := updater.events[eventID]; ok {
+			eventCopy := *stored
+			c.Set("event", &eventCopy)
+		}
+		c.Next()
+	})
+	admin.Use(func(c *gin.Context) {
+		if userID != nil {
+			c.Set("user_id", *userID)
+		}
+		c.Next()
+	})
+	admin.Use(middleware.AdminMiddleware(&mockGuestAdminCheck{collaborators: collaborators}))
+	admin.PUT("/features", handler.UpdateEventFeatures)
+	admin.GET("", handler.GetEvent)
+	return r
+}
+
+// visibilityBody devuelve el cuerpo de la respuesta parseado como mapa.
+func visibilityBody(t *testing.T, body *bytes.Buffer) map[string]interface{} {
+	t.Helper()
+	var parsed map[string]interface{}
+	require.NoError(t, json.Unmarshal(body.Bytes(), &parsed))
+	return parsed
+}
+
+func TestAdminEventVisibility_OwnerWritesAndReadsVisibility(t *testing.T) {
+	ownerID := uuid.New()
+	updater := newMockEventUpdater()
+	event := createTestEventForFeatures("owner-visibility", "Owner Visibility", ownerID, models.EventFeatures{})
+	event.IsPublic = true
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, "")
+
+	router := setupAdminVisibilityRouter(handler, updater, event.ID, &ownerID, nil)
+
+	t.Run("owner writes is_public=false and it persists", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodPut, "/api/admin/events/owner-visibility/features", bytes.NewBufferString(`{"features":{"quiz":true},"is_public":false}`))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+
+		require.Equal(t, http.StatusOK, response.Code)
+		body := visibilityBody(t, response.Body)
+		value, ok := body["is_public"]
+		require.True(t, ok, "the administrative response must expose is_public")
+		assert.Equal(t, false, value)
+		assert.Equal(t, false, updater.events[event.ID].IsPublic)
+	})
+
+	t.Run("the administrative read returns the current value", func(t *testing.T) {
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/admin/events/owner-visibility", nil))
+
+		require.Equal(t, http.StatusOK, response.Code)
+		body := visibilityBody(t, response.Body)
+		value, ok := body["is_public"]
+		require.True(t, ok, "the administrative response must expose is_public")
+		assert.Equal(t, false, value)
+		assert.Equal(t, "Owner Visibility", body["name"])
+	})
+
+	t.Run("owner writes is_public=true and it persists", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodPut, "/api/admin/events/owner-visibility/features", bytes.NewBufferString(`{"features":{"quiz":true},"is_public":true}`))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+
+		require.Equal(t, http.StatusOK, response.Code)
+		body := visibilityBody(t, response.Body)
+		assert.Equal(t, true, body["is_public"])
+		assert.Equal(t, true, updater.events[event.ID].IsPublic)
+	})
+}
+
+func TestAdminEventVisibility_CollaboratorWritesVisibility(t *testing.T) {
+	ownerID := uuid.New()
+	collaboratorID := uuid.New()
+	updater := newMockEventUpdater()
+	event := createTestEventForFeatures("collaborator-visibility", "Collaborator Visibility", ownerID, models.EventFeatures{})
+	event.IsPublic = true
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, "")
+
+	router := setupAdminVisibilityRouter(handler, updater, event.ID, &collaboratorID, map[uuid.UUID]bool{collaboratorID: true})
+
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/events/collaborator-visibility/features", bytes.NewBufferString(`{"features":{"corkboard":true},"is_public":false}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	require.Equal(t, http.StatusOK, response.Code)
+	body := visibilityBody(t, response.Body)
+	value, ok := body["is_public"]
+	require.True(t, ok, "the administrative response must expose is_public")
+	assert.Equal(t, false, value)
+	assert.Equal(t, false, updater.events[event.ID].IsPublic)
+}
+
+func TestAdminEventVisibility_GuestIsRefused(t *testing.T) {
+	ownerID := uuid.New()
+	guestID := uuid.New()
+	updater := newMockEventUpdater()
+	event := createTestEventForFeatures("guest-visibility", "Guest Visibility", ownerID, models.EventFeatures{})
+	event.IsPublic = true
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, "")
+
+	t.Run("without identity the administration answers 401", func(t *testing.T) {
+		router := setupAdminVisibilityRouter(handler, updater, event.ID, nil, nil)
+		request := httptest.NewRequest(http.MethodPut, "/api/admin/events/guest-visibility/features", bytes.NewBufferString(`{"features":{"quiz":true},"is_public":false}`))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+
+		assert.Equal(t, http.StatusUnauthorized, response.Code)
+		assert.Equal(t, true, updater.events[event.ID].IsPublic)
+	})
+
+	t.Run("an account that is not an administrator answers 403", func(t *testing.T) {
+		router := setupAdminVisibilityRouter(handler, updater, event.ID, &guestID, nil)
+		request := httptest.NewRequest(http.MethodPut, "/api/admin/events/guest-visibility/features", bytes.NewBufferString(`{"features":{"quiz":true},"is_public":false}`))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+
+		assert.Equal(t, http.StatusForbidden, response.Code)
+		assert.Equal(t, true, updater.events[event.ID].IsPublic)
+	})
+}
+
+func TestAdminEventVisibility_InvalidValueIsBadRequest(t *testing.T) {
+	ownerID := uuid.New()
+	updater := newMockEventUpdater()
+	event := createTestEventForFeatures("invalid-visibility", "Invalid Visibility", ownerID, models.EventFeatures{})
+	event.IsPublic = false
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, "")
+
+	router := setupAdminVisibilityRouter(handler, updater, event.ID, &ownerID, nil)
+
+	for _, invalid := range []string{`"yes"`, `1`, `null`, `{}`, `[]`} {
+		t.Run("rejects "+invalid, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPut, "/api/admin/events/invalid-visibility/features", bytes.NewBufferString(`{"features":{"quiz":true},"is_public":`+invalid+`}`))
+			request.Header.Set("Content-Type", "application/json")
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+
+			assert.Equal(t, http.StatusBadRequest, response.Code)
+			body := visibilityBody(t, response.Body)
+			assert.Contains(t, body, "error")
+			// La visibilidad almacenada no cambia.
+			assert.Equal(t, false, updater.events[event.ID].IsPublic)
+		})
+	}
+}
+
+func TestAdminEventVisibility_OmittedValuePreservesVisibility(t *testing.T) {
+	ownerID := uuid.New()
+	updater := newMockEventUpdater()
+	event := createTestEventForFeatures("omitted-visibility", "Omitted Visibility", ownerID, models.EventFeatures{})
+	event.IsPublic = false
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, "")
+
+	router := setupAdminVisibilityRouter(handler, updater, event.ID, &ownerID, nil)
+
+	t.Run("the features update keeps the event private", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodPut, "/api/admin/events/omitted-visibility/features", bytes.NewBufferString(`{"features":{"quiz":true}}`))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+
+		require.Equal(t, http.StatusOK, response.Code)
+		assert.Equal(t, false, updater.events[event.ID].IsPublic)
+		assert.Equal(t, true, updater.events[event.ID].Features.Quiz)
+	})
+
+	t.Run("the settings update keeps the event private", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodPut, "/api/admin/events/omitted-visibility/features", bytes.NewBufferString(`{"features":{"quiz":true},"settings":{"postcard_style":"polaroid"}}`))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+
+		require.Equal(t, http.StatusOK, response.Code)
+		assert.Equal(t, false, updater.events[event.ID].IsPublic)
+		assert.Equal(t, models.PostcardStylePolaroid, updater.events[event.ID].Settings.PostcardStyle)
+	})
+}
+
+// La respuesta publica nunca expone la visibilidad: la allowlist del DTO
+// publico es una propiedad de seguridad.
+func TestPublicEventResponse_OmitsVisibility(t *testing.T) {
+	ownerID := uuid.New()
+	event := createTestEventForFeatures("public-visibility", "Public Visibility", ownerID, models.EventFeatures{})
+	event.IsPublic = true
+
+	encoded, err := json.Marshal(models.NewPublicEventResponse(event))
+	require.NoError(t, err)
+	assert.NotContains(t, string(encoded), "is_public")
+
+	// El mismo evento, servido por la ruta publica, tampoco expone la
+	// visibilidad.
+	router := setupPublicEventRouter(event)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/events/public-visibility", nil))
+
+	require.Equal(t, http.StatusOK, response.Code)
+	assert.NotContains(t, response.Body.String(), "is_public")
+	assert.Contains(t, response.Body.String(), "Public Visibility")
 }
