@@ -91,6 +91,10 @@ The routes aggregate, list and reveal only over the events the caller owns or co
 
 Private-event protection is complete. The owner and the collaborators of an event can now switch it to private with `PUT /api/admin/events/:slug/features` and the optional `is_public` field; the WebSocket admission, the global recipient isolation and the media delivery with its native credential and its cache handling are in place.
 
+A collaborator can also set the visibility back to public, exactly as the owner can: it is the same write that the features and the settings use, and the owner has no veto over it.
+
+The status codes tell a caller that is not a member that an event exists and that it is private: an anonymous request for a private event answers `401`, a request with an account that is not a member answers `403`, and a public event answers `200`. The value of the visibility is never disclosed to a caller that is not the owner or a collaborator; the difference of the status codes is what a private event necessarily looks like from the outside.
+
 ### Event Guests
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|

@@ -199,6 +199,12 @@ Private-event protection is complete: the owner and the collaborators can switch
 `PUT /api/admin/events/:slug/features` and the optional `is_public` field, the WebSocket admission, the
 global recipient isolation and the media delivery with its native credential and its cache handling are in place.
 
+Two properties of that write are worth stating. A collaborator can also set the visibility back to public, the
+same way the owner can, and the owner has no veto over it. And the status codes reveal to a caller that is not a
+member that the event exists and that it is private (`401` for an anonymous request, `403` for an account that is
+not a member, `200` for a public event); the value of the visibility itself is never disclosed outside the
+administration.
+
 ## Feature Defaults
 
 When creating a new event, features default to:
