@@ -5,6 +5,7 @@ import { useEventNavigate } from '@/shared/hooks/useEventNavigate';
 import { useEventStore, type Event } from '@/shared/store/eventStore';
 import { api } from '@/shared/lib/api';
 import { Button } from '@/shared/components/Button';
+import { PrivateEventView, type PrivateEventViewKind } from '@/features/event-public/components/PrivateEventView';
 import { EventLandingSkeleton } from './EventSkeletons';
 
 interface EventLoaderProps {
@@ -19,6 +20,9 @@ export function EventLoader({ children, fallback, useLandingSkeleton }: EventLoa
   const navigate = useEventNavigate();
   const { currentEvent, setEvent, setLoading, setError, isLoading, error } = useEventStore();
   const [notFound, setNotFound] = useState(false);
+  // Fallos de acceso a un evento privado: 'private' (401, sin identidad)
+  // y 'denied' (403, cuenta que no es invitada del evento).
+  const [accessFailure, setAccessFailure] = useState<PrivateEventViewKind | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -32,6 +36,7 @@ export function EventLoader({ children, fallback, useLandingSkeleton }: EventLoa
       setLoading(true);
       setError(null);
       setNotFound(false);
+      setAccessFailure(null);
 
       try {
         const event = await api.getEventBySlug(slug);
@@ -63,11 +68,18 @@ export function EventLoader({ children, fallback, useLandingSkeleton }: EventLoa
         
         setEvent(transformedEvent);
       } catch (err: any) {
-        if (err.response?.status === 404) {
+        const status = err.response?.status;
+        if (status === 404) {
           setNotFound(true);
           setError('Evento no encontrado');
-        } else if (err.response?.status === 410) {
+        } else if (status === 410) {
           setError('Este evento ha terminado');
+        } else if (status === 401) {
+          // Evento privado visto sin identidad: se ofrece iniciar sesión.
+          setAccessFailure('private');
+        } else if (status === 403) {
+          // Cuenta autenticada que no es invitada del evento.
+          setAccessFailure('denied');
         } else {
           setError('Error al cargar el evento');
         }
@@ -98,6 +110,16 @@ export function EventLoader({ children, fallback, useLandingSkeleton }: EventLoa
           </div>
         )
       )
+    );
+  }
+
+  if (accessFailure) {
+    return (
+      <PrivateEventView
+        kind={accessFailure}
+        slug={slug}
+        eventName={currentEvent && currentEvent.slug === slug ? currentEvent.name : undefined}
+      />
     );
   }
 
