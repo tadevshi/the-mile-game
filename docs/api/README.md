@@ -89,7 +89,7 @@ The legacy administration routes now require an authenticated account and are bo
 
 The routes aggregate, list and reveal only over the events the caller owns or collaborates on. `POST /admin/reveal` reveals each of those events separately and broadcasts every affected event to its own room, addressed by event slug, instead of a single global broadcast; an event with no pending postcards is neither revealed nor broadcast.
 
-Private-event protection is still incomplete. There is no supported administration write that can switch an event to private (`EventRepository.Update` does not persist `is_public`), and the WebSocket admission, global recipient isolation and media/cache protections are separate later units.
+Private-event protection is complete. The owner and the collaborators of an event can now switch it to private with `PUT /api/admin/events/:slug/features` and the optional `is_public` field; the WebSocket admission, the global recipient isolation and the media delivery with its native credential and its cache handling are in place.
 
 ### Event Guests
 | Method | Endpoint | Description | Auth |
@@ -167,7 +167,8 @@ The event guest link is separate from the collaborator invitation link. Guests m
 ### Admin Features
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| PUT | `/admin/events/:slug/features` | Update features | Yes (Owner) |
+| PUT | `/admin/events/:slug/features` | Update features and the visibility of the event | Yes (Owner or collaborator) |
+| GET | `/admin/events/:slug` | Event with its visibility, for the administration | Yes (Owner or collaborator) |
 
 ## Response Format
 
