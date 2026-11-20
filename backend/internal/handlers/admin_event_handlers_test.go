@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -19,8 +22,15 @@ import (
 
 // ============== MOCKS ==============
 
+// mockEventUpdater reproduce el contrato del repositorio: la escritura
+// generica del evento nunca toca la visibilidad y la visibilidad tiene su
+// propia escritura.
 type mockEventUpdater struct {
 	events map[uuid.UUID]*models.Event
+	// calls registra el orden de las escrituras ("update" y "visibility").
+	calls []string
+	// visibilityErr hace fallar la escritura de la visibilidad.
+	visibilityErr error
 }
 
 func newMockEventUpdater() *mockEventUpdater {
@@ -34,10 +44,36 @@ func (m *mockEventUpdater) AddEvent(event *models.Event) {
 }
 
 func (m *mockEventUpdater) Update(event *models.Event) error {
-	if _, ok := m.events[event.ID]; !ok {
+	stored, ok := m.events[event.ID]
+	if !ok {
 		return sql.ErrNoRows
 	}
-	m.events[event.ID] = event
+	m.calls = append(m.calls, "update")
+	updated := *stored
+	updated.Name = event.Name
+	updated.Description = event.Description
+	updated.Features = event.Features
+	updated.Settings = event.Settings
+	updated.StartsAt = event.StartsAt
+	updated.EndsAt = event.EndsAt
+	updated.IsActive = event.IsActive
+	updated.SecretBoxToken = event.SecretBoxToken
+	updated.InviteToken = event.InviteToken
+	// La visibilidad no se escribe aqui: se conserva la almacenada.
+	m.events[event.ID] = &updated
+	return nil
+}
+
+func (m *mockEventUpdater) UpdateVisibility(eventID uuid.UUID, isPublic bool) error {
+	stored, ok := m.events[eventID]
+	if !ok {
+		return sql.ErrNoRows
+	}
+	m.calls = append(m.calls, "visibility")
+	if m.visibilityErr != nil {
+		return m.visibilityErr
+	}
+	stored.IsPublic = isPublic
 	return nil
 }
 
@@ -90,7 +126,7 @@ func TestUpdateEventFeatures_Success(t *testing.T) {
 	})
 	mockUpdater.AddEvent(event)
 
-	handler := NewAdminEventHandler(mockUpdater, "")
+	handler := NewAdminEventHandler(mockUpdater, mockUpdater, "")
 
 	t.Run("enable quiz feature", func(t *testing.T) {
 		// Create router with event in context
@@ -175,7 +211,7 @@ func TestUpdateEventFeatures_ResponseOmitsSensitiveTokens(t *testing.T) {
 	event.SecretBoxToken = &secretBoxToken
 	updater := newMockEventUpdater()
 	updater.AddEvent(event)
-	handler := NewAdminEventHandler(updater, "")
+	handler := NewAdminEventHandler(updater, updater, "")
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
@@ -205,7 +241,7 @@ func TestUpdateEventFeatures_InvalidKey(t *testing.T) {
 	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
 	mockUpdater.AddEvent(event)
 
-	handler := NewAdminEventHandler(mockUpdater, "")
+	handler := NewAdminEventHandler(mockUpdater, mockUpdater, "")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -237,7 +273,7 @@ func TestUpdateEventFeatures_EventNotFound(t *testing.T) {
 
 	// No events in mock
 
-	handler := NewAdminEventHandler(mockUpdater, "")
+	handler := NewAdminEventHandler(mockUpdater, mockUpdater, "")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -268,7 +304,7 @@ func TestUpdateEventFeatures_InvalidJSON(t *testing.T) {
 	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
 	mockUpdater.AddEvent(event)
 
-	handler := NewAdminEventHandler(mockUpdater, "")
+	handler := NewAdminEventHandler(mockUpdater, mockUpdater, "")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -304,7 +340,7 @@ func TestUpdateEventFeatures_NonOwnerUser(t *testing.T) {
 	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
 	mockUpdater.AddEvent(event)
 
-	handler := NewAdminEventHandler(mockUpdater, "")
+	handler := NewAdminEventHandler(mockUpdater, mockUpdater, "")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -345,7 +381,7 @@ func TestUpdateEventFeatures_UpdateError(t *testing.T) {
 	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
 	// Note: event is NOT added to failUpdater
 
-	handler := NewAdminEventHandler(failUpdater, "")
+	handler := NewAdminEventHandler(failUpdater, failUpdater, "")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -410,7 +446,7 @@ func TestUpdateEventFeatures_PostcardStyle(t *testing.T) {
 			event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
 			event.Settings.PostcardStyle = tt.initialStyle
 			mockUpdater.AddEvent(event)
-			handler := NewAdminEventHandler(mockUpdater, "")
+			handler := NewAdminEventHandler(mockUpdater, mockUpdater, "")
 
 			gin.SetMode(gin.TestMode)
 			router := gin.New()
@@ -442,7 +478,7 @@ func TestUploadMedia_ResponseOmitsSensitiveTokens(t *testing.T) {
 	event.SecretBoxToken = &secretBoxToken
 	updater := newMockEventUpdater()
 	updater.AddEvent(event)
-	handler := NewAdminEventHandler(updater, t.TempDir())
+	handler := NewAdminEventHandler(updater, updater, t.TempDir())
 
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
@@ -481,7 +517,7 @@ func TestUploadMedia_InvalidType(t *testing.T) {
 	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
 	mockUpdater.AddEvent(event)
 
-	handler := NewAdminEventHandler(mockUpdater, "/tmp/uploads")
+	handler := NewAdminEventHandler(mockUpdater, mockUpdater, "/tmp/uploads")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -518,7 +554,7 @@ func TestUploadMedia_NoFile(t *testing.T) {
 	event := createTestEventForFeatures("test-event", "Test Event", ownerID, models.EventFeatures{})
 	mockUpdater.AddEvent(event)
 
-	handler := NewAdminEventHandler(mockUpdater, "/tmp/uploads")
+	handler := NewAdminEventHandler(mockUpdater, mockUpdater, "/tmp/uploads")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -551,7 +587,7 @@ func TestUploadMedia_EventNotFound(t *testing.T) {
 	mockUpdater := newMockEventUpdater()
 	// No events added
 
-	handler := NewAdminEventHandler(mockUpdater, "/tmp/uploads")
+	handler := NewAdminEventHandler(mockUpdater, mockUpdater, "/tmp/uploads")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -582,7 +618,7 @@ func TestDeleteMedia_ResponseOmitsSensitiveTokens(t *testing.T) {
 	event.SecretBoxToken = &secretBoxToken
 	updater := newMockEventUpdater()
 	updater.AddEvent(event)
-	handler := NewAdminEventHandler(updater, t.TempDir())
+	handler := NewAdminEventHandler(updater, updater, t.TempDir())
 
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
@@ -609,7 +645,7 @@ func TestDeleteMedia_InvalidType(t *testing.T) {
 	event.Settings.LogoURL = "/uploads/logos/test.jpg"
 	mockUpdater.AddEvent(event)
 
-	handler := NewAdminEventHandler(mockUpdater, "/tmp/uploads")
+	handler := NewAdminEventHandler(mockUpdater, mockUpdater, "/tmp/uploads")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -641,7 +677,7 @@ func TestDeleteMedia_EventNotFound(t *testing.T) {
 	mockUpdater := newMockEventUpdater()
 	// No events added
 
-	handler := NewAdminEventHandler(mockUpdater, "/tmp/uploads")
+	handler := NewAdminEventHandler(mockUpdater, mockUpdater, "/tmp/uploads")
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -712,7 +748,7 @@ func TestAdminEventVisibility_OwnerWritesAndReadsVisibility(t *testing.T) {
 	event := createTestEventForFeatures("owner-visibility", "Owner Visibility", ownerID, models.EventFeatures{})
 	event.IsPublic = true
 	updater.AddEvent(event)
-	handler := NewAdminEventHandler(updater, "")
+	handler := NewAdminEventHandler(updater, updater, "")
 
 	router := setupAdminVisibilityRouter(handler, updater, event.ID, &ownerID, nil)
 
@@ -762,7 +798,7 @@ func TestAdminEventVisibility_CollaboratorWritesVisibility(t *testing.T) {
 	event := createTestEventForFeatures("collaborator-visibility", "Collaborator Visibility", ownerID, models.EventFeatures{})
 	event.IsPublic = true
 	updater.AddEvent(event)
-	handler := NewAdminEventHandler(updater, "")
+	handler := NewAdminEventHandler(updater, updater, "")
 
 	router := setupAdminVisibilityRouter(handler, updater, event.ID, &collaboratorID, map[uuid.UUID]bool{collaboratorID: true})
 
@@ -786,7 +822,7 @@ func TestAdminEventVisibility_GuestIsRefused(t *testing.T) {
 	event := createTestEventForFeatures("guest-visibility", "Guest Visibility", ownerID, models.EventFeatures{})
 	event.IsPublic = true
 	updater.AddEvent(event)
-	handler := NewAdminEventHandler(updater, "")
+	handler := NewAdminEventHandler(updater, updater, "")
 
 	t.Run("without identity the administration answers 401", func(t *testing.T) {
 		router := setupAdminVisibilityRouter(handler, updater, event.ID, nil, nil)
@@ -817,7 +853,7 @@ func TestAdminEventVisibility_InvalidValueIsBadRequest(t *testing.T) {
 	event := createTestEventForFeatures("invalid-visibility", "Invalid Visibility", ownerID, models.EventFeatures{})
 	event.IsPublic = false
 	updater.AddEvent(event)
-	handler := NewAdminEventHandler(updater, "")
+	handler := NewAdminEventHandler(updater, updater, "")
 
 	router := setupAdminVisibilityRouter(handler, updater, event.ID, &ownerID, nil)
 
@@ -843,7 +879,7 @@ func TestAdminEventVisibility_OmittedValuePreservesVisibility(t *testing.T) {
 	event := createTestEventForFeatures("omitted-visibility", "Omitted Visibility", ownerID, models.EventFeatures{})
 	event.IsPublic = false
 	updater.AddEvent(event)
-	handler := NewAdminEventHandler(updater, "")
+	handler := NewAdminEventHandler(updater, updater, "")
 
 	router := setupAdminVisibilityRouter(handler, updater, event.ID, &ownerID, nil)
 
@@ -890,4 +926,152 @@ func TestPublicEventResponse_OmitsVisibility(t *testing.T) {
 	require.Equal(t, http.StatusOK, response.Code)
 	assert.NotContains(t, response.Body.String(), "is_public")
 	assert.Contains(t, response.Body.String(), "Public Visibility")
+}
+
+// La escritura de la visibilidad es una sentencia propia: no cambia nada mas
+// del evento.
+func TestAdminEventVisibility_DedicatedWriteChangesNothingElse(t *testing.T) {
+	ownerID := uuid.New()
+	updater := newMockEventUpdater()
+	event := createTestEventForFeatures("dedicated-visibility", "Dedicated Visibility", ownerID, models.EventFeatures{Quiz: true})
+	event.IsPublic = true
+	event.Description = "Description that must survive"
+	event.Settings.PostcardStyle = models.PostcardStylePolaroid
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, updater, "")
+
+	router := setupAdminVisibilityRouter(handler, updater, event.ID, &ownerID, nil)
+
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/events/dedicated-visibility/features", bytes.NewBufferString(`{"features":{},"is_public":false}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	require.Equal(t, http.StatusOK, response.Code)
+	stored := updater.events[event.ID]
+	assert.Equal(t, false, stored.IsPublic)
+	assert.Equal(t, "Dedicated Visibility", stored.Name)
+	assert.Equal(t, "Description that must survive", stored.Description)
+	assert.Equal(t, models.EventFeatures{Quiz: true}, stored.Features)
+	assert.Equal(t, models.PostcardStylePolaroid, stored.Settings.PostcardStyle)
+}
+
+// La escritura generica del evento no toca la visibilidad: un llamador que
+// guarda un evento que no cargo conserva la visibilidad almacenada.
+func TestAdminEventVisibility_FeaturesUpdateNeverTouchesVisibility(t *testing.T) {
+	ownerID := uuid.New()
+	updater := newMockEventUpdater()
+	event := createTestEventForFeatures("features-keep-private", "Features Keep Private", ownerID, models.EventFeatures{})
+	event.IsPublic = false
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, updater, "")
+
+	router := setupAdminVisibilityRouter(handler, updater, event.ID, &ownerID, nil)
+
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/events/features-keep-private/features", bytes.NewBufferString(`{"features":{"quiz":true,"corkboard":true}}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	require.Equal(t, http.StatusOK, response.Code)
+	assert.Equal(t, false, updater.events[event.ID].IsPublic)
+	assert.Equal(t, true, updater.events[event.ID].Features.Quiz)
+}
+
+// Las features y los ajustes se escriben primero y la visibilidad despues: el
+// peor fallo deja el evento con la visibilidad que ya tenia.
+func TestAdminEventVisibility_FeaturesAreWrittenBeforeTheVisibility(t *testing.T) {
+	ownerID := uuid.New()
+	updater := newMockEventUpdater()
+	event := createTestEventForFeatures("ordered-visibility", "Ordered Visibility", ownerID, models.EventFeatures{})
+	event.IsPublic = true
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, updater, "")
+
+	router := setupAdminVisibilityRouter(handler, updater, event.ID, &ownerID, nil)
+
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/events/ordered-visibility/features", bytes.NewBufferString(`{"features":{"quiz":true},"is_public":false}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	require.Equal(t, http.StatusOK, response.Code)
+	assert.Equal(t, []string{"update", "visibility"}, updater.calls)
+}
+
+// Un fallo de la escritura de la visibilidad se responde con 500 y no cambia
+// la visibilidad almacenada.
+func TestAdminEventVisibility_VisibilityWriteFailureAnswers500(t *testing.T) {
+	ownerID := uuid.New()
+	updater := newMockEventUpdater()
+	updater.visibilityErr = errors.New("visibility write failed")
+	event := createTestEventForFeatures("failed-visibility", "Failed Visibility", ownerID, models.EventFeatures{})
+	event.IsPublic = true
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, updater, "")
+
+	router := setupAdminVisibilityRouter(handler, updater, event.ID, &ownerID, nil)
+
+	request := httptest.NewRequest(http.MethodPut, "/api/admin/events/failed-visibility/features", bytes.NewBufferString(`{"features":{"quiz":true},"is_public":false}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	assert.Equal(t, http.StatusInternalServerError, response.Code)
+	body := visibilityBody(t, response.Body)
+	assert.Contains(t, body, "error")
+	assert.Contains(t, strings.ToLower(fmt.Sprint(body["error"])), "visibility")
+	assert.Contains(t, strings.ToLower(fmt.Sprint(body["error"])), "save")
+	// La visibilidad almacenada no cambio.
+	assert.Equal(t, true, updater.events[event.ID].IsPublic)
+}
+
+// La administracion de la media responde con el DTO administrativo, igual que
+// la lectura y la escritura de las features.
+func TestAdminMedia_RespondsWithTheAdministrativeDTO(t *testing.T) {
+	ownerID := uuid.New()
+	updater := newMockEventUpdater()
+	event := createTestEventForFeatures("media-dto", "Media DTO", ownerID, models.EventFeatures{})
+	event.IsPublic = false
+	updater.AddEvent(event)
+	handler := NewAdminEventHandler(updater, updater, t.TempDir())
+
+	t.Run("upload", func(t *testing.T) {
+		var body bytes.Buffer
+		writer := multipart.NewWriter(&body)
+		require.NoError(t, writer.WriteField("type", "logo"))
+		file, err := writer.CreateFormFile("file", "logo.png")
+		require.NoError(t, err)
+		_, err = file.Write([]byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'})
+		require.NoError(t, err)
+		require.NoError(t, writer.Close())
+
+		router := gin.New()
+		router.Use(func(c *gin.Context) {
+			c.Set("event", event)
+			c.Next()
+		})
+		router.POST("/api/admin/events/:slug/media", handler.UploadMedia)
+		request := httptest.NewRequest(http.MethodPost, "/api/admin/events/media-dto/media", &body)
+		request.Header.Set("Content-Type", writer.FormDataContentType())
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+
+		require.Equal(t, http.StatusOK, response.Code)
+		assert.Contains(t, response.Body.String(), `"is_public":false`)
+	})
+
+	t.Run("delete", func(t *testing.T) {
+		router := gin.New()
+		router.Use(func(c *gin.Context) {
+			c.Set("event", event)
+			c.Next()
+		})
+		router.DELETE("/api/admin/events/:slug/media", handler.DeleteMedia)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, httptest.NewRequest(http.MethodDelete, "/api/admin/events/media-dto/media?type=logo", nil))
+
+		require.Equal(t, http.StatusOK, response.Code)
+		assert.Contains(t, response.Body.String(), `"is_public":false`)
+	})
 }
