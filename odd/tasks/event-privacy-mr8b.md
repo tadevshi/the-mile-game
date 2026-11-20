@@ -26,15 +26,15 @@ S8. The new strings are translated: the project has the translation files for Sp
 
 ## Tasks
 
-T1 | S1, S2, S3 | pending | Teach the loader to tell the private event (401) from the denied event (403), from the missing event (404) and from the ended one (410), and to render the new views instead of the generic error | pending
+T1 | S1, S2, S3 | done |  Teach the loader to tell the private event (401) from the denied event (403), from the missing event (404) and from the ended one (410), and to render the new views instead of the generic error | `e72b929` |
 
-T2 | S1, S4, S7 | pending | Add the private event view with the login that keeps the destination and the invitation hint, and the access denied view | pending
+T2 | S1, S4, S7 | done |  Add the private event view with the login that keeps the destination and the invitation hint, and the access denied view | `e72b929` |
 
-T3 | S5, S6 | pending | Unify the return channel in the query parameter: the protected route, the login, the registration and the redirect of the axios layer keep the destination | pending
+T3 | S5, S6 | done |  Unify the return channel in the query parameter: the protected route, the login, the registration and the redirect of the axios layer keep the destination | `18e857f` |
 
-T4 | S1, S8 | pending | Add the translations of the new strings in Spanish and English | pending
+T4 | S1, S8 | done |  Add the translations of the new strings in Spanish and English | `e72b929` |
 
-T5 | S1, S2, S5, S6 | pending | Cover the states of the loader, the views and the return channel with the focused tests, keep every original test passing, verify with the full suite and record the evidence | pending
+T5 | S1, S2, S5, S6 | done |  Cover the states of the loader, the views and the return channel with the focused tests, keep every original test passing, verify with the full suite and record the evidence | `18e857f`, `e72b929` |
 
 ## Log
 
@@ -43,3 +43,7 @@ L1. The MR8a chain was merged: the tracker #152 and the children #153 to #157 ar
 L2. The read-only map of the frontend seams (task `mwplklhv-9-xedf`) found the structural reason of the missing experience: the axios layer reacts to a 401 before the error reaches the loader, so the loader never sees it; the loader classifies only in the catch, where 404 becomes "not found", 410 becomes "ended" and everything else becomes the generic error; the protected route remembers the destination in the router state while the login page reads the `return_to` query, so the state is lost; the registration only accepts the invitation paths as a destination; and the redirect of the axios layer replaces the location without the destination.
 
 L3. Human decisions for this unit, verbatim: "Login con retorno + pista de invitación". The questionnaire that asked for the remaining details (the registration in the private view, the translation of the new strings and the ceiling of the unit) was cancelled, so the parent took the recommended defaults and recorded them here: the private view offers the login and the link to the registration, the new strings are translated in Spanish and English, and the ceiling of the unit is 700 authored additions plus deletions.
+L4. The unit was implemented in two halves with disjoint surfaces and one fixed contract between them: the return channel (the axios layer, the protected route, the login and the registration) and the views (the loader, the new component and the translations). The RED evidence was observed before each half: the channel RED showed the protected route landing on `/login` without the destination, the login navigating to `https://evil.example/steal`, the registration of a private event landing on the dashboard and the axios layer redirecting the event read without the destination; the views RED showed the loader rendering the generic "Ups, algo salió mal" screen for both a 401 and a 403, with the component not yet existing. The GREEN evidence is the focused suites, the whole frontend suite with 36 files and 409 tests in green, and a clean production build.
+L5. The unit measured 950 authored changed lines, 250 over the ceiling of 700 that the parent took after the questionnaire was cancelled. The parent did not raise the ceiling silently: the unit is delivered as two deliveries of the same chain, the return channel (476 lines) and the views with the loader and the translations (430 lines), each under the ceiling, the second one stacked on the first because the view consumes the helper of the channel.
+L6. The behavior that changed and deserves to be stated: the read of the event no longer clears the session of the visitor when the refresh does not help, so that the view can offer the login instead of expelling the visitor to the dashboard. Every other request keeps the refresh, the retry, the clearing of the tokens and the redirect with the destination.
+L7. The independent review (`jd-judge-b`, task `mwpm516a-c-rl36`) is running. No publication and no merge were performed at the time of this entry.
