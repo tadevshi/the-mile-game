@@ -171,7 +171,13 @@ func (r *EventRepository) ListByOwner(ownerID uuid.UUID) ([]models.Event, error)
 	return events, nil
 }
 
-// Update actualiza un evento
+// Update actualiza un evento.
+//
+// Esta escritura generica NO toca la visibilidad del evento: la columna
+// is_public no aparece en la sentencia. Un llamador que guarda un evento que
+// no cargo (por ejemplo el patron de drive_repository.GetEventByPostcardID,
+// que solo lee id y owner_id) nunca vuelve el evento privado por accidente.
+// La visibilidad tiene su propia escritura: UpdateVisibility.
 func (r *EventRepository) Update(event *models.Event) error {
 	featuresJSON, _ := json.Marshal(event.Features)
 	settingsJSON, _ := json.Marshal(event.Settings)
@@ -188,6 +194,20 @@ func (r *EventRepository) Update(event *models.Event) error {
 		event.Name, event.Description, featuresJSON, settingsJSON,
 		event.StartsAt, event.EndsAt, event.IsActive, event.SecretBoxToken,
 		event.InviteToken, event.ID)
+
+	return err
+}
+
+// UpdateVisibility escribe unicamente la visibilidad persistida de un evento,
+// identificado por su id. Es la unica operacion que modifica is_public.
+func (r *EventRepository) UpdateVisibility(eventID uuid.UUID, isPublic bool) error {
+	query := `
+		UPDATE events
+		SET is_public = $1
+		WHERE id = $2
+	`
+
+	_, err := r.db.Exec(query, isPublic, eventID)
 
 	return err
 }

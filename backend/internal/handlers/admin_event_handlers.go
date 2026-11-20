@@ -15,11 +15,25 @@ import (
 
 // EventUpdater define la operación para actualizar un evento.
 // Permite inyectar mocks en tests.
+//
+// La escritura no toca la visibilidad del evento: la columna is_public no
+// forma parte de esta operación.
 type EventUpdater interface {
 	Update(event *models.Event) error
 }
 
+// EventVisibilityWriter escribe la visibilidad persistida de un evento,
+// identificado por su id. Es la unica operacion que modifica is_public.
+type EventVisibilityWriter interface {
+	UpdateVisibility(eventID uuid.UUID, isPublic bool) error
+}
+
 // UpdateFeaturesRequest body para actualizar features del evento
+//
+// La visibilidad no es un campo de este cuerpo: se valida y se lee del mapa
+// JSON crudo, donde la ausencia de la clave y un valor null son cosas
+// distintas (ausente conserva la visibilidad actual, null es un bad
+// request).
 type UpdateFeaturesRequest struct {
 	Features struct {
 		Quiz      bool `json:"quiz"`
@@ -40,15 +54,17 @@ var allowedFeatures = map[string]bool{
 
 // AdminEventHandler maneja las peticiones admin de eventos
 type AdminEventHandler struct {
-	eventUpdater EventUpdater
-	uploadsDir   string
+	eventUpdater     EventUpdater
+	visibilityWriter EventVisibilityWriter
+	uploadsDir       string
 }
 
 // NewAdminEventHandler crea un nuevo handler de admin de eventos
-func NewAdminEventHandler(eventUpdater EventUpdater, uploadsDir string) *AdminEventHandler {
+func NewAdminEventHandler(eventUpdater EventUpdater, visibilityWriter EventVisibilityWriter, uploadsDir string) *AdminEventHandler {
 	return &AdminEventHandler{
-		eventUpdater: eventUpdater,
-		uploadsDir:   uploadsDir,
+		eventUpdater:     eventUpdater,
+		visibilityWriter: visibilityWriter,
+		uploadsDir:       uploadsDir,
 	}
 }
 
@@ -92,6 +108,20 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 		}
 	}
 
+	// La visibilidad es opcional: si viene, tiene que ser un booleano.
+	// Un valor invalido es un bad request y no se escribe nada.
+	isPublicProvided := false
+	isPublicValue := false
+	if rawIsPublic, exists := rawRequest["is_public"]; exists {
+		value, valid := rawIsPublic.(bool)
+		if !valid {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: 'is_public' must be a boolean"})
+			return
+		}
+		isPublicProvided = true
+		isPublicValue = value
+	}
+
 	var settingsData map[string]interface{}
 	if rawSettings, exists := rawRequest["settings"]; exists {
 		settingsData, ok = rawSettings.(map[string]interface{})
@@ -130,15 +160,46 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 		eventModel.Settings.PostcardStyle = req.Settings.PostcardStyle
 	}
 
-	// Actualizar en DB
+	// Actualizar en DB: primero las features y los ajustes, despues la
+	// visibilidad. En ese orden, el peor fallo deja el evento con la
+	// visibilidad que ya tenia.
 	if err := h.eventUpdater.Update(eventModel); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update event features"})
 		return
 	}
 
+	// La visibilidad tiene su propia escritura: la generica no la toca.
+	if isPublicProvided {
+		if err := h.visibilityWriter.UpdateVisibility(eventModel.ID, isPublicValue); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save the event visibility"})
+			return
+		}
+		eventModel.IsPublic = isPublicValue
+	}
+
 	// Devolver los campos del evento, sin credenciales que solo se sirven
-	// mediante sus endpoints administrativos dedicados.
-	c.JSON(http.StatusOK, models.NewPublicEventResponse(eventModel))
+	// mediante sus endpoints administrativos dedicados. La respuesta
+	// administrativa incluye la visibilidad persistida.
+	c.JSON(http.StatusOK, models.NewAdminEventResponse(eventModel))
+}
+
+// GetEvent GET /api/admin/events/:slug
+// Devuelve el evento con la respuesta administrativa, que incluye la
+// visibilidad persistida. La ruta vive en el grupo administrativo: el owner
+// y los colaboradores la alcanzan, un invitado no.
+func (h *AdminEventHandler) GetEvent(c *gin.Context) {
+	event, exists := c.Get("event")
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		return
+	}
+	eventModel, ok := event.(*models.Event)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid event data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.NewAdminEventResponse(eventModel))
 }
 
 // UploadMedia POST /api/admin/events/:slug/media
@@ -258,7 +319,7 @@ func (h *AdminEventHandler) UploadMedia(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"type":  mediaType,
 		"url":   publicPath,
-		"event": models.NewPublicEventResponse(eventModel),
+		"event": models.NewAdminEventResponse(eventModel),
 	})
 }
 
@@ -305,6 +366,6 @@ func (h *AdminEventHandler) DeleteMedia(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"type":  mediaType,
-		"event": models.NewPublicEventResponse(eventModel),
+		"event": models.NewAdminEventResponse(eventModel),
 	})
 }
