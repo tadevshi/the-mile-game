@@ -262,9 +262,8 @@ func TestEventVisibilityDefaultsToPublic(t *testing.T) {
 	assertVisibility("GetByInviteToken()", byInvite, true)
 
 	// La escritura explicita de la visibilidad se persiste.
-	bySlug.IsPublic = false
-	if err := repo.Update(bySlug); err != nil {
-		t.Fatalf("Update() error = %v", err)
+	if err := repo.UpdateVisibility(bySlug.ID, false); err != nil {
+		t.Fatalf("UpdateVisibility() error = %v", err)
 	}
 
 	reloaded, err := repo.GetBySlug("public-by-default")
@@ -273,9 +272,8 @@ func TestEventVisibilityDefaultsToPublic(t *testing.T) {
 	}
 	assertVisibility("GetBySlug()", reloaded, false)
 
-	reloaded.IsPublic = true
-	if err := repo.Update(reloaded); err != nil {
-		t.Fatalf("Update() error = %v", err)
+	if err := repo.UpdateVisibility(reloaded.ID, true); err != nil {
+		t.Fatalf("UpdateVisibility() error = %v", err)
 	}
 
 	reloadedAgain, err := repo.GetBySlug("public-by-default")
@@ -285,8 +283,8 @@ func TestEventVisibilityDefaultsToPublic(t *testing.T) {
 	assertVisibility("GetBySlug()", reloadedAgain, true)
 }
 
-// Los demás llamadores de Update() cargan el evento desde la base antes de
-// guardarlo: la visibilidad que lei conserve la que estaba almacenada.
+// La escritura generica del evento nunca toca la visibilidad: cualquier
+// llamador la conserva, haya cargado el evento o no.
 func TestEventUpdatePreservesVisibilityForCallersThatLoadFromDatabase(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
@@ -301,9 +299,8 @@ func TestEventUpdatePreservesVisibilityForCallersThatLoadFromDatabase(t *testing
 		t.Fatalf("Create() error = %v", err)
 	}
 
-	created.IsPublic = false
-	if err := repo.Update(created); err != nil {
-		t.Fatalf("Update() error = %v", err)
+	if err := repo.UpdateVisibility(created.ID, false); err != nil {
+		t.Fatalf("UpdateVisibility() error = %v", err)
 	}
 
 	assertPrivate := func(method string, event *models.Event) {
@@ -633,4 +630,137 @@ func TestMigrationBackfill(t *testing.T) {
 
 	// Por ahora, este test es un placeholder que documenta el requisito
 	t.Log("Migration backfill test: Verifies existing data is assigned to legacy event")
+}
+
+// La escritura generica del evento nunca toca la visibilidad. Un llamador que
+// guarda un evento que no cargo (por ejemplo el patron de
+// drive_repository.GetEventByPostcardID, que solo lee id y owner_id) no puede
+// volver el evento privado por accidente.
+func TestEventUpdateNeverWritesVisibility(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	defer cleanupTestData(t, db)
+
+	user := createTestUser(t, db)
+	repo := NewEventRepository(db)
+
+	created, err := repo.Create(user.ID, "update-never-writes-visibility", "Update Never Writes Visibility", "",
+		models.EventFeatures{Quiz: true}, models.EventSettings{}, nil, nil)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	// El evento se vuelve privado con la escritura dedicada.
+	if err := repo.UpdateVisibility(created.ID, false); err != nil {
+		t.Fatalf("UpdateVisibility() error = %v", err)
+	}
+
+	// Un evento que no fue cargado: la visibilidad es el valor cero.
+	unloaded := &models.Event{
+		ID:          created.ID,
+		Slug:        created.Slug,
+		OwnerID:     created.OwnerID,
+		Name:        "Renamed",
+		Description: "Renamed by a caller that never loaded the event",
+		Features:    models.EventFeatures{Corkboard: true},
+		Settings:    models.EventSettings{Theme: "classic"},
+		IsActive:    true,
+	}
+	if err := repo.Update(unloaded); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	reloaded, err := repo.GetBySlug("update-never-writes-visibility")
+	if err != nil {
+		t.Fatalf("GetBySlug() error = %v", err)
+	}
+	if reloaded.IsPublic {
+		t.Error("GetBySlug() IsPublic = true, want the private visibility that was stored")
+	}
+	if reloaded.Name != "Renamed" {
+		t.Errorf("GetBySlug() Name = %q, want %q", reloaded.Name, "Renamed")
+	}
+	if !reloaded.Features.Corkboard {
+		t.Error("GetBySlug() Features.Corkboard = false, want the persisted features")
+	}
+
+	// Tampoco un modelo que afirma ser publico cambia la visibilidad.
+	claimingPublic := *reloaded
+	claimingPublic.IsPublic = true
+	if err := repo.Update(&claimingPublic); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	reloadedAgain, err := repo.GetBySlug("update-never-writes-visibility")
+	if err != nil {
+		t.Fatalf("GetBySlug() error = %v", err)
+	}
+	if reloadedAgain.IsPublic {
+		t.Error("GetBySlug() IsPublic = true, want the private visibility that was stored")
+	}
+}
+
+// La escritura dedicada de la visibilidad cambia solo la visibilidad.
+func TestEventUpdateVisibilityChangesOnlyTheVisibility(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	defer cleanupTestData(t, db)
+
+	user := createTestUser(t, db)
+	repo := NewEventRepository(db)
+
+	created, err := repo.Create(user.ID, "visibility-only", "Visibility Only", "Description",
+		models.EventFeatures{Quiz: true}, models.EventSettings{}, nil, nil)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	other, err := repo.Create(user.ID, "visibility-other", "Visibility Other", "",
+		models.EventFeatures{}, models.EventSettings{}, nil, nil)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	// Un cambio de contenido por la escritura generica.
+	loaded, err := repo.GetByID(created.ID)
+	if err != nil {
+		t.Fatalf("GetByID() error = %v", err)
+	}
+	loaded.Name = "Visibility Only Renamed"
+	loaded.Features.Corkboard = true
+	loaded.Settings.Theme = "classic"
+	if err := repo.Update(loaded); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	// La escritura dedicada de la visibilidad.
+	if err := repo.UpdateVisibility(created.ID, false); err != nil {
+		t.Fatalf("UpdateVisibility() error = %v", err)
+	}
+
+	reloaded, err := repo.GetByID(created.ID)
+	if err != nil {
+		t.Fatalf("GetByID() error = %v", err)
+	}
+	if reloaded.IsPublic {
+		t.Error("GetByID() IsPublic = true, want false")
+	}
+	if reloaded.Name != "Visibility Only Renamed" {
+		t.Errorf("GetByID() Name = %q, want %q", reloaded.Name, "Visibility Only Renamed")
+	}
+	if !reloaded.Features.Quiz || !reloaded.Features.Corkboard {
+		t.Errorf("GetByID() Features = %+v, want the persisted features", reloaded.Features)
+	}
+	if reloaded.Settings.Theme != "classic" {
+		t.Errorf("GetByID() Settings.Theme = %q, want %q", reloaded.Settings.Theme, "classic")
+	}
+
+	// Otro evento del mismo owner no cambia.
+	reloadedOther, err := repo.GetByID(other.ID)
+	if err != nil {
+		t.Fatalf("GetByID() error = %v", err)
+	}
+	if !reloadedOther.IsPublic {
+		t.Error("GetByID() of another event IsPublic = false, want true")
+	}
 }

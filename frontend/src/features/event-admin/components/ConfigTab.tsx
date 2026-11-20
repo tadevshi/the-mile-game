@@ -21,6 +21,44 @@ interface ConfigTabProps {
   previewTheme?: PreviewTheme;
 }
 
+interface VisibilitySwitchProps {
+  /** La visibilidad ya se conoce (la lectura administrativa resolvió). */
+  known: boolean;
+  /** El evento es privado. */
+  checked: boolean;
+  onChange: (privateEvent: boolean) => void;
+}
+
+/**
+ * Interruptor de la visibilidad del evento.
+ *
+ * Mientras la visibilidad no se conoce, el control queda deshabilitado y sin
+ * valor declarado: el panel no afirma nada sobre el evento hasta que la
+ * lectura administrativa responde.
+ */
+function VisibilitySwitch({ known, checked, onChange }: VisibilitySwitchProps) {
+  if (!known) {
+    return (
+      <button
+        type="button"
+        role="switch"
+        disabled
+        aria-busy="true"
+        aria-label="Evento privado"
+        className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-not-allowed rounded-full border-2 border-transparent opacity-50"
+        style={{ backgroundColor: 'rgba(156, 163, 175, 0.4)' }}
+      >
+        <span
+          aria-hidden="true"
+          className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0"
+        />
+      </button>
+    );
+  }
+
+  return <Switch checked={checked} onChange={onChange} aria-label="Evento privado" />;
+}
+
 export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
   const { event, refetchEvent } = useEventAdmin(slug);
   const { currentTheme } = useTheme();
@@ -37,13 +75,24 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
     secretBox: false,
   });
   const [postcardStyle, setPostcardStyle] = useState<PostcardStyle>('classic');
-  const [isPublic, setIsPublic] = useState(true);
-  // Marca que el administrador movió el interruptor: entonces la respuesta
-  // tardía del servidor no debe pisar su decisión.
+  // La visibilidad del evento, junto con el slug al que pertenece: mientras
+  // no se conoce vale null y el panel no afirma ningún valor sobre el evento.
+  // Al cambiar el slug, la entrada del evento anterior no se usa para el
+  // nuevo: la visibilidad de un evento nunca se arrastra a otro.
+  const [visibilityState, setVisibilityState] = useState<{
+    slug: string;
+    value: boolean | null;
+  }>({ slug, value: null });
+  const visibility = visibilityState.slug === slug ? visibilityState.value : null;
+  // Marca que el administrador movió el interruptor en esta sesión: solo
+  // entonces el guardado informa la visibilidad; si no, el backend conserva la
+  // almacenada.
   const visibilityTouchedRef = useRef(false);
-  // Marca que ya se conoce la visibilidad real del evento: si no se sabe,
-  // el guardado no la informa y el backend conserva la almacenada.
+  // Marca que ya se conoce la visibilidad real del evento.
   const visibilityKnownRef = useRef(false);
+  // Marca que el panel escribió una visibilidad: ninguna respuesta posterior la
+  // pisa, el panel sigue mostrando lo que escribió hasta que se cargue de nuevo.
+  const visibilityWrittenRef = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -109,15 +158,29 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
     setPostcardStyle(getPostcardStyle(event?.settings?.postcard_style));
   }, [event?.settings?.postcard_style]);
 
+  // Al cambiar el slug (otra ruta del panel) el estado de la visibilidad se
+  // reinicia: las marcas de la sesión anterior no aplican al evento nuevo.
+  useEffect(() => {
+    visibilityKnownRef.current = false;
+    visibilityTouchedRef.current = false;
+    visibilityWrittenRef.current = false;
+  }, [slug]);
+
   // La visibilidad viene de la respuesta administrativa del evento
   useEffect(() => {
-    if (typeof event?.is_public === 'boolean') {
-      visibilityKnownRef.current = true;
-      if (!visibilityTouchedRef.current) {
-        setIsPublic(event.is_public);
-      }
-    }
-  }, [event?.is_public]);
+    const serverVisibility = event?.is_public;
+    if (typeof serverVisibility !== 'boolean') return;
+    // La respuesta debe ser del evento de la ruta: si no, es una respuesta
+    // vieja de otro evento.
+    if (event?.slug && event.slug !== slug) return;
+    visibilityKnownRef.current = true;
+    // Una respuesta que llega después de una escritura no reemplaza el valor
+    // que el panel escribió.
+    if (visibilityWrittenRef.current) return;
+    // La decisión del administrador manda sobre la respuesta del servidor.
+    if (visibilityTouchedRef.current) return;
+    setVisibilityState({ slug, value: serverVisibility });
+  }, [event, slug]);
 
   const handleToggle = (key: keyof EventFeatures) => (checked: boolean) => {
     setFeatures((prev) => ({ ...prev, [key]: checked }));
@@ -127,7 +190,7 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
 
   const handleToggleVisibility = (privateEvent: boolean) => {
     visibilityTouchedRef.current = true;
-    setIsPublic(!privateEvent);
+    setVisibilityState({ slug, value: !privateEvent });
     setSuccess(false);
     setError(null);
   };
@@ -138,15 +201,30 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
     setSuccess(false);
 
     try {
-      const updatedEvent = await api.updateEventFeatures(slug, features, {
+      // La visibilidad solo viaja si el administrador la movió en esta sesión y
+      // el panel la conoce. Si no se movió, el backend conserva la almacenada.
+      const writtenVisibility =
+        visibilityTouchedRef.current && visibilityKnownRef.current && visibility !== null
+          ? visibility
+          : null;
+
+      const options: { postcard_style: PostcardStyle; is_public?: boolean } = {
         postcard_style: postcardStyle,
-        is_public: visibilityKnownRef.current ? isPublic : undefined,
-      });
-      syncSettings(slug, updatedEvent.settings);
-      visibilityTouchedRef.current = false;
-      if (typeof updatedEvent.is_public === 'boolean') {
-        setIsPublic(updatedEvent.is_public);
+      };
+      if (writtenVisibility !== null) {
+        options.is_public = writtenVisibility;
       }
+
+      const updatedEvent = await api.updateEventFeatures(slug, features, options);
+      syncSettings(slug, updatedEvent.settings);
+
+      if (writtenVisibility !== null) {
+        // Lo que el panel escribió manda: ninguna respuesta posterior lo pisa.
+        visibilityWrittenRef.current = true;
+        visibilityTouchedRef.current = false;
+        setVisibilityState({ slug, value: writtenVisibility });
+      }
+
       setSuccess(true);
       refetchEvent();
       setTimeout(() => setSuccess(false), 3000);
@@ -251,10 +329,10 @@ export function ConfigTab({ slug, previewTheme }: ConfigTabProps) {
                 Solo el propietario, los colaboradores y los invitados pueden verlo
               </p>
             </div>
-            <Switch
-              checked={!isPublic}
+            <VisibilitySwitch
+              known={visibility !== null}
+              checked={visibility === false}
               onChange={handleToggleVisibility}
-              aria-label="Evento privado"
             />
           </div>
         </div>

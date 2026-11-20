@@ -15,11 +15,25 @@ import (
 
 // EventUpdater define la operación para actualizar un evento.
 // Permite inyectar mocks en tests.
+//
+// La escritura no toca la visibilidad del evento: la columna is_public no
+// forma parte de esta operación.
 type EventUpdater interface {
 	Update(event *models.Event) error
 }
 
+// EventVisibilityWriter escribe la visibilidad persistida de un evento,
+// identificado por su id. Es la unica operacion que modifica is_public.
+type EventVisibilityWriter interface {
+	UpdateVisibility(eventID uuid.UUID, isPublic bool) error
+}
+
 // UpdateFeaturesRequest body para actualizar features del evento
+//
+// La visibilidad no es un campo de este cuerpo: se valida y se lee del mapa
+// JSON crudo, donde la ausencia de la clave y un valor null son cosas
+// distintas (ausente conserva la visibilidad actual, null es un bad
+// request).
 type UpdateFeaturesRequest struct {
 	Features struct {
 		Quiz      bool `json:"quiz"`
@@ -29,9 +43,6 @@ type UpdateFeaturesRequest struct {
 	Settings *struct {
 		PostcardStyle models.PostcardStyle `json:"postcard_style"`
 	} `json:"settings,omitempty"`
-	// IsPublic es la visibilidad persistida del evento. Ausente = se conserva
-	// la actual; presente = debe ser un booleano.
-	IsPublic *bool `json:"is_public,omitempty"`
 }
 
 // allowedFeatures keys que se pueden actualizar
@@ -43,15 +54,17 @@ var allowedFeatures = map[string]bool{
 
 // AdminEventHandler maneja las peticiones admin de eventos
 type AdminEventHandler struct {
-	eventUpdater EventUpdater
-	uploadsDir   string
+	eventUpdater     EventUpdater
+	visibilityWriter EventVisibilityWriter
+	uploadsDir       string
 }
 
 // NewAdminEventHandler crea un nuevo handler de admin de eventos
-func NewAdminEventHandler(eventUpdater EventUpdater, uploadsDir string) *AdminEventHandler {
+func NewAdminEventHandler(eventUpdater EventUpdater, visibilityWriter EventVisibilityWriter, uploadsDir string) *AdminEventHandler {
 	return &AdminEventHandler{
-		eventUpdater: eventUpdater,
-		uploadsDir:   uploadsDir,
+		eventUpdater:     eventUpdater,
+		visibilityWriter: visibilityWriter,
+		uploadsDir:       uploadsDir,
 	}
 }
 
@@ -146,14 +159,22 @@ func (h *AdminEventHandler) UpdateEventFeatures(c *gin.Context) {
 	if settingsData != nil && settingsData["postcard_style"] != nil {
 		eventModel.Settings.PostcardStyle = req.Settings.PostcardStyle
 	}
-	if isPublicProvided {
-		eventModel.IsPublic = isPublicValue
-	}
 
-	// Actualizar en DB
+	// Actualizar en DB: primero las features y los ajustes, despues la
+	// visibilidad. En ese orden, el peor fallo deja el evento con la
+	// visibilidad que ya tenia.
 	if err := h.eventUpdater.Update(eventModel); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update event features"})
 		return
+	}
+
+	// La visibilidad tiene su propia escritura: la generica no la toca.
+	if isPublicProvided {
+		if err := h.visibilityWriter.UpdateVisibility(eventModel.ID, isPublicValue); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save the event visibility"})
+			return
+		}
+		eventModel.IsPublic = isPublicValue
 	}
 
 	// Devolver los campos del evento, sin credenciales que solo se sirven
@@ -298,7 +319,7 @@ func (h *AdminEventHandler) UploadMedia(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"type":  mediaType,
 		"url":   publicPath,
-		"event": models.NewPublicEventResponse(eventModel),
+		"event": models.NewAdminEventResponse(eventModel),
 	})
 }
 
@@ -345,6 +366,6 @@ func (h *AdminEventHandler) DeleteMedia(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"type":  mediaType,
-		"event": models.NewPublicEventResponse(eventModel),
+		"event": models.NewAdminEventResponse(eventModel),
 	})
 }
