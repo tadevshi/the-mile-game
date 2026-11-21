@@ -6,33 +6,19 @@ import { UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '@/shared/components/Button';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
+import { buildLoginUrl, resolveReturnTo } from '@/shared/lib/api';
 
 type PasswordStrength = 'weak' | 'medium' | 'strong';
-
-function getGuestInvitationReturnTo(value: string | null): string {
-  if (!value) return '/dashboard';
-
-  try {
-    const target = new URL(value, window.location.origin);
-    const segments = target.pathname.split('/').filter(Boolean);
-    if (target.origin !== window.location.origin || segments.length !== 2 || segments[0] !== 'guest-join') {
-      return '/dashboard';
-    }
-    return `${target.pathname}${target.search}`;
-  } catch {
-    return '/dashboard';
-  }
-}
 
 export function RegisterPage() {
   const { t } = useTranslation();
   const { register, isLoading, error, clearError, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const returnTo = getGuestInvitationReturnTo(searchParams.get('return_to'));
-  const loginHref = returnTo === '/dashboard'
-    ? '/login'
-    : `/login?return_to=${encodeURIComponent(returnTo)}`;
+  const returnToParam = searchParams.get('return_to');
+  // The destination is any path of the same origin, not only an invitation.
+  const returnTo = resolveReturnTo(returnToParam);
+  const loginHref = buildLoginUrl(returnToParam);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -43,7 +29,8 @@ export function RegisterPage() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>('weak');
 
-  // Return invited guests to their link; ordinary registration still goes to the dashboard.
+  // Return to the destination the visitor came from; ordinary registration
+  // still goes to the dashboard.
   useEffect(() => {
     if (isAuthenticated) {
       navigate(returnTo, { replace: true });

@@ -270,5 +270,14 @@
     "notFound": "Not found",
     "unauthorized": "Unauthorized",
     "serverError": "Server error"
+  },
+  "privateEvent": {
+    "eventNameLabel": "Event",
+    "privateTitle": "This event is private",
+    "privateDescription": "Sign in to see the content of this event.",
+    "deniedTitle": "You don't have access to this event",
+    "deniedDescription": "Your account is not a guest of this event.",
+    "login": "Sign in",
+    "invitationHint": "If you were invited, ask the organizer to share the invitation link with you:"
   }
 }

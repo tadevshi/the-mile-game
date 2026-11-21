@@ -76,7 +76,8 @@ describe('admin route compatibility', () => {
     auth.isAuthenticated = false;
     visit(path);
     await waitFor(() => expect(window.location.pathname).toBe('/login'));
-    expect(screen.getByTestId('page')).toHaveTextContent(`login||/login|${path === '/admin' ? '/dashboard' : path.replace('/admin/party', '/e/party/admin')}`);
+    const destination = path === '/admin' ? '/dashboard' : path.replace('/admin/party', '/e/party/admin');
+    expect(screen.getByTestId('page')).toHaveTextContent(`login||/login?return_to=${encodeURIComponent(destination)}|`);
   });
 });
 
@@ -101,7 +102,7 @@ describe('existing route callers', () => {
     auth.isAuthenticated = false;
     visit(path);
     await waitFor(() => expect(window.location.pathname).toBe('/login'));
-    expect(screen.getByTestId('page')).toHaveTextContent(`login||/login|${path}`);
+    expect(screen.getByTestId('page')).toHaveTextContent(`login||/login?return_to=${encodeURIComponent(path)}|`);
   });
 
   it('routes guest invitations separately from collaborator invitations', () => {
