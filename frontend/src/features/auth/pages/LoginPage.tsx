@@ -6,6 +6,7 @@ import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '@/shared/components/Button';
 import { LoadingSpinner } from '@/shared/components/LoadingSpinner';
+import { buildRegisterUrl, resolveReturnTo } from '@/shared/lib/api';
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -13,10 +14,9 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnToParam = searchParams.get('return_to');
-  const returnTo = returnToParam || '/dashboard';
-  const registerHref = returnToParam?.startsWith('/guest-join/')
-    ? `/register?return_to=${encodeURIComponent(returnToParam)}`
-    : '/register';
+  // The destination is a path of the same origin; anything else is ignored.
+  const returnTo = resolveReturnTo(returnToParam);
+  const registerHref = buildRegisterUrl(returnToParam);
 
   const [formData, setFormData] = useState({
     email: '',
