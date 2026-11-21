@@ -136,6 +136,75 @@ export interface WsTicket {
   protocol: string;
 }
 
+// ==========================================
+// Return channel
+// There is ONE channel for the destination of the visitor: the `return_to`
+// query parameter. The destination is always a path of the same origin; a
+// destination that points elsewhere is ignored.
+// ==========================================
+
+const DEFAULT_RETURN_TO = '/dashboard';
+
+function currentOrigin(): string {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return 'http://localhost';
+}
+
+/** True when the value is a path of the same origin. */
+export function isSameOriginPath(value: string | null | undefined): boolean {
+  if (!value) return false;
+  // Only a path of the same origin: no absolute URL, no protocol relative URL.
+  if (!value.startsWith('/') || value.startsWith('//')) return false;
+  try {
+    return new URL(value, currentOrigin()).origin === currentOrigin();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The path (with its query) of the destination, or the fallback when the
+ * destination points elsewhere.
+ */
+export function resolveReturnTo(
+  value: string | null | undefined,
+  fallback: string = DEFAULT_RETURN_TO,
+): string {
+  if (!isSameOriginPath(value)) return fallback;
+  try {
+    const target = new URL(value as string, currentOrigin());
+    return `${target.pathname}${target.search}`;
+  } catch {
+    return fallback;
+  }
+}
+
+/** The path and the query of the page the visitor is on. */
+export function currentPath(): string {
+  if (typeof window === 'undefined' || !window.location) return '/';
+  return `${window.location.pathname}${window.location.search}`;
+}
+
+/** The login URL that keeps the destination of the visitor. */
+export function buildLoginUrl(destination?: string | null): string {
+  if (!destination || !isSameOriginPath(destination)) return '/login';
+  return `/login?return_to=${encodeURIComponent(resolveReturnTo(destination))}`;
+}
+
+/** The registration URL that keeps the destination of the visitor. */
+export function buildRegisterUrl(destination?: string | null): string {
+  if (!destination || !isSameOriginPath(destination)) return '/register';
+  return `/register?return_to=${encodeURIComponent(resolveReturnTo(destination))}`;
+}
+
+/** Request config of the reads that must reach the caller with their status. */
+type AuthFailureAwareConfig = AxiosRequestConfig & {
+  /** The failure reaches the caller with its status instead of redirecting. */
+  propagateAuthFailure?: boolean;
+};
+
 // Cliente API
 const PLAYER_ID_KEY = 'mile-game-player-id';
 const PLAYER_EVENT_KEY = 'mile-game-player-event'; // Guardar el eventSlug del player
@@ -191,15 +260,24 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
-        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean; headers?: Record<string, string> };
-        
+        const originalRequest = (error.config ?? {}) as AxiosRequestConfig & {
+          _retry?: boolean;
+          headers?: Record<string, string>;
+          propagateAuthFailure?: boolean;
+        };
+
+        // The read of the event must reach the caller with its status, so the
+        // view can tell a private event (401) from a denied one (403). The
+        // session of the visitor is kept: the event view offers the login.
+        const isEventRead = originalRequest.propagateAuthFailure === true;
+
         // Skip auth handling for Secret Box requests (they use X-Secret-Token, not JWT)
         const isSecretBoxRequest = originalRequest.headers?.['X-Secret-Token'];
         if (isSecretBoxRequest && error.response?.status === 401) {
           // Let the component handle the error (show invalid token message)
           return Promise.reject(error);
         }
-        
+
         // If 401 and haven't tried refresh yet, try to refresh token
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
@@ -221,31 +299,29 @@ class ApiClient {
               return this.client(originalRequest);
             }
           } catch (refreshError) {
+            if (isEventRead) {
+              // The failure reaches the caller with its status.
+              return Promise.reject(error);
+            }
             console.warn('Token refresh failed, redirecting to login...');
             // Refresh failed, clear auth and redirect
-            try {
-              localStorage.removeItem('auth-token');
-              localStorage.removeItem('auth-refresh');
-              localStorage.removeItem('auth-user');
-            } catch {
-              // localStorage unavailable
-            }
-            // Use replace to avoid history stack buildup
-            window.location.replace('/login');
+            this.clearAuthSession();
+            // Use replace to avoid history stack buildup, and keep the
+            // destination of the visitor in the query parameter.
+            window.location.replace(buildLoginUrl(currentPath()));
             return Promise.reject(refreshError);
           }
         }
-        
+
         // If 401 and already retried or no refresh token, clear auth
         if (error.response?.status === 401) {
-          try {
-            localStorage.removeItem('auth-token');
-            localStorage.removeItem('auth-refresh');
-            localStorage.removeItem('auth-user');
-          } catch {
-            // localStorage unavailable
+          if (isEventRead) {
+            // The failure reaches the caller with its status.
+            return Promise.reject(error);
           }
-          window.location.replace('/login');
+          this.clearAuthSession();
+          // The destination of the visitor travels in the query parameter.
+          window.location.replace(buildLoginUrl(currentPath()));
         }
         return Promise.reject(error);
       }
@@ -263,6 +339,17 @@ class ApiClient {
         return Promise.reject(error);
       }
     );
+  }
+
+  /** Borra la sesión del visitante (tokens y usuario guardado). */
+  private clearAuthSession() {
+    try {
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('auth-refresh');
+      localStorage.removeItem('auth-user');
+    } catch {
+      // localStorage unavailable
+    }
   }
 
   // Guardar player ID para requests posteriores (persiste en localStorage)
@@ -569,7 +656,10 @@ class ApiClient {
   }
 
   async getEventBySlug(slug: string): Promise<Event> {
-    const response = await this.client.get<Event>(`/events/${slug}`);
+    // La lectura del evento llega al llamador con su estado (401 privado,
+    // 403 denegado, 404 inexistente, 410 terminado) en lugar de redirigir.
+    const config: AuthFailureAwareConfig = { propagateAuthFailure: true };
+    const response = await this.client.get<Event>(`/events/${slug}`, config);
     return response.data;
   }
 

@@ -2,9 +2,9 @@
 
 Scope: the second half of the issue #108 Delivery 2 unit T4. After MR8a an event can be private, and the backend answers 401 for a request without an identity and 403 for an authenticated account that is not a member. The frontend does not know the difference: it shows a generic error, and the axios layer sends the visitor to the login without remembering where they were. This unit gives the visitor a real experience: a private event view with a login that keeps the destination, an access denied view, and the hint to ask the organizer for an invitation.
 
-Base: `origin/main` (`5210e31`, with MR3 to MR8a merged). Branch: `feat/event-privacy-mr8b-visitor-experience`.
+Base: `main` (`5210e31`, with MR3 to MR8a merged). Feature tracker: `feat/event-privacy-mr8b-tracker`; children: `feat/event-privacy-mr8b-01-return-channel` and `feat/event-privacy-mr8b-02-visitor-views`.
 
-Risk: item 3 (the loader, the axios layer, the protected route and the authentication pages are shared by the whole frontend), item 4 (the return channel changes the behaviour of the login and of the registration), item 6 (the current frontend tests do not cover the error states of the loader nor the return channel). Budget: 700 authored additions plus deletions, the default taken after the questionnaire of the scope was cancelled.
+Risk: item 3 (the loader, the axios layer, the protected route and the authentication pages are shared by the whole frontend), item 4 (the return channel changes the behaviour of the login and of the registration), item 6 (the current frontend tests do not cover the error states of the loader nor the return channel). Initial budget: 700 authored additions plus deletions; later explicitly raised by the user to 1,038.
 
 ## Specs
 
@@ -26,15 +26,15 @@ S8. The new strings are translated: the project has the translation files for Sp
 
 ## Tasks
 
-T1 | S1, S2, S3 | pending | Teach the loader to tell the private event (401) from the denied event (403), from the missing event (404) and from the ended one (410), and to render the new views instead of the generic error | pending
+T1 | S1, S2, S3 | done |  Teach the loader to tell the private event (401) from the denied event (403), from the missing event (404) and from the ended one (410), and to render the new views instead of the generic error | `f4a4601` |
 
-T2 | S1, S4, S7 | pending | Add the private event view with the login that keeps the destination and the invitation hint, and the access denied view | pending
+T2 | S1, S4, S7 | done |  Add the private event view with the login that keeps the destination and the invitation hint, and the access denied view | `f4a4601` |
 
-T3 | S5, S6 | pending | Unify the return channel in the query parameter: the protected route, the login, the registration and the redirect of the axios layer keep the destination | pending
+T3 | S5, S6 | done |  Unify the return channel in the query parameter: the protected route, the login, the registration and the redirect of the axios layer keep the destination | `c1215b3` |
 
-T4 | S1, S8 | pending | Add the translations of the new strings in Spanish and English | pending
+T4 | S1, S8 | done |  Add the translations of the new strings in Spanish and English | `f4a4601` |
 
-T5 | S1, S2, S5, S6 | pending | Cover the states of the loader, the views and the return channel with the focused tests, keep every original test passing, verify with the full suite and record the evidence | pending
+T5 | S1, S2, S5, S6 | done |  Cover the states of the loader, the views and the return channel with the focused tests, keep every original test passing, verify with the full suite and record the evidence | `c1215b3`, `a0d52bd`, `f4a4601` |
 
 ## Log
 
@@ -43,3 +43,9 @@ L1. The MR8a chain was merged: the tracker #152 and the children #153 to #157 ar
 L2. The read-only map of the frontend seams (task `mwplklhv-9-xedf`) found the structural reason of the missing experience: the axios layer reacts to a 401 before the error reaches the loader, so the loader never sees it; the loader classifies only in the catch, where 404 becomes "not found", 410 becomes "ended" and everything else becomes the generic error; the protected route remembers the destination in the router state while the login page reads the `return_to` query, so the state is lost; the registration only accepts the invitation paths as a destination; and the redirect of the axios layer replaces the location without the destination.
 
 L3. Human decisions for this unit, verbatim: "Login con retorno + pista de invitación". The questionnaire that asked for the remaining details (the registration in the private view, the translation of the new strings and the ceiling of the unit) was cancelled, so the parent took the recommended defaults and recorded them here: the private view offers the login and the link to the registration, the new strings are translated in Spanish and English, and the ceiling of the unit is 700 authored additions plus deletions.
+L4. The unit was implemented in two halves with disjoint surfaces and one fixed contract between them: the return channel (the axios layer, the protected route, the login and the registration) and the views (the loader, the new component and the translations). The RED evidence was observed before each half: the channel RED showed the protected route landing on `/login` without the destination, the login navigating to `https://evil.example/steal`, the registration of a private event landing on the dashboard and the axios layer redirecting the event read without the destination; the views RED showed the loader rendering the generic "Ups, algo salió mal" screen for both a 401 and a 403, with the component not yet existing. GREEN: focused suites, 36 files / 448 tests, successful build; the final targeted run passed 2 files / 57 tests.
+L5. The complete unit diff from `main` measures 1,038 authored line changes (988 additions and 50 deletions), including the task record and the destination attack tests. This exceeds the original ceiling of 700; the user explicitly authorized raising the ceiling to 1,038.
+L6. The behavior that changed and deserves to be stated: the read of the event no longer clears the session of the visitor when the refresh does not help, so that the view can offer the login instead of expelling the visitor to the dashboard. Every other request keeps the refresh, the retry, the clearing of the tokens and the redirect with the destination.
+L7. Independent bounded verification by `gentle-ai-verify` (task `mwpsoczi-g-cprq`) confirmed the interceptor and loader behavior by code inspection; it could not run tests in its helper environment. The parent ran the focused tests successfully: 2 files / 57 tests. The full frontend suite is 36 files / 448 tests, and the production build passed. This was not a broad adversarial review or browser verification.
+L8. The parent exercised 14 destination shapes against the login and registration: ten foreign forms were discarded and four same-origin paths (including normalized newline/backslash paths and `/@evil.example`) were retained. The permanent test suite now has 52 tests in `ReturnChannel.test.tsx`; it checks the foreign forms are discarded and same-origin paths survive. The visitor view and protected-route paths were not all exercised for every attack shape.
+L9. The user selected a feature-branch chain. Tracker: `feat/event-privacy-mr8b-tracker` (45 changed lines); child 1 `feat/event-privacy-mr8b-01-return-channel` (607 changed lines, one cohesive return-channel behavior with tests; 207 above the advisory 400-line budget); child 2 `feat/event-privacy-mr8b-02-visitor-views` (400 changed lines, views with their tests and evidence). The first slice cannot be subdivided without separating the unified return-channel behavior from its tests. No PR has yet been published and no merge has been performed.
