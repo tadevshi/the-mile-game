@@ -1,4 +1,17 @@
-# MR8a — Administrative activation of the private event
+# MR8a — Administrative activation of the private event — Archived
+
+Issue: https://github.com/tadevshi/the-mile-game/issues/108
+Status: T1–T4 completed and integrated in `main`; issue #108 was closed at the user's direction after manual confirmation.
+Final integrated target: `main` at `97e22bf72a55e86c1127244c884df737ba1df386`.
+Original task path: `odd/tasks/event-privacy-mr8a.md`.
+
+## Closure
+
+- The implementation, review, CI, and Docker evidence recorded in T1–T4 is retained below and is present in the merged privacy sequence on `main`.
+- MR8b completed the visitor-facing half; its integrated checks and the user's subsequent manual confirmation are recorded in `event-privacy-mr8b.md` in this archive.
+- Earlier statements below that publication/merge had not occurred or that issue #108 remained open describe the state at that log entry and are superseded by this closure.
+
+## Original task record
 
 Scope: the first half of the last privacy unit. The visibility is persisted and enforced since MR3, and the HTTP, legacy, WebSocket and media surfaces protect it since MR3 to MR7. What does not exist is the administrative write that makes an event private, and the admin panel that would use it. This unit adds that write, the admin response that exposes the current value, and the switch in the event settings. The experience of a visitor that meets a private event is the second half (MR8b).
 

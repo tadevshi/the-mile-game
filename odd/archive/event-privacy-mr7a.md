@@ -1,4 +1,17 @@
-# MR7a — Media served by the backend under the current event policy
+# MR7a — Media served by the backend under the current event policy — Archived
+
+Issue: https://github.com/tadevshi/the-mile-game/issues/108
+Status: T1–T3 completed and integrated in `main`; issue #108 was closed at the user's direction after manual confirmation.
+Final integrated target: `main` at `97e22bf72a55e86c1127244c884df737ba1df386`.
+Original task path: `odd/tasks/event-privacy-mr7a.md`.
+
+## Closure
+
+- The implementation and delivery work recorded in T1–T3 is present in the merged privacy sequence on `main`.
+- The Docker media checks and the independent review/re-review evidence remain in the task log below; the later MR8b closure record captures the final integrated HTTP/media/WebSocket and Orca checks.
+- Earlier statements below that the chain was unpublished or unmerged describe the state at that log entry and are superseded by the merged-main state.
+
+## Original task record
 
 Scope: the first half of the issue #108 Delivery 2 unit T3c. The stored media keeps its paths, but the backend serves it and resolves every file to its event before answering, so a media URL stops being a public shortcut to the content of a private event. The native browser credential and the service worker cache are the second half (MR7b).
 
