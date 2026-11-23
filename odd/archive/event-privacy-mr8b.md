@@ -1,4 +1,21 @@
-# MR8b — The private event experience of a visitor
+# MR8b — The private event experience of a visitor — Archived
+
+Issue: https://github.com/tadevshi/the-mile-game/issues/108
+Status: implementation merged; issue #108 closed at the user's direction after they confirmed their manual checks of the links, login, and invitation.
+Final integrated target: `main` at `97e22bf72a55e86c1127244c884df737ba1df386`.
+Original task path: `odd/tasks/event-privacy-mr8b.md`.
+
+## Closure
+
+- The MR8b chain is merged: tracker PR [#158](https://github.com/tadevshi/the-mile-game/pull/158), return-channel PR [#159](https://github.com/tadevshi/the-mile-game/pull/159), and visitor-views PR [#160](https://github.com/tadevshi/the-mile-game/pull/160).
+- On merged `main`, 21 integrated content/admin API checks passed with expected outcomes: anonymous private reads were `401`, unrelated accounts `403`, and owner/accepted guest reads `200`; guest/outsider admin access was denied and rejected admin writes left the event private.
+- Twelve media/WebSocket probes passed: guest postcard upload `201`; private media was `401` for anonymous, `403` for an unrelated account, and `200` for guest/owner with the expected bytes and `private, no-store` cache policy. Ticket requests were `201` for owner/guest, `403` for an unrelated account, and `401` for anonymous; raw private-room handshakes were `101` for owner/guest and `401` for anonymous.
+- Orca showed the private and denied views. In the isolated browser run, guest and outsider login POSTs returned `200` and the URL returned to `/e/<slug>`, but the login DOM remained until a manual reload; no event GET was seen before reload. Reload rendered the event for the guest and the denied view (without a login action) for the outsider.
+- The private-view snapshot displayed `/guest-join/<slug>` as plain text, not an interactive link. The user later confirmed their own manual checks of the links, login, and invitation succeeded; both observations are retained here without treating them as the same test context.
+- Verification used an isolated Docker project and generated credentials; `.env` was not read. The project containers, volumes, network, images, temporary credentials/fixtures, browser tabs, and detached worktree were removed after evidence was captured.
+- Historical log entries below that say the PRs were unpublished/unmerged, issue #108 was open, or browser/Docker verification had not run describe the earlier state and are superseded by this closure.
+
+## Original task record
 
 Scope: the second half of the issue #108 Delivery 2 unit T4. After MR8a an event can be private, and the backend answers 401 for a request without an identity and 403 for an authenticated account that is not a member. The frontend does not know the difference: it shows a generic error, and the axios layer sends the visitor to the login without remembering where they were. This unit gives the visitor a real experience: a private event view with a login that keeps the destination, an access denied view, and the hint to ask the organizer for an invitation.
 

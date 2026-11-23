@@ -1,4 +1,17 @@
-# MR5 Review Chain
+# MR5 Review Chain — Archived
+
+Issue: https://github.com/tadevshi/the-mile-game/issues/108
+Status: historical review-plan manifest archived at the user's direction; this file has no task completion status and is not a completion certificate.
+Final integrated target: `main` at `97e22bf72a55e86c1127244c884df737ba1df386`.
+Original task path: `odd/tasks/event-privacy-mr5-chain.md`.
+
+## Closure
+
+- Moved from `odd/tasks/` to `odd/archive/` at the user's request, limited to files that were in the task directory.
+- Retain the child-slice plan below as historical context; completion and verification status remain in the corresponding task records.
+- The earlier instruction to keep issue #108 open is historical; the user later directed its closure after manual validation.
+
+## Original chain manifest
 
 Review chain for MR5, the issue #108 Delivery 2 unit T3a: authenticated WebSocket room admission, current-policy per-room delivery, expiry and browser credential lifecycle. It continues the MR4 chain, so it is based on the last MR4 slice (`feat/event-privacy-mr4-09-review-fixes`, PR #129) and merges after the MR4 chain.
 

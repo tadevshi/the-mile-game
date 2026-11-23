@@ -1,4 +1,16 @@
-# Consolidate legacy admin — issue #56
+# Consolidate legacy admin — issue #56 — Archived with blocker
+
+Issue: https://github.com/tadevshi/the-mile-game/issues/56
+Status: archived at the user's direction; T1–T2 are done, but T3 remains blocked on independent route/auth proof. This is not a completion certificate.
+Original task path: `odd/tasks/consolidate-legacy-admin.md`.
+
+## Closure
+
+- Moved to `odd/archive/` at the user's request to archive records that were in `odd/tasks/`.
+- Preserve the T3 blocked status and the missing independent-verification evidence below. This archive does not claim issue #56 was closed, the blocker resolved, or an unmerged change delivered.
+
+## Original task record
+
 Objective: preserve production admin links and consolidate admin functionality. Branch: refactor/admin-route-tracker (integration), refactor/admin-consolidate-components (slice 1), refactor/admin-canonical-routes (slice 2).
 Delivery: auto-chain, feature-branch-chain (user selected); push and draft PR creation authorized by user; no merge/deploy authorized. Baseline: 51012d147975ec5f1cac8be724c3fedb3bc10d8a. Runners: frontend Vitest, TypeScript/build, Playwright.
 

@@ -1,4 +1,17 @@
-# MR7b — Native browser credential and coupled cache handling
+# MR7b — Native browser credential and coupled cache handling — Archived
+
+Issue: https://github.com/tadevshi/the-mile-game/issues/108
+Status: T1–T3 completed and integrated in `main`; issue #108 was closed at the user's direction after manual confirmation.
+Final integrated target: `main` at `97e22bf72a55e86c1127244c884df737ba1df386`.
+Original task path: `odd/tasks/event-privacy-mr7b.md`.
+
+## Closure
+
+- The implementation and delivery work recorded in T1–T3 is present in the merged privacy sequence on `main`.
+- The media credential, cache-policy, test, documentation, and Docker evidence remains in the task log below; the later MR8b closure record captures the final integrated HTTP/media/WebSocket and Orca checks.
+- Earlier statements below that the branch was unpublished or unmerged describe the state at that log entry and are superseded by the merged-main state.
+
+## Original task record
 
 Scope: the second half of the issue #108 Delivery 2 unit T3c. After MR7a the media is served by the backend under the current event policy, but a native browser element cannot send the `Authorization` header that carries the account identity, and the service worker still caches the media. This unit delivers the identity to the native media requests and couples the cache handling to the policy.
 
