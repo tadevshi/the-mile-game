@@ -1,4 +1,18 @@
-# MR3 — Visibility persistence and scoped HTTP authorization
+# MR3 — Visibility persistence and scoped HTTP authorization — Archived with blockers
+
+Issue: https://github.com/tadevshi/the-mile-game/issues/108
+Status: archived at the user's direction; T1 is done, while T2–T3 retain their recorded independent-verification blockers. This is not a completion certificate.
+Final integrated target: `main` at `97e22bf72a55e86c1127244c884df737ba1df386`.
+Original task path: `odd/tasks/event-privacy-mr3.md`.
+
+## Closure
+
+- Moved to `odd/archive/` at the user's request to archive records that were in `odd/tasks/`.
+- The later merged-main checks and the user's manual confirmation are recorded in `event-privacy-mr8b.md`; they do not rewrite this record's explicit MR3 T2–T3 verifier blocker or claim that the missing independent verifier ran.
+- Issue #108 was closed at the user's direction after their manual validation. That issue disposition does not change the preserved MR3 task statuses below.
+
+## Original task record
+
 Scope: Add default-public event visibility persistence and enforce the current scoped HTTP policy only; base `1ae06079decc4af4d31d18d4dee3fa565d00b23c`, branch `feat/event-privacy-visibility`.
 Risk: item 1 (additive database migration/backfill), item 2 (security: event visibility and authorization), item 3 (shared player/quiz-answer handlers also serve legacy routes), and item 5 (Docker build/deployment path needed for manual verification); no supported admin write may activate private visibility before the later protections are complete.
 

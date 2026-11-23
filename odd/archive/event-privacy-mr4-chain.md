@@ -1,4 +1,17 @@
-# MR4 Review Chain
+# MR4 Review Chain — Archived
+
+Issue: https://github.com/tadevshi/the-mile-game/issues/108
+Status: historical review-plan manifest archived at the user's direction; this file has no task completion status and is not a completion certificate.
+Final integrated target: `main` at `97e22bf72a55e86c1127244c884df737ba1df386`.
+Original task path: `odd/tasks/event-privacy-mr4-chain.md`.
+
+## Closure
+
+- Moved from `odd/tasks/` to `odd/archive/` at the user's request, limited to files that were in the task directory.
+- Retain the child-slice plan below as historical context; completion and verification status remain in the corresponding task records.
+- The earlier instruction to keep issue #108 open is historical; the user later directed its closure after manual validation.
+
+## Original chain manifest
 
 Review chain for MR4, the legacy API and legacy administration enforcement unit of the approved eight-MR privacy sequence. It continues the MR3 chain, so it is based on the last MR3 slice (`feat/event-privacy-mr3-06-docs-record`, PR #119) and merges after the MR3 chain.
 
