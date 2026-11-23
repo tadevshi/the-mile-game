@@ -48,6 +48,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.10.0] - 2026-11-23
+
+### Added
+- Per-event public/private visibility settings and account-linked guest invitations.
+- Same-origin `return_to` support for private-event login, separate private/denied screens, and invitation guidance.
+
+### Security
+- Enforced event visibility across scoped and legacy HTTP routes, WebSocket admission and delivery, and media serving; private media uses the authenticated browser credential and non-storable cache headers.
+- Preserved public-event access and allowed invited guests to read/play without granting administrative access.
+
+---
+
 ## [v2.0.0] - Phase 2
 
 ### Added
